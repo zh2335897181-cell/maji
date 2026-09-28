@@ -12,6 +12,7 @@ import { Modal } from '../ui/Modal';
 import { SaveStatus } from './SaveStatus';
 import { UpdateSettings } from './UpdateSettings';
 import { AISettings } from '../../features/settings/AISettings';
+import appPackage from '../../../package.json';
 import styles from './TopBar.module.css';
 
 /** 顶栏右侧插槽：编辑页把自己的操作（大纲、收藏、导出）投递到这里 */
@@ -280,7 +281,7 @@ export function TopBar({
         }
       >
         <p className={styles.aboutText}>
-          码迹 0.1.0 · 面向编程初学者的本地学习笔记。
+          码迹 {appPackage.version} · 面向编程初学者的本地学习笔记。
           <br />
           当前数据源：
           <code>{source === 'sqlite' ? ' 本机 SQLite 数据库' : ' 浏览器示例数据（localStorage）'}</code>
