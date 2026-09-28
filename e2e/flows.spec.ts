@@ -141,6 +141,27 @@ test.describe('搜索', () => {
 });
 
 test.describe('课程与笔记管理', () => {
+  test('课程方向可选择并保存 Spring Boot，代码默认语言使用 Java', async ({ page }) => {
+    await page.goto('/#/courses');
+    await page.getByRole('complementary', { name: '浏览方式' })
+      .getByRole('button', { name: '新建课程', exact: true }).click();
+
+    const dialog = page.getByRole('dialog', { name: '新建课程' });
+    await dialog.getByLabel('课程名称').fill('Spring Boot 入门');
+    await dialog.getByLabel('课程技术方向').selectOption('springboot');
+    await expect(dialog.getByLabel('课程技术方向')).toHaveValue('springboot');
+    await dialog.getByRole('button', { name: '创建课程' }).click();
+
+    await expect(page.getByText('已创建课程「Spring Boot 入门」')).toBeVisible();
+    const saved = await page.evaluate(() => {
+      const state = JSON.parse(localStorage.getItem('maji.local.v1') ?? '{}') as {
+        courses?: Array<{ name: string; track: string; language: string }>;
+      };
+      return state.courses?.find((course) => course.name === 'Spring Boot 入门');
+    });
+    expect(saved).toMatchObject({ track: 'springboot', language: 'java' });
+  });
+
   test('按课程筛选、重命名笔记、删除笔记', async ({ page }) => {
     await page.goto('/#/courses');
     await expect(page.getByText('共 15 篇笔记')).toBeVisible();
@@ -214,6 +235,33 @@ test.describe('新建内容流程', () => {
 });
 
 test.describe('AI 学习助手', () => {
+  test('偏好设置内容超出窗口时可在弹窗内上下滚动', async ({ page }) => {
+    await page.setViewportSize({ width: 1024, height: 620 });
+    await page.goto('/#/');
+    await attachMockAI(page, []);
+    await page.getByRole('button', { name: '用户菜单' }).click();
+    await page.getByRole('menuitem', { name: '偏好设置' }).click();
+
+    const dialog = page.getByRole('dialog', { name: '偏好设置' });
+    const bounds = await dialog.boundingBox();
+    expect(bounds).not.toBeNull();
+    expect(bounds!.y).toBeGreaterThanOrEqual(0);
+    expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(620);
+
+    const body = dialog.locator(':scope > div').nth(1);
+    const before = await body.evaluate((element) => ({
+      overflowY: getComputedStyle(element).overflowY,
+      scrollHeight: element.scrollHeight,
+      clientHeight: element.clientHeight,
+    }));
+    expect(before.overflowY).toBe('auto');
+    expect(before.scrollHeight - before.clientHeight).toBeGreaterThan(100);
+    await body.evaluate((element) => { element.scrollTop = element.scrollHeight; });
+    await expect.poll(() => body.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
+    await body.evaluate((element) => { element.scrollTop = 0; });
+    await expect.poll(() => body.evaluate((element) => element.scrollTop)).toBe(0);
+  });
+
   async function attachMockAI(
     page: import('@playwright/test').Page,
     requests: Array<{ action: string; context: { scope: string; selectedText: string; noteText?: string } }>,
