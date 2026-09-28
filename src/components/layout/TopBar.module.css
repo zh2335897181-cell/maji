@@ -1,0 +1,193 @@
+/* =============================================================================
+   码迹 · 顶部全局栏
+   ============================================================================= */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  height: var(--size-topbar);
+  flex: 0 0 auto;
+  padding: 0 var(--space-4);
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--line);
+}
+
+.leading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 0 1 460px;
+  min-width: 0;
+}
+
+.searchTrigger {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 1;
+  min-width: 180px;
+  height: 30px;
+  padding: 0 var(--space-2) 0 var(--space-3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  background: var(--bg-subtle);
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+  text-align: left;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out);
+}
+
+.searchTrigger:hover {
+  background: var(--bg-surface);
+  border-color: var(--ink-300);
+  color: var(--ink-600);
+}
+
+.searchTriggerText {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.trailing {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.slot {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* --------------------------------------------------------------- 保存状态 */
+
+.saveStatus {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 26px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}
+
+.saveStatusButton {
+  cursor: pointer;
+}
+
+.saveStatusButton:hover {
+  background: var(--bg-hover);
+}
+
+.dirty {
+  color: var(--warning-600);
+}
+
+.saving {
+  color: var(--text-muted);
+}
+
+.saved {
+  color: var(--success-600);
+}
+
+.error {
+  color: var(--danger-600);
+}
+
+.spin {
+  animation: maji-topbar-spin 720ms linear infinite;
+}
+
+@keyframes maji-topbar-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* --------------------------------------------------------------- 用户菜单 */
+
+.userButton {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 30px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-md);
+  color: var(--ink-600);
+  font-size: var(--font-size-sm);
+}
+
+.userButton:hover {
+  background: var(--bg-hover);
+}
+
+.avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-full);
+  background: var(--accent-soft);
+  color: var(--accent-700);
+  font-size: 11px;
+  font-weight: var(--weight-semibold);
+}
+
+.settingsGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.settingsRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  font-size: var(--font-size-sm);
+}
+
+.shortcutList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.shortcutRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  font-size: var(--font-size-sm);
+}
+
+.shortcutKeys {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.aboutText {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  line-height: var(--line-relaxed);
+}
+
+.aboutText code {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--ink-700);
+}

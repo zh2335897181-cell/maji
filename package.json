@@ -1,0 +1,102 @@
+{
+  "name": "maji",
+  "productName": "码迹",
+  "private": true,
+  "version": "0.1.1",
+  "description": "码迹 — 面向编程初学者的本地学习笔记桌面应用",
+  "main": "dist-electron/electron/main/index.js",
+  "scripts": {
+    "dev": "vite",
+    "dev:electron": "concurrently -k -n vite,electron -c cyan,magenta \"vite\" \"wait-on tcp:127.0.0.1:5199 && npm run build:electron && cross-env MAJI_DEV_SERVER=http://127.0.0.1:5199 electron .\"",
+    "build:electron": "tsc -p tsconfig.electron.json",
+    "rebuild:native": "electron-rebuild -f -w better-sqlite3",
+    "build:icon": "node scripts/build-icon.cjs",
+    "start": "npm run build:electron && electron .",
+    "build": "npm run typecheck && npm run build:electron && vite build",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.electron.json --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "package": "npm run build && electron-builder --config electron-builder.config.cjs --win nsis --x64 --publish never",
+    "package:release": "npm run build && electron-builder --config electron-builder.config.cjs --win nsis --x64 --publish always",
+    "test:release-config": "node --test scripts/electron-builder-config.test.cjs"
+  },
+  "dependencies": {
+    "@tiptap/core": "^3.31.3",
+    "@tiptap/extension-code-block": "^3.31.3",
+    "@tiptap/extension-image": "^3.31.3",
+    "@tiptap/extension-link": "^3.31.3",
+    "@tiptap/extension-placeholder": "^3.31.3",
+    "@tiptap/extension-task-item": "^3.31.3",
+    "@tiptap/extension-task-list": "^3.31.3",
+    "@tiptap/pm": "^3.31.3",
+    "@tiptap/react": "^3.31.3",
+    "@tiptap/starter-kit": "^3.31.3",
+    "better-sqlite3": "^13.0.3",
+    "clsx": "^2.1.1",
+    "electron-updater": "^6.8.9",
+    "lucide-react": "^1.48.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "react-router-dom": "^7.18.4",
+    "shiki": "^4.4.3"
+  },
+  "build": {
+    "appId": "com.maji.notes",
+    "productName": "码迹",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*",
+      "build/icon.ico",
+      "package.json"
+    ],
+    "asar": true,
+    "asarUnpack": [
+      "**/*.node"
+    ],
+    "npmRebuild": false,
+    "win": {
+      "icon": "build/icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "maji-setup-${version}-${arch}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "码迹"
+    }
+  },
+  "devDependencies": {
+    "@electron/rebuild": "^4.2.0",
+    "@playwright/test": "^1.63.0",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.7",
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/node": "^26.6.3",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.1",
+    "concurrently": "^10.0.5",
+    "cross-env": "^10.1.0",
+    "electron": "^44.4.5",
+    "electron-builder": "^26.15.3",
+    "jsdom": "^29.1.1",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.1",
+    "vitest": "^5.0.2",
+    "wait-on": "^9.1.0"
+  }
+}

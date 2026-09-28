@@ -1,0 +1,438 @@
+/* =============================================================================
+   码迹 · 控件样式（按钮 / 图标按钮 / 输入框 / 下拉 / 分段控件 / 快捷键）
+   所有颜色、尺寸、圆角都引用 tokens.css 中的变量。
+   ============================================================================= */
+
+/* ------------------------------------------------------------------ 按钮 */
+
+.btn {
+  --btn-height: var(--size-control-md);
+  --btn-padding-x: var(--space-3);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  height: var(--btn-height);
+  padding: 0 var(--btn-padding-x);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  font-weight: var(--weight-medium);
+  line-height: 1;
+  white-space: nowrap;
+  user-select: none;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+}
+
+.btn:focus-visible {
+  outline: var(--focus-outline);
+  outline-offset: var(--focus-outline-offset);
+}
+
+.btn:disabled,
+.btn[aria-disabled='true'] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btnSm {
+  --btn-height: var(--size-control-sm);
+  --btn-padding-x: var(--space-2);
+  font-size: var(--font-size-xs);
+  gap: var(--space-1);
+}
+
+.btnLg {
+  --btn-height: var(--size-control-lg);
+  --btn-padding-x: var(--space-4);
+  font-size: var(--font-size-md);
+}
+
+/* 主要按钮 */
+.primary {
+  background: var(--accent);
+  color: var(--accent-on-accent);
+}
+.primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+.primary:active:not(:disabled) {
+  background: var(--accent-active);
+}
+
+/* 次要按钮：白底描边，用于与主按钮并列的常规操作 */
+.secondary {
+  background: var(--bg-surface);
+  border-color: var(--line-strong);
+  color: var(--ink-700);
+}
+.secondary:hover:not(:disabled) {
+  background: var(--bg-hover);
+  border-color: var(--ink-300);
+}
+.secondary:active:not(:disabled) {
+  background: var(--bg-active);
+}
+
+/* 幽灵按钮：工具栏与列表行里的低干扰操作 */
+.ghost {
+  background: transparent;
+  color: var(--ink-600);
+}
+.ghost:hover:not(:disabled) {
+  background: var(--bg-hover);
+  color: var(--ink-800);
+}
+.ghost:active:not(:disabled) {
+  background: var(--bg-active);
+}
+
+/* 柔和强调：用于“继续学习”这类需要一点颜色但不必抢主按钮的场景 */
+.soft {
+  background: var(--accent-soft);
+  color: var(--accent-700);
+}
+.soft:hover:not(:disabled) {
+  background: var(--accent-soft-hover);
+}
+
+/* 危险操作 */
+.danger {
+  background: var(--danger-600);
+  color: #fff;
+}
+.danger:hover:not(:disabled) {
+  background: #993b34;
+}
+.danger:active:not(:disabled) {
+  background: #85332d;
+}
+
+.dangerGhost {
+  background: transparent;
+  color: var(--danger-600);
+  border-color: var(--danger-border);
+}
+.dangerGhost:hover:not(:disabled) {
+  background: var(--danger-bg);
+}
+
+/* 选中态：分段控件、筛选按钮使用 */
+.selected {
+  background: var(--accent-soft);
+  color: var(--accent-700);
+  border-color: var(--accent-border);
+}
+
+.btnIcon {
+  flex: 0 0 auto;
+}
+
+/* --------------------------------------------------------- 图标按钮 */
+
+.iconBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-control-md);
+  height: var(--size-control-md);
+  border-radius: var(--radius-md);
+  color: var(--ink-500);
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+}
+
+.iconBtn:hover:not(:disabled) {
+  background: var(--bg-hover);
+  color: var(--ink-800);
+}
+.iconBtn:active:not(:disabled) {
+  background: var(--bg-active);
+}
+.iconBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.iconBtn:focus-visible {
+  outline: var(--focus-outline);
+  outline-offset: 1px;
+}
+
+.iconBtnSm {
+  width: var(--size-control-sm);
+  height: var(--size-control-sm);
+}
+
+.iconBtnActive {
+  background: var(--accent-soft);
+  color: var(--accent-700);
+}
+.iconBtnActive:hover:not(:disabled) {
+  background: var(--accent-soft-hover);
+  color: var(--accent-700);
+}
+
+.iconBtnDanger:hover:not(:disabled) {
+  background: var(--danger-bg);
+  color: var(--danger-600);
+}
+
+/* --------------------------------------------------------- 表单控件 */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.label {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+  font-weight: var(--weight-medium);
+  color: var(--ink-700);
+}
+
+.labelHint {
+  font-size: var(--font-size-xs);
+  font-weight: var(--weight-regular);
+  color: var(--text-muted);
+}
+
+.required {
+  color: var(--danger-600);
+}
+
+.input,
+.textarea,
+.select {
+  width: 100%;
+  min-height: var(--size-control-md);
+  padding: 6px var(--space-3);
+  background: var(--bg-surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  transition:
+    border-color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.input::placeholder,
+.textarea::placeholder {
+  color: var(--text-faint);
+}
+
+.input:hover:not(:disabled),
+.textarea:hover:not(:disabled),
+.select:hover:not(:disabled) {
+  border-color: var(--ink-300);
+}
+
+.input:focus,
+.textarea:focus,
+.select:focus {
+  outline: none;
+  border-color: var(--accent-400);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.input:disabled,
+.textarea:disabled,
+.select:disabled {
+  background: var(--bg-sunken);
+  color: var(--text-faint);
+  cursor: not-allowed;
+}
+
+.inputError,
+.inputError:hover {
+  border-color: var(--danger-500);
+}
+
+.textarea {
+  min-height: 88px;
+  line-height: var(--line-normal);
+  resize: vertical;
+}
+
+.select {
+  appearance: none;
+  padding-right: var(--space-8);
+  background-image: linear-gradient(45deg, transparent 50%, var(--ink-500) 50%),
+    linear-gradient(135deg, var(--ink-500) 50%, transparent 50%);
+  background-position:
+    calc(100% - 16px) calc(50% + 1px),
+    calc(100% - 11px) calc(50% + 1px);
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+}
+
+.withPrefix {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.prefixIcon {
+  position: absolute;
+  left: var(--space-3);
+  display: flex;
+  color: var(--text-faint);
+  pointer-events: none;
+}
+
+.inputWithPrefix {
+  padding-left: 34px;
+}
+
+.suffixAction {
+  position: absolute;
+  right: var(--space-1);
+  display: flex;
+}
+
+.hint {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  line-height: var(--line-snug);
+}
+
+.errorText {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--font-size-xs);
+  color: var(--danger-600);
+}
+
+.inlineFields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+/* --------------------------------------------------------- 分段控件 */
+
+.segmented {
+  display: inline-flex;
+  padding: 2px;
+  background: var(--bg-sunken);
+  border-radius: var(--radius-md);
+}
+
+.segment {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  height: 26px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: var(--weight-medium);
+  color: var(--ink-500);
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+}
+
+.segment:hover:not([aria-selected='true']) {
+  color: var(--ink-700);
+}
+
+.segment[aria-selected='true'] {
+  background: var(--bg-surface);
+  color: var(--accent-700);
+  box-shadow: var(--shadow-xs);
+}
+
+/* --------------------------------------------------------- 快捷键与加载 */
+
+.kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border: 1px solid var(--line-strong);
+  border-bottom-width: 2px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-subtle);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.spinner {
+  animation: maji-spin 720ms linear infinite;
+}
+
+@keyframes maji-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* --------------------------------------------------------- 复选与开关 */
+
+.checkbox {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  border: 1.5px solid var(--line-strong);
+  border-radius: var(--radius-xs);
+  background: var(--bg-surface);
+  color: transparent;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out);
+}
+
+.checkbox:hover {
+  border-color: var(--accent-400);
+}
+
+.checkbox[aria-checked='true'] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.switch {
+  position: relative;
+  width: 34px;
+  height: 20px;
+  border-radius: var(--radius-full);
+  background: var(--line-strong);
+  transition: background-color var(--duration-base) var(--ease-out);
+}
+
+.switch[aria-checked='true'] {
+  background: var(--accent);
+}
+
+.switchThumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: var(--radius-full);
+  background: #fff;
+  box-shadow: var(--shadow-xs);
+  transition: transform var(--duration-base) var(--ease-out);
+}
+
+.switch[aria-checked='true'] .switchThumb {
+  transform: translateX(14px);
+}

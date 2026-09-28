@@ -1,0 +1,432 @@
+/* =============================================================================
+   码迹 · 笔记编辑器样式
+   正文排版、代码块、语义块（说明 / 容易混淆 / 常见报错 / 运行结果）
+   ============================================================================= */
+
+/* ------------------------------------------------------------------ 正文 */
+
+.content {
+  font-family: var(--font-sans);
+  font-size: var(--editor-font-size);
+  line-height: var(--editor-line-height);
+  color: var(--text-primary);
+  word-break: break-word;
+}
+
+.content :global(.ProseMirror) {
+  outline: none;
+}
+
+.content :global(.ProseMirror) > * + * {
+  margin-top: var(--editor-paragraph-gap);
+}
+
+.content p {
+  margin: 0;
+}
+
+.content h1,
+.content h2,
+.content h3 {
+  color: var(--ink-900);
+  font-weight: var(--weight-semibold);
+  line-height: var(--line-tight);
+}
+
+.content h1 {
+  font-size: var(--font-size-2xl);
+  margin-top: var(--space-8);
+}
+
+.content h2 {
+  font-size: var(--font-size-xl);
+  margin-top: var(--space-8);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.content h3 {
+  font-size: var(--font-size-lg);
+  margin-top: var(--space-6);
+}
+
+.content :global(.ProseMirror) > :first-child {
+  margin-top: 0;
+}
+
+.content ul,
+.content ol {
+  padding-left: 22px;
+}
+
+.content li {
+  margin: var(--space-1) 0;
+}
+
+.content li::marker {
+  color: var(--ink-400);
+}
+
+.content strong {
+  font-weight: var(--weight-semibold);
+  color: var(--ink-900);
+}
+
+.content a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.content blockquote {
+  padding: var(--space-1) 0 var(--space-1) var(--space-4);
+  border-left: 3px solid var(--line-strong);
+  color: var(--text-secondary);
+}
+
+.content hr {
+  height: 1px;
+  border: 0;
+  background: var(--line);
+}
+
+.content img {
+  max-width: 100%;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+}
+
+/* 行内代码：与代码块呼应但更轻 */
+.content code {
+  padding: 1px 5px;
+  border-radius: var(--radius-xs);
+  background: var(--bg-sunken);
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+  color: var(--ink-800);
+}
+
+/* 待办列表 */
+.content ul[data-type='taskList'] {
+  list-style: none;
+  padding-left: 0;
+}
+
+.content ul[data-type='taskList'] li {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+.content ul[data-type='taskList'] li > label {
+  display: flex;
+  margin-top: 6px;
+  user-select: none;
+}
+
+.content ul[data-type='taskList'] input[type='checkbox'] {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.content ul[data-type='taskList'] li > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.content ul[data-type='taskList'] li[data-checked='true'] > div {
+  color: var(--text-muted);
+  text-decoration: line-through;
+}
+
+/* 编辑/预览切换时不可编辑状态的提示 */
+.content[data-editable='false'] :global(.ProseMirror) {
+  cursor: default;
+}
+
+/* 空文档占位提示 */
+.content :global(p.is-editor-empty:first-child::before),
+.content :global(.is-empty::before) {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  color: var(--text-faint);
+  pointer-events: none;
+}
+
+/* 大纲跳转目标的高亮反馈 */
+.content :global(.maji-outline-target) {
+  animation: maji-flash 1200ms var(--ease-out);
+}
+
+@keyframes maji-flash {
+  from {
+    background: var(--accent-soft);
+  }
+  to {
+    background: transparent;
+  }
+}
+
+/* --------------------------------------------------------------- 代码块 */
+
+.codeBlock {
+  margin: var(--space-4) 0;
+  border: 1px solid var(--code-border);
+  border-radius: var(--radius-lg);
+  background: var(--code-bg);
+  overflow: hidden;
+}
+
+.codeBlock[data-editing] {
+  border-color: var(--accent-300);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.codeHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 32px;
+  padding: 0 var(--space-2) 0 var(--space-3);
+  background: var(--code-bg-header);
+  border-bottom: 1px solid var(--code-border);
+}
+
+.langSelect {
+  border: none;
+  background: transparent;
+  padding: 0 2px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: var(--weight-medium);
+  color: var(--code-lang-text);
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+}
+
+.langSelect:hover:not(:disabled) {
+  color: var(--ink-700);
+}
+
+.langSelect:disabled {
+  cursor: default;
+}
+
+.codeHint {
+  flex: 1;
+  min-width: 0;
+  font-size: 11px;
+  color: var(--text-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.copyButton {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  height: 22px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  color: var(--ink-500);
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+}
+
+.copyButton:hover {
+  background: var(--bg-hover);
+  color: var(--ink-700);
+}
+
+.copyButton[data-copied] {
+  color: var(--success-600);
+}
+
+.codePre {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  overflow-x: auto;
+  background: var(--code-bg);
+  outline: none;
+  white-space: pre;
+  tab-size: 4;
+}
+
+/* 阅读态：隐藏可编辑内容，只显示 Shiki 高亮层 */
+.codeBlock:not([data-editing]) .codePre [data-node-view-content-react] {
+  display: none;
+}
+
+/* 编辑态：隐藏高亮层（React 侧不再渲染），显示可编辑内容 */
+.codeBlock[data-editing] .codePre [data-node-view-content-react] {
+  display: block;
+}
+
+.codeText {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.72;
+  color: var(--code-text);
+  white-space: pre;
+  tab-size: 4;
+}
+
+/* 编辑态下代码块内的行内 code 样式不要叠加 */
+.codeText code {
+  padding: 0;
+  background: transparent;
+  font-size: inherit;
+  color: inherit;
+}
+
+/* --------------------------------------------------------------- 语义块 */
+
+.callout {
+  margin: var(--space-4) 0;
+  border: 1px solid var(--line);
+  border-left-width: 3px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.calloutHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3) 0;
+}
+
+.calloutIcon {
+  flex: 0 0 auto;
+}
+
+.calloutLabel {
+  font-size: var(--font-size-xs);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.02em;
+}
+
+.calloutSwitch {
+  margin-left: auto;
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+
+.callout:hover .calloutSwitch,
+.calloutSwitch:focus-within {
+  opacity: 1;
+}
+
+.calloutSwitch select {
+  height: 22px;
+  padding: 0 var(--space-1);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.calloutBody {
+  padding: var(--space-2) var(--space-3) var(--space-3);
+}
+
+.calloutBody > * + * {
+  margin-top: var(--space-2);
+}
+
+.calloutBody p {
+  margin: 0;
+  line-height: var(--line-normal);
+}
+
+/* 语义块内部的代码块与正文间距收紧 */
+.calloutBody .codeBlock {
+  margin: var(--space-2) 0 0;
+}
+
+/* 说明 */
+.callout[data-variant='note'] {
+  background: var(--note-bg);
+  border-color: var(--note-border);
+  border-left-color: var(--note-label);
+}
+.callout[data-variant='note'] .calloutLabel,
+.callout[data-variant='note'] .calloutIcon {
+  color: var(--note-label);
+}
+.callout[data-variant='note'] .calloutBody {
+  color: var(--note-text);
+}
+
+/* 容易混淆 */
+.callout[data-variant='tip'] {
+  background: var(--tip-bg);
+  border-color: var(--tip-border);
+  border-left-color: var(--tip-label);
+}
+.callout[data-variant='tip'] .calloutLabel,
+.callout[data-variant='tip'] .calloutIcon {
+  color: var(--tip-label);
+}
+.callout[data-variant='tip'] .calloutBody {
+  color: var(--tip-text);
+}
+
+/* 常见报错 */
+.callout[data-variant='warning'] {
+  background: var(--danger-bg);
+  border-color: var(--danger-border);
+  border-left-color: var(--danger-600);
+}
+.callout[data-variant='warning'] .calloutLabel,
+.callout[data-variant='warning'] .calloutIcon {
+  color: var(--danger-600);
+}
+.callout[data-variant='warning'] .calloutBody {
+  color: #7d2f29;
+}
+
+/* 运行结果 */
+.callout[data-variant='output'] {
+  background: var(--output-bg);
+  border-color: var(--output-border);
+  border-left-color: var(--output-label);
+}
+.callout[data-variant='output'] .calloutLabel,
+.callout[data-variant='output'] .calloutIcon {
+  color: var(--output-label);
+}
+.callout[data-variant='output'] .calloutBody {
+  color: var(--output-text);
+}
+.callout[data-variant='output'] .calloutBody .codeBlock {
+  border-color: var(--output-border);
+  background: transparent;
+  border-radius: var(--radius-sm);
+}
+.callout[data-variant='output'] .codeHeader {
+  background: transparent;
+  border-color: var(--output-border);
+}
+.callout[data-variant='output'] .codeHint,
+.callout[data-variant='output'] .langSelect {
+  display: none;
+}
+.callout[data-variant='output'] .codeHeader {
+  justify-content: flex-end;
+}
+.callout[data-variant='output'] .codePre {
+  background: transparent;
+  padding: var(--space-2) var(--space-3);
+}
+.callout[data-variant='output'] .codeText {
+  color: var(--output-text);
+}

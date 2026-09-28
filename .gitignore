@@ -1,0 +1,15 @@
+node_modules/
+dist/
+dist-electron/
+release/
+*.log
+.DS_Store
+.vite/
+test-results/
+playwright-report/
+design/_raw/
+maji.db
+maji.db-journal
+maji.db-wal
+maji.db-shm
+.superpowers/

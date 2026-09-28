@@ -1,0 +1,31 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM"],
+    "module": "CommonJS",
+    "moduleResolution": "bundler",
+    "outDir": "dist-electron",
+    "rootDir": ".",
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitOverride": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "sourceMap": true,
+    "declaration": false,
+    "types": ["node"]
+  },
+  "include": [
+    "electron/**/*.ts",
+    "src/lib/types.ts",
+    "src/lib/ipc.ts",
+    "src/lib/text.ts",
+    "src/lib/search.ts",
+    "src/lib/review.ts",
+    "src/lib/noteDoc.ts",
+    "src/lib/demoData.ts",
+    "src/lib/localRepository.ts"
+  ]
+}

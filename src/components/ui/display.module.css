@@ -1,0 +1,221 @@
+/* =============================================================================
+   码迹 · 展示型组件（标签 / 状态点 / 空状态 / 高亮文本 / 章节标题）
+   ============================================================================= */
+
+/* ------------------------------------------------------------------ 标签 */
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  height: 22px;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--bg-subtle);
+  font-size: var(--font-size-xs);
+  font-weight: var(--weight-medium);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+button.tag {
+  cursor: pointer;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+}
+
+button.tag:hover {
+  background: var(--bg-hover);
+  border-color: var(--line-strong);
+  color: var(--ink-800);
+}
+
+.tagAccent {
+  background: var(--accent-soft);
+  border-color: var(--accent-border);
+  color: var(--accent-700);
+}
+
+.tagSuccess {
+  background: var(--success-bg);
+  border-color: var(--success-border);
+  color: var(--success-600);
+}
+
+.tagWarning {
+  background: var(--warning-bg);
+  border-color: var(--warning-border);
+  color: var(--warning-600);
+}
+
+.tagDanger {
+  background: var(--danger-bg);
+  border-color: var(--danger-border);
+  color: var(--danger-600);
+}
+
+.tagSubtle {
+  background: transparent;
+  border-color: transparent;
+  color: var(--text-muted);
+  padding: 0 var(--space-1);
+}
+
+.tagMono {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.01em;
+}
+
+.tagRemove {
+  display: inline-flex;
+  align-items: center;
+  margin-right: -2px;
+  color: inherit;
+  opacity: 0.6;
+}
+
+.tagRemove:hover {
+  opacity: 1;
+}
+
+.tagRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  align-items: center;
+}
+
+/* ------------------------------------------------------------------ 状态点 */
+
+.statusDot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  flex: 0 0 auto;
+  background: var(--ink-300);
+}
+
+.dotDue {
+  background: var(--warning-500);
+}
+.dotSoon {
+  background: var(--accent-400);
+}
+.dotMastered {
+  background: var(--success-500);
+}
+.dotNeutral {
+  background: var(--ink-300);
+}
+.dotDanger {
+  background: var(--danger-500);
+}
+
+/* --------------------------------------------------------------- 空状态 */
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-12) var(--space-6);
+  text-align: center;
+}
+
+.emptyIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-lg);
+  background: var(--bg-sunken);
+  color: var(--ink-400);
+}
+
+.emptyTitle {
+  font-size: var(--font-size-md);
+  font-weight: var(--weight-semibold);
+  color: var(--ink-700);
+}
+
+.emptyDescription {
+  max-width: 380px;
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+  line-height: var(--line-normal);
+}
+
+.emptyActions {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+}
+
+/* ------------------------------------------------------------ 文本与高亮 */
+
+mark.highlight {
+  padding: 0 2px;
+  border-radius: 2px;
+  background: #fdf0c8;
+  color: var(--ink-900);
+  font-weight: var(--weight-medium);
+}
+
+.sectionTitle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.sectionTitleText {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-md);
+  font-weight: var(--weight-semibold);
+  color: var(--ink-800);
+}
+
+.sectionCount {
+  font-size: var(--font-size-xs);
+  font-weight: var(--weight-regular);
+  color: var(--text-muted);
+}
+
+.metaRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}
+
+.metaSeparator {
+  color: var(--ink-300);
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+}
+
+.divider {
+  height: 1px;
+  background: var(--line);
+  border: 0;
+  margin: 0;
+}
+
+.dividerVertical {
+  width: 1px;
+  height: 20px;
+  background: var(--line);
+}

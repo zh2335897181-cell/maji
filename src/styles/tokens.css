@@ -1,0 +1,295 @@
+/* =============================================================================
+   码迹 · 设计令牌 (Design Tokens)
+   -----------------------------------------------------------------------------
+   这里是整套界面唯一的样式来源。组件不允许写死颜色 / 字号 / 间距 / 圆角，
+   一律引用本文件的变量，保证后续换肤与规格调整只改一处。
+   ============================================================================= */
+
+:root {
+  color-scheme: light;
+
+  /* ---------- 1. 品牌强调色：克制的青蓝，仅用于选中项、主按钮、链接、焦点 ---- */
+  --accent-50: #eef6f8;
+  --accent-100: #d9ebf0;
+  --accent-200: #b6d8e2;
+  --accent-300: #8abecb;
+  --accent-400: #4e9cb2;
+  --accent-500: #2c7e96;
+  --accent-600: #1f6a80;
+  --accent-700: #18566a;
+  --accent-800: #123f4e;
+
+  --accent: var(--accent-600);
+  --accent-hover: var(--accent-700);
+  --accent-active: var(--accent-800);
+  --accent-soft: var(--accent-50);
+  --accent-soft-hover: var(--accent-100);
+  --accent-border: var(--accent-200);
+  --accent-on-accent: #ffffff;
+
+  /* ---------- 2. 中性色：冷灰，承担全部文字与结构 ---------- */
+  --ink-900: #131a20;
+  --ink-800: #1e272e;
+  --ink-700: #2f3b45;
+  --ink-600: #46545f;
+  --ink-500: #64737f;
+  --ink-400: #8a97a2;
+  --ink-300: #b0bcc5;
+
+  --line-strong: #d4dbe1;
+  --line: #e3e8ec;
+  --line-soft: #edf1f4;
+
+  --bg-app: #f4f6f7;
+  --bg-surface: #ffffff;
+  --bg-subtle: #fafbfb;
+  --bg-sunken: #eff3f5;
+  --bg-hover: #f1f4f6;
+  --bg-active: #e8eef1;
+  --bg-scrim: rgba(19, 26, 32, 0.42);
+
+  --text-primary: var(--ink-800);
+  --text-secondary: var(--ink-600);
+  --text-muted: var(--ink-500);
+  --text-faint: var(--ink-400);
+  --text-on-accent: #ffffff;
+
+  /* ---------- 3. 语义色：低饱和，只用于错误 / 提醒 / 成功 ---------- */
+  --success-500: #3c8a65;
+  --success-600: #2c7452;
+  --success-bg: #edf6f1;
+  --success-border: #cde5d8;
+
+  --warning-500: #b07c22;
+  --warning-600: #94641a;
+  --warning-bg: #fbf4e7;
+  --warning-border: #ebdcb8;
+
+  --danger-500: #c4574d;
+  --danger-600: #b0453d;
+  --danger-bg: #fbefee;
+  --danger-border: #f0d3d0;
+
+  /* ---------- 4. 笔记正文内的语义区块（区分解释 / 代码 / 输出 / 提示） ------- */
+  --code-bg: #f7f9fa;
+  --code-bg-header: #f0f3f5;
+  --code-border: #e1e7eb;
+  --code-text: #1e272e;
+  --code-lang-text: #64737f;
+
+  --output-bg: #f2f7f4;
+  --output-border: #d3e5da;
+  --output-text: #1f4b39;
+  --output-label: #2c7452;
+
+  --tip-bg: #fbf6ea;
+  --tip-border: #ebdcb8;
+  --tip-text: #5c4212;
+  --tip-label: #94641a;
+
+  --note-bg: #eef6f8;
+  --note-border: #c9dee6;
+  --note-text: #164e5e;
+  --note-label: #1f6a80;
+
+  /* ---------- 5. 字体 ---------- */
+  --font-sans: "PingFang SC", "HarmonyOS Sans SC", "Microsoft YaHei UI", "Microsoft YaHei",
+    "Source Han Sans SC", "Noto Sans SC", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", "Cascadia Mono", "Cascadia Code", "SFMono-Regular", Consolas,
+    "Liberation Mono", Menlo, monospace;
+
+  --font-size-xs: 12px;
+  --font-size-sm: 13px;
+  --font-size-md: 14px;
+  --font-size-lg: 15px;
+  --font-size-xl: 17px;
+  --font-size-2xl: 20px;
+  --font-size-3xl: 24px;
+
+  --line-tight: 1.35;
+  --line-snug: 1.5;
+  --line-normal: 1.6;
+  --line-relaxed: 1.8;
+
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+
+  --tracking-caps: 0.04em;
+
+  /* 编辑器排版（字号可由用户设置覆盖） */
+  --editor-font-size: var(--font-size-lg);
+  --editor-line-height: var(--line-relaxed);
+  --editor-max-width: 720px;
+  --editor-paragraph-gap: 14px;
+
+  /* ---------- 6. 间距：4px 基准 ---------- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* ---------- 7. 圆角：克制、统一 ---------- */
+  --radius-xs: 3px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-full: 999px;
+
+  /* ---------- 8. 阴影：轻微，只用于浮层 ---------- */
+  --shadow-xs: 0 1px 2px rgba(19, 26, 32, 0.06);
+  --shadow-sm: 0 1px 3px rgba(19, 26, 32, 0.08), 0 1px 2px rgba(19, 26, 32, 0.04);
+  --shadow-md: 0 8px 24px rgba(19, 26, 32, 0.12), 0 2px 6px rgba(19, 26, 32, 0.06);
+  --shadow-lg: 0 24px 48px -12px rgba(19, 26, 32, 0.26);
+
+  /* ---------- 9. 结构尺寸 ---------- */
+  --size-topbar: 48px;
+  --size-sidebar: 240px;
+  --size-sidebar-rail: 56px;
+  --size-aside: 250px;
+  --size-toolbar: 40px;
+  --size-control-sm: 28px;
+  --size-control-md: 32px;
+  --size-control-lg: 36px;
+  --size-icon-sm: 14px;
+  --size-icon-md: 16px;
+  --size-icon-lg: 18px;
+
+  /* ---------- 10. 交互状态 ---------- */
+  --focus-outline: 2px solid var(--accent-400);
+  --focus-outline-offset: 2px;
+  --duration-fast: 120ms;
+  --duration-base: 180ms;
+  --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
+
+  /* ---------- 11. 层级 ---------- */
+  --z-base: 1;
+  --z-sticky: 10;
+  --z-panel: 20;
+  --z-sidebar: 30;
+  --z-overlay: 60;
+  --z-modal: 70;
+  --z-toast: 80;
+
+  /* ---------- 12. 课程配色（低饱和，仅用于课程标识） ---------- */
+  --course-teal-fg: #1f6a80;
+  --course-teal-bg: #eef6f8;
+  --course-teal-border: #c9dee6;
+  --course-blue-fg: #2f5f9e;
+  --course-blue-bg: #eef3fa;
+  --course-blue-border: #cfdcee;
+  --course-violet-fg: #5b4b9c;
+  --course-violet-bg: #f1eefa;
+  --course-violet-border: #dbd3f0;
+  --course-amber-fg: #8a6117;
+  --course-amber-bg: #fbf4e7;
+  --course-amber-border: #ebdcb8;
+  --course-green-fg: #2c7452;
+  --course-green-bg: #edf6f1;
+  --course-green-border: #cde5d8;
+  --course-rose-fg: #9c4653;
+  --course-rose-bg: #fbeeef;
+  --course-rose-border: #f0d5d8;
+  --course-slate-fg: #4b5a66;
+  --course-slate-bg: #f1f4f6;
+  --course-slate-border: #dde3e8;
+}
+
+/* =============================================================================
+   深色主题（设置项可切换；浅色是默认与主设计稿）
+   ============================================================================= */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --accent-50: #16323c;
+  --accent-100: #1b3f4c;
+  --accent-200: #245566;
+  --accent-300: #3d7f96;
+  --accent-400: #5aa6bd;
+  --accent-500: #6fb8cd;
+  --accent-600: #8ecbdd;
+  --accent-700: #a9dae7;
+  --accent-800: #c6e7ef;
+
+  --accent: #4e9cb2;
+  --accent-hover: #5aa6bd;
+  --accent-active: #6fb8cd;
+  --accent-soft: #14313a;
+  --accent-soft-hover: #1a3c47;
+  --accent-border: #245566;
+  --accent-on-accent: #08222b;
+
+  --ink-900: #f2f5f7;
+  --ink-800: #e4e9ed;
+  --ink-700: #ccd4da;
+  --ink-600: #aab5be;
+  --ink-500: #8d99a3;
+  --ink-400: #6f7b85;
+  --ink-300: #5a656e;
+
+  --line-strong: #38434c;
+  --line: #2c353d;
+  --line-soft: #242c33;
+
+  --bg-app: #14191e;
+  --bg-surface: #1a2026;
+  --bg-subtle: #1e252b;
+  --bg-sunken: #12171b;
+  --bg-hover: #232b32;
+  --bg-active: #2a333b;
+  --bg-scrim: rgba(6, 9, 12, 0.6);
+
+  --text-primary: var(--ink-800);
+  --text-secondary: var(--ink-600);
+  --text-muted: var(--ink-500);
+  --text-faint: var(--ink-400);
+  --text-on-accent: #08222b;
+
+  --success-500: #56a37c;
+  --success-600: #7cc39c;
+  --success-bg: #16281f;
+  --success-border: #2b4a3a;
+
+  --warning-500: #c9973c;
+  --warning-600: #dcb268;
+  --warning-bg: #2a2317;
+  --warning-border: #4a3d22;
+
+  --danger-500: #cf6a60;
+  --danger-600: #e28d84;
+  --danger-bg: #2c1d1c;
+  --danger-border: #4c2f2c;
+
+  --code-bg: #161c21;
+  --code-bg-header: #1d242a;
+  --code-border: #2c353d;
+  --code-text: #dfe6ea;
+  --code-lang-text: #8d99a3;
+
+  --output-bg: #16241d;
+  --output-border: #2b4a3a;
+  --output-text: #b8dcc7;
+  --output-label: #7cc39c;
+
+  --tip-bg: #252017;
+  --tip-border: #4a3d22;
+  --tip-text: #e3cd9c;
+  --tip-label: #dcb268;
+
+  --note-bg: #14313a;
+  --note-border: #245566;
+  --note-text: #b7dbe6;
+  --note-label: #8ecbdd;
+
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 24px 48px -12px rgba(0, 0, 0, 0.6);
+}

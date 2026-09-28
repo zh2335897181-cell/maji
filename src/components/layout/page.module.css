@@ -1,0 +1,213 @@
+/* =============================================================================
+   码迹 · 页面级公共布局
+   首页 / 课程管理 / 搜索 / 复习 / 新建 共用，保证各页面的留白与层级一致。
+   ============================================================================= */
+
+.page {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  background: var(--bg-app);
+}
+
+.inner {
+  width: 100%;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: var(--space-8) var(--space-8) var(--space-16);
+}
+
+.pageHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-6);
+  margin-bottom: var(--space-6);
+}
+
+.pageHeading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.pageTitle {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--weight-semibold);
+  color: var(--ink-900);
+  line-height: var(--line-tight);
+}
+
+.pageSubtitle {
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+}
+
+.pageActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* 两栏：主内容 + 侧栏（首页、复习页使用） */
+.columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: var(--space-8);
+  align-items: start;
+}
+
+@media (max-width: 1180px) {
+  .columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-bottom: var(--space-8);
+}
+
+.sectionHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.sectionTitle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-md);
+  font-weight: var(--weight-semibold);
+  color: var(--ink-800);
+}
+
+.sectionCount {
+  font-size: var(--font-size-xs);
+  font-weight: var(--weight-regular);
+  color: var(--text-muted);
+}
+
+.sectionAction {
+  font-size: var(--font-size-xs);
+  color: var(--accent);
+  font-weight: var(--weight-medium);
+}
+
+/* 面板：一个浅边框区域，而不是厚重的卡片 */
+.panel {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+  overflow: hidden;
+}
+
+.panelBody {
+  padding: var(--space-4);
+}
+
+.panelDashed {
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+}
+
+/* 列表与行 */
+.list {
+  display: flex;
+  flex-direction: column;
+  list-style: none;
+}
+
+.listRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--line-soft);
+  text-align: left;
+}
+
+.listRow:last-child {
+  border-bottom: none;
+}
+
+.listRow:hover {
+  background: var(--bg-subtle);
+}
+
+.rowMain {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.rowTitle {
+  font-size: var(--font-size-sm);
+  font-weight: var(--weight-medium);
+  color: var(--ink-800);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowMeta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}
+
+.rowExcerpt {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  line-height: var(--line-snug);
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+}
+
+.rowActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+
+.listRow:hover .rowActions,
+.listRow:focus-within .rowActions {
+  opacity: 1;
+}
+
+/* 网格化的次要信息 */
+.metaGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--space-3);
+}
+
+.metaCell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.metaLabel {
+  font-size: 11px;
+  color: var(--text-faint);
+}
+
+.metaValue {
+  font-size: var(--font-size-sm);
+  color: var(--ink-700);
+}

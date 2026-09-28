@@ -1,0 +1,198 @@
+/* =============================================================================
+   码迹 · 复习页
+   ============================================================================= */
+
+.queue {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+}
+
+.card[data-state='overdue'] {
+  border-left: 3px solid var(--warning-500);
+}
+
+.cardTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.cardTitles {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.cardTitle {
+  font-size: var(--font-size-lg);
+  font-weight: var(--weight-semibold);
+  color: var(--ink-900);
+  line-height: var(--line-snug);
+}
+
+.cardMeta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}
+
+.dueTag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--warning-bg);
+  color: var(--warning-600);
+  font-size: var(--font-size-xs);
+  font-weight: var(--weight-medium);
+  white-space: nowrap;
+}
+
+.dueTag[data-tone='overdue'] {
+  background: var(--danger-bg);
+  color: var(--danger-600);
+}
+
+.dueTag[data-tone='soon'] {
+  background: var(--accent-soft);
+  color: var(--accent-700);
+}
+
+.dueTag[data-tone='later'] {
+  background: var(--bg-sunken);
+  color: var(--text-muted);
+}
+
+.dueTag[data-tone='mastered'] {
+  background: var(--success-bg);
+  color: var(--success-600);
+}
+
+.prompt {
+  padding: var(--space-3) var(--space-4);
+  border-left: 3px solid var(--accent-200);
+  background: var(--bg-subtle);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  font-size: var(--font-size-md);
+  line-height: var(--line-relaxed);
+  color: var(--ink-700);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.actionsSpacer {
+  flex: 1;
+}
+
+.noteLink {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--font-size-xs);
+  color: var(--accent);
+}
+
+.history {
+  font-size: 11px;
+  color: var(--text-faint);
+}
+
+.tabs {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-bottom: var(--space-4);
+  border-bottom: 1px solid var(--line);
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 2px solid transparent;
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+  font-weight: var(--weight-medium);
+}
+
+.tab:hover {
+  color: var(--ink-700);
+}
+
+.tab[aria-selected='true'] {
+  color: var(--accent-700);
+  border-bottom-color: var(--accent);
+}
+
+.tabCount {
+  padding: 0 5px;
+  border-radius: var(--radius-full);
+  background: var(--bg-active);
+  color: var(--ink-500);
+  font-size: 11px;
+  font-weight: var(--weight-regular);
+}
+
+.tab[aria-selected='true'] .tabCount {
+  background: var(--accent-soft);
+  color: var(--accent-700);
+}
+
+.masteredList {
+  display: flex;
+  flex-direction: column;
+  list-style: none;
+}
+
+.masteredRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.masteredRow:last-child {
+  border-bottom: none;
+}
+
+.masteredMain {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 1;
+  min-width: 0;
+}
+
+.masteredTitle {
+  font-size: var(--font-size-sm);
+  color: var(--ink-700);
+}
+
+.masteredMeta {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}

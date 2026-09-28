@@ -1,0 +1,171 @@
+/* =============================================================================
+   码迹 · preload
+   -----------------------------------------------------------------------------
+   只做一件事：把白名单通道包装成 window.maji，类型与 src/lib/ipc.ts 的 MajiApi
+   完全一致（类型对不上会在编译期报错）。
+   · 绝不暴露 ipcRenderer 本身，渲染进程也无法自己拼通道名
+   · 运行在 contextIsolation + sandbox 下，这里没有文件系统 / SQLite 能力
+   · 通道名为什么内联：webPreferences.sandbox = true 时 preload 的 require 只支持
+     electron / events / timers / url 这几个模块，连相对路径的项目文件都会报
+     “module not found: ../../src/lib/ipc”。所以这里内联一份通道名；
+     IPC 只在类型位置使用，编译时会被完全剔除（dist-electron 里不会有这条 require），
+     编译器会逐字核对下面的键与值是否与 src/lib/ipc.ts 一致。
+     这条性质由冒烟自检兜底：preload 一旦加载失败，window.maji 就不存在。
+   ============================================================================= */
+
+import { contextBridge, ipcRenderer } from 'electron';
+import { IPC } from '../../src/lib/ipc';
+import type { AppInfo, ExportResult, MajiApi } from '../../src/lib/ipc';
+import type { UpdateStatus } from '../../src/lib/ipc';
+import type {
+  CodeSnippet,
+  CodeSnippetInput,
+  Course,
+  Exercise,
+  ExerciseInput,
+  Note,
+  NoteInput,
+  NoteListFilter,
+  NotePatch,
+  NoteSummary,
+  ReviewAction,
+  ReviewItem,
+  ReviewItemWithNote,
+  SearchQuery,
+  SearchResult,
+  Tag,
+  UserSettings,
+} from '../../src/lib/types';
+
+/** 通道名必须与 src/lib/ipc.ts 的 IPC 常量表逐字一致：键和值都由编译器核对 */
+const CHANNELS: { [K in keyof typeof IPC]: (typeof IPC)[K] } = {
+  appInfo: 'maji:app:info',
+  appPrepareClose: 'maji:app:prepare-close',
+  appCloseReady: 'maji:app:close-ready',
+  updatesCheck: 'maji:updates:check',
+  updatesInstall: 'maji:updates:install',
+  updatesStatusGet: 'maji:updates:status-get',
+  updatesStatus: 'maji:updates:status',
+  coursesList: 'maji:courses:list',
+  coursesCreate: 'maji:courses:create',
+  coursesUpdate: 'maji:courses:update',
+  coursesDelete: 'maji:courses:delete',
+  coursesReorder: 'maji:courses:reorder',
+  notesList: 'maji:notes:list',
+  notesGet: 'maji:notes:get',
+  notesCreate: 'maji:notes:create',
+  notesUpdate: 'maji:notes:update',
+  notesDelete: 'maji:notes:delete',
+  notesTouch: 'maji:notes:touch',
+  notesSearch: 'maji:notes:search',
+  tagsList: 'maji:tags:list',
+  snippetsList: 'maji:snippets:list',
+  snippetsCreate: 'maji:snippets:create',
+  exercisesList: 'maji:exercises:list',
+  exercisesCreate: 'maji:exercises:create',
+  exercisesToggle: 'maji:exercises:toggle',
+  reviewList: 'maji:review:list',
+  reviewApply: 'maji:review:apply',
+  settingsGet: 'maji:settings:get',
+  settingsUpdate: 'maji:settings:update',
+  exportMarkdown: 'maji:file:export-markdown',
+  openExternal: 'maji:shell:open-external',
+};
+
+/** 通道名只能来自上面的常量表，调用方无法传入任意通道 */
+function invoke<T>(channel: string, ...args: unknown[]): Promise<T> {
+  return ipcRenderer.invoke(channel, ...args) as Promise<T>;
+}
+
+const prepareCloseHandlers = new Set<() => Promise<void>>();
+
+// Always acknowledge a close request, even on pages with no editor mounted.
+ipcRenderer.on(CHANNELS.appPrepareClose, () => {
+  const handlers = [...prepareCloseHandlers];
+  void Promise.all(handlers.map((handler) => Promise.resolve().then(handler))).then(
+    () => ipcRenderer.send(CHANNELS.appCloseReady, { ok: true }),
+    (error: unknown) =>
+      ipcRenderer.send(CHANNELS.appCloseReady, {
+        ok: false,
+        error: error instanceof Error ? error.message : '笔记保存失败',
+      }),
+  );
+});
+
+const api: MajiApi = {
+  app: {
+    getInfo: () => invoke<AppInfo>(CHANNELS.appInfo),
+    onPrepareClose: (handler) => {
+      prepareCloseHandlers.add(handler);
+      return () => prepareCloseHandlers.delete(handler);
+    },
+  },
+  updates: {
+    check: () => invoke<void>(CHANNELS.updatesCheck),
+    install: async () => {
+      const results = await Promise.allSettled(
+        [...prepareCloseHandlers].map((handler) => Promise.resolve().then(handler)),
+      );
+      const failure = results.find((result) => result.status === 'rejected');
+      if (failure?.status === 'rejected') throw failure.reason;
+      await invoke<void>(CHANNELS.updatesInstall);
+    },
+    getStatus: () => invoke<UpdateStatus>(CHANNELS.updatesStatusGet),
+    onStatus: (handler) => {
+      const listener = (_event: Electron.IpcRendererEvent, status: UpdateStatus): void => handler(status);
+      ipcRenderer.on(CHANNELS.updatesStatus, listener);
+      return () => ipcRenderer.removeListener(CHANNELS.updatesStatus, listener);
+    },
+  },
+  courses: {
+    list: () => invoke<Course[]>(CHANNELS.coursesList),
+    create: (input: Partial<Course> & { name: string }) =>
+      invoke<Course>(CHANNELS.coursesCreate, input),
+    update: (id: string, patch: Partial<Course>) =>
+      invoke<Course>(CHANNELS.coursesUpdate, id, patch),
+    remove: (id: string) => invoke<void>(CHANNELS.coursesDelete, id),
+    reorder: (orderedIds: string[]) => invoke<void>(CHANNELS.coursesReorder, orderedIds),
+  },
+  notes: {
+    list: (filter?: NoteListFilter) => invoke<NoteSummary[]>(CHANNELS.notesList, filter ?? {}),
+    get: (id: string) => invoke<Note | null>(CHANNELS.notesGet, id),
+    create: (input: NoteInput) => invoke<Note>(CHANNELS.notesCreate, input),
+    update: (id: string, patch: NotePatch) => invoke<Note>(CHANNELS.notesUpdate, id, patch),
+    remove: (id: string) => invoke<void>(CHANNELS.notesDelete, id),
+    touch: (id: string) => invoke<void>(CHANNELS.notesTouch, id),
+    search: (query: SearchQuery) => invoke<SearchResult[]>(CHANNELS.notesSearch, query),
+  },
+  tags: {
+    list: () => invoke<Tag[]>(CHANNELS.tagsList),
+  },
+  snippets: {
+    list: (limit?: number) => invoke<CodeSnippet[]>(CHANNELS.snippetsList, limit ?? null),
+    create: (input: CodeSnippetInput) => invoke<CodeSnippet>(CHANNELS.snippetsCreate, input),
+  },
+  exercises: {
+    list: (filter?: { courseId?: string; noteId?: string; limit?: number }) =>
+      invoke<Exercise[]>(CHANNELS.exercisesList, filter ?? {}),
+    create: (input: ExerciseInput) => invoke<Exercise>(CHANNELS.exercisesCreate, input),
+    toggle: (id: string, done: boolean) => invoke<Exercise>(CHANNELS.exercisesToggle, id, done),
+  },
+  review: {
+    list: (filter?: { state?: string }) =>
+      invoke<ReviewItemWithNote[]>(CHANNELS.reviewList, filter ?? {}),
+    apply: (id: string, action: ReviewAction) =>
+      invoke<ReviewItem>(CHANNELS.reviewApply, id, action),
+  },
+  settings: {
+    get: () => invoke<UserSettings>(CHANNELS.settingsGet),
+    update: (patch: Partial<UserSettings>) =>
+      invoke<UserSettings>(CHANNELS.settingsUpdate, patch),
+  },
+  files: {
+    exportMarkdown: (suggestedName: string, content: string) =>
+      invoke<ExportResult>(CHANNELS.exportMarkdown, suggestedName, content),
+  },
+  external: {
+    open: (url: string) => invoke<void>(CHANNELS.openExternal, url),
+  },
+};
+
+contextBridge.exposeInMainWorld('maji', api);

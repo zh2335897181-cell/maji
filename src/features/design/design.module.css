@@ -1,0 +1,303 @@
+/* =============================================================================
+   码迹 · 设计规范 / 状态画板
+   ============================================================================= */
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-bottom: var(--space-10);
+}
+
+.groupHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--line);
+}
+
+.groupTitle {
+  font-size: var(--font-size-lg);
+  font-weight: var(--weight-semibold);
+  color: var(--ink-900);
+}
+
+.groupNote {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}
+
+.specGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+  gap: var(--space-3);
+}
+
+.swatchCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+}
+
+.swatchColor {
+  height: 44px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-soft);
+}
+
+.swatchName {
+  font-size: 11px;
+  color: var(--ink-700);
+  font-weight: var(--weight-medium);
+}
+
+.swatchToken {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-faint);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.rowLabel {
+  width: 96px;
+  flex: 0 0 auto;
+  font-size: var(--font-size-xs);
+  color: var(--text-faint);
+}
+
+.stateLabel {
+  font-size: 11px;
+  color: var(--text-faint);
+  text-align: center;
+}
+
+.stateGrid {
+  display: grid;
+  grid-template-columns: 96px repeat(5, minmax(0, 1fr));
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.stateCell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-md);
+  background: var(--bg-subtle);
+}
+
+.typeSample {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-4);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.typeMeta {
+  width: 190px;
+  flex: 0 0 auto;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-faint);
+}
+
+.spacingRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.spacingBar {
+  height: 14px;
+  border-radius: var(--radius-xs);
+  background: var(--accent-200);
+}
+
+.radiusRow {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.radiusBox {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  width: 82px;
+  height: 62px;
+  padding-bottom: var(--space-2);
+  border: 1px solid var(--line-strong);
+  background: var(--bg-subtle);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.shadowRow {
+  display: flex;
+  gap: var(--space-5);
+  padding: var(--space-4) 0;
+}
+
+.shadowBox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 132px;
+  height: 68px;
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.statePanel {
+  padding: var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+}
+
+.twoColumn {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+@media (max-width: 1080px) {
+  .twoColumn {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ------------------------------------------------ 画板专用：静态展示交互状态 */
+
+/* 双类名提高优先级，避免与控件模块中的样式顺序耦合 */
+.demoHover.demoHover {
+  background: var(--accent-hover);
+}
+
+.demoActive.demoActive {
+  background: var(--accent-active);
+}
+
+.demoSelected.demoSelected {
+  background: var(--accent-soft);
+  border-color: var(--accent-border);
+  color: var(--accent-700);
+}
+
+.monoInline {
+  font-family: var(--font-mono);
+  font-size: 0.94em;
+}
+
+.monoSample {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--ink-600);
+}
+
+.rowSpaced {
+  margin-top: var(--space-4);
+}
+
+.demoNav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-2);
+}
+
+.panelFlush {
+  padding: 0;
+}
+
+.deleteSummary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.deleteSummaryName {
+  color: var(--ink-800);
+}
+
+.deleteSummaryMeta {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}
+
+.bodySample {
+  margin: 0 0 var(--space-4);
+  font-size: var(--editor-font-size);
+  line-height: var(--editor-line-height);
+  color: var(--text-primary);
+}
+
+.boardInner {
+  max-width: 1100px;
+}
+
+.wideInner {
+  max-width: 1180px;
+}
+
+.skeletonLine {
+  display: block;
+  height: 13px;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(90deg, var(--bg-sunken), var(--bg-hover), var(--bg-sunken));
+  background-size: 200% 100%;
+  animation: maji-board-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes maji-board-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+.skeletonStack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.spinDemo {
+  color: var(--text-muted);
+  animation: maji-board-spin 720ms linear infinite;
+}
+
+@keyframes maji-board-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.noteSpaced {
+  margin-top: var(--space-3);
+}
+
+.dangerNote {
+  color: var(--danger-600);
+}

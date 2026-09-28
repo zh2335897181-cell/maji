@@ -1,0 +1,425 @@
+/* =============================================================================
+   码迹 · 应用侧栏（课程与笔记导航）
+   ============================================================================= */
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 var(--size-sidebar);
+  width: var(--size-sidebar);
+  height: 100vh;
+  background: var(--bg-subtle);
+  border-right: 1px solid var(--line);
+  transition: width var(--duration-base) var(--ease-out);
+}
+
+.sidebarRail {
+  flex-basis: var(--size-sidebar-rail);
+  width: var(--size-sidebar-rail);
+}
+
+.sidebarDrawer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: var(--z-sidebar);
+  box-shadow: var(--shadow-lg);
+  animation: maji-drawer-in var(--duration-base) var(--ease-out);
+}
+
+@keyframes maji-drawer-in {
+  from {
+    transform: translateX(-100%);
+  }
+}
+
+.drawerScrim {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-overlay);
+  background: var(--bg-scrim);
+}
+
+/* ------------------------------------------------------------------ 品牌区 */
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: var(--size-topbar);
+  padding: 0 var(--space-3) 0 var(--space-4);
+  flex: 0 0 auto;
+}
+
+.brandMark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  flex: 0 0 auto;
+  border-radius: var(--radius-md);
+  background: var(--accent);
+  color: #fff;
+  font-size: var(--font-size-sm);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.02em;
+}
+
+.brandText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.brandName {
+  font-size: var(--font-size-md);
+  font-weight: var(--weight-semibold);
+  color: var(--ink-800);
+  letter-spacing: 0.02em;
+}
+
+.brandMeta {
+  font-size: 11px;
+  color: var(--text-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.brandActions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* ------------------------------------------------------------------ 导航 */
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-2) var(--space-2) var(--space-3);
+  flex: 0 0 auto;
+}
+
+.navItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 32px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-md);
+  color: var(--ink-600);
+  font-size: var(--font-size-sm);
+  text-decoration: none;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+}
+
+.navItem:hover {
+  background: var(--bg-hover);
+  color: var(--ink-800);
+  text-decoration: none;
+}
+
+.navItemActive,
+.navItemActive:hover {
+  background: var(--accent-soft);
+  color: var(--accent-700);
+  font-weight: var(--weight-medium);
+}
+
+.navIcon {
+  flex: 0 0 auto;
+}
+
+.navLabel {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.navBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: var(--radius-full);
+  background: var(--bg-active);
+  color: var(--ink-500);
+  font-size: 11px;
+  font-weight: var(--weight-medium);
+}
+
+.navBadgeAccent {
+  background: var(--accent-soft);
+  color: var(--accent-700);
+}
+
+.navHint {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-faint);
+}
+
+/* ------------------------------------------------------------- 课程目录 */
+
+.treeSection {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  border-top: 1px solid var(--line-soft);
+  padding-top: var(--space-2);
+}
+
+.treeHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3) var(--space-2) var(--space-4);
+}
+
+.treeTitle {
+  font-size: 11px;
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-caps);
+  color: var(--text-faint);
+  text-transform: uppercase;
+}
+
+.treeScroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 var(--space-2) var(--space-3);
+}
+
+.courseRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  width: 100%;
+  height: 30px;
+  padding-right: var(--space-2);
+  border-radius: var(--radius-md);
+  color: var(--ink-700);
+  font-size: var(--font-size-sm);
+}
+
+.courseRow:hover {
+  background: var(--bg-hover);
+}
+
+.courseRowActive {
+  color: var(--ink-900);
+  font-weight: var(--weight-medium);
+}
+
+.courseChevron {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  border-radius: var(--radius-sm);
+  color: var(--text-faint);
+}
+
+.courseChevron:hover {
+  background: var(--bg-active);
+  color: var(--ink-600);
+}
+
+.courseDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  flex: 0 0 auto;
+}
+
+.courseName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+}
+
+.courseCount {
+  font-size: 11px;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.noteList {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin: 2px 0 var(--space-2);
+  padding-left: var(--space-4);
+  border-left: 1px solid var(--line);
+  margin-left: var(--space-3);
+}
+
+.noteRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 28px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-sm);
+  color: var(--ink-600);
+  font-size: var(--font-size-sm);
+  text-decoration: none;
+}
+
+.noteRow:hover {
+  background: var(--bg-hover);
+  color: var(--ink-800);
+  text-decoration: none;
+}
+
+.noteRowActive,
+.noteRowActive:hover {
+  background: var(--accent-soft);
+  color: var(--accent-700);
+  font-weight: var(--weight-medium);
+}
+
+.noteTitle {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.noteFlag {
+  flex: 0 0 auto;
+  color: var(--warning-500);
+}
+
+.treeAction {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 28px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.treeAction:hover {
+  background: var(--bg-hover);
+  color: var(--ink-700);
+}
+
+.emptyHint {
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  line-height: var(--line-normal);
+}
+
+/* ------------------------------------------------------------------ 底部 */
+
+.sidebarFooter {
+  flex: 0 0 auto;
+  padding: var(--space-3);
+  border-top: 1px solid var(--line-soft);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.storageHint {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: 11px;
+  color: var(--text-faint);
+}
+
+/* -------------------------------------------------------------- 折叠态 */
+
+.sidebarRail {
+  align-items: center;
+}
+
+.sidebarRail .brand {
+  justify-content: center;
+  gap: var(--space-1);
+  padding: 0 1px;
+}
+
+.sidebarRail .brandMark {
+  width: 22px;
+  height: 22px;
+}
+
+.sidebarRail .nav {
+  align-items: center;
+  padding-left: var(--space-1);
+  padding-right: var(--space-1);
+}
+
+.sidebarRail .navItem {
+  justify-content: center;
+  width: 36px;
+  padding: 0;
+}
+
+.sidebarRail .treeHeader,
+.sidebarRail .treeScroll,
+.sidebarRail .storageHint {
+  display: none;
+}
+
+.sidebarRail .sidebarFooter {
+  align-items: center;
+  padding: var(--space-2) var(--space-1);
+}
+
+.railCourses {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-2) 0;
+  border-top: 1px solid var(--line-soft);
+}
+
+.railCourse {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 30px;
+  border-radius: var(--radius-md);
+  color: var(--ink-500);
+}
+
+.railCourse:hover {
+  background: var(--bg-hover);
+  color: var(--ink-800);
+}
+
+.railCourseActive {
+  background: var(--accent-soft);
+  color: var(--accent-700);
+}

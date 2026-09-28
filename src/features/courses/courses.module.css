@@ -1,0 +1,355 @@
+/* =============================================================================
+   码迹 · 课程与笔记管理页
+   ============================================================================= */
+
+.layout {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  background: var(--bg-app);
+}
+
+/* 左侧浏览器：课程、标签、快捷筛选 */
+.browser {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 232px;
+  width: 232px;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-3);
+  background: var(--bg-subtle);
+  border-right: 1px solid var(--line);
+  overflow-y: auto;
+}
+
+.browserGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.browserTitle {
+  padding: 0 var(--space-2) var(--space-1);
+  font-size: 11px;
+  font-weight: var(--weight-semibold);
+  color: var(--text-faint);
+}
+
+.browserRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 30px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-md);
+  color: var(--ink-600);
+  font-size: var(--font-size-sm);
+}
+
+.browserRow:hover {
+  background: var(--bg-hover);
+  color: var(--ink-800);
+}
+
+.browserRowActive,
+.browserRowActive:hover {
+  background: var(--accent-soft);
+  color: var(--accent-700);
+  font-weight: var(--weight-medium);
+}
+
+.browserRowMain {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+}
+
+.browserCount {
+  font-size: 11px;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.browserRowMenu {
+  opacity: 0;
+  display: flex;
+}
+
+.browserRow:hover .browserRowMenu,
+.browserRow:focus-within .browserRowMenu {
+  opacity: 1;
+}
+
+.courseDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex: 0 0 auto;
+}
+
+/* 右侧笔记列表 */
+.main {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  background: var(--bg-app);
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  padding: var(--space-3) var(--space-6);
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--line);
+}
+
+.toolbarSearch {
+  flex: 0 1 260px;
+  min-width: 180px;
+}
+
+.toolbarSpacer {
+  flex: 1;
+}
+
+.scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-5) var(--space-6) var(--space-12);
+}
+
+.listHeader {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 130px 92px 116px 96px 36px;
+  gap: var(--space-3);
+  padding: 0 var(--space-3) var(--space-2);
+  font-size: 11px;
+  font-weight: var(--weight-semibold);
+  color: var(--text-faint);
+}
+
+.noteRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 130px 92px 116px 96px 36px;
+  gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--line-soft);
+  background: var(--bg-surface);
+}
+
+.noteRow:first-child {
+  border-top-left-radius: var(--radius-lg);
+  border-top-right-radius: var(--radius-lg);
+}
+
+.noteRow:last-child {
+  border-bottom: none;
+  border-bottom-left-radius: var(--radius-lg);
+  border-bottom-right-radius: var(--radius-lg);
+}
+
+.noteRow:hover {
+  background: var(--bg-subtle);
+}
+
+.noteRowSelected {
+  background: var(--accent-soft);
+}
+
+.noteMain {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.noteTitle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+  font-weight: var(--weight-medium);
+  color: var(--ink-800);
+  text-decoration: none;
+  min-width: 0;
+}
+
+.noteTitle:hover {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.noteTitleText {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.noteExcerpt {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.renameInput {
+  width: 100%;
+  height: 28px;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--accent-400);
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  font-size: var(--font-size-sm);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+  outline: none;
+}
+
+.cell {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowMenu {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.listFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-3) 0;
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}
+
+/* 课程编辑弹窗 */
+.courseForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.swatchRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.swatch {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  color: var(--ink-500);
+}
+
+.swatch:hover {
+  border-color: var(--accent-300);
+}
+
+.swatch[aria-pressed='true'] {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.colorChip {
+  width: 18px;
+  height: 18px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+}
+
+.coursePreview {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-md);
+  background: var(--bg-subtle);
+  font-size: var(--font-size-sm);
+  color: var(--ink-700);
+}
+
+.coursePreviewIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-sm);
+}
+
+/* 列表容器与单元格细节 */
+.listPanel {
+  background: var(--bg-surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.browserCourseButton {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 1;
+  min-width: 0;
+}
+
+.selectSmall {
+  width: 132px;
+}
+
+.titleStar {
+  flex: 0 0 auto;
+  color: var(--warning-500);
+}
+
+.reviewCell {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.mutedCell {
+  color: var(--text-faint);
+}
+
+.linkButton {
+  color: var(--accent);
+  font-size: var(--font-size-xs);
+  font-weight: var(--weight-medium);
+}
+
+.summaryBox {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1);
+}
+
+.summaryName {
+  color: var(--ink-800);
+}
+
+.summaryError {
+  color: var(--danger-600);
+}
