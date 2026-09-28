@@ -12,6 +12,7 @@ import type {
   CodeSnippet,
   Course,
   CourseColorKey,
+  CourseTrackId,
   Exercise,
   ExerciseDifficulty,
   LanguageId,
@@ -23,6 +24,7 @@ import type {
   UserSettings,
 } from '../../../src/lib/types';
 import { DEFAULT_SETTINGS } from '../../../src/lib/types';
+import { isCourseTrackId, trackFromLanguage } from '../../../src/lib/courseTracks';
 import { extractCodeText, type Doc } from '../../../src/lib/noteDoc';
 import type { SearchDocument } from '../../../src/lib/search';
 import type { SqliteDatabase } from './connection';
@@ -48,6 +50,10 @@ export const COURSE_COLOR_KEYS = [
   'rose',
   'slate',
 ] as const;
+export const COURSE_TRACK_IDS = [
+  'python', 'javascript', 'typescript', 'html', 'css', 'java', 'c', 'text',
+  'vue', 'react', 'nodejs', 'springboot', 'django', 'flask', 'algorithms', 'database', 'other',
+] as const satisfies readonly CourseTrackId[];
 export const COURSE_ICON_KEYS = [
   'book',
   'braces',
@@ -101,6 +107,7 @@ export interface CourseRow {
   name: string;
   description: string;
   language: string;
+  track: string;
   color_key: string;
   icon_key: string;
   sort_order: number;
@@ -211,11 +218,13 @@ export function deriveCodeText(contentJson: string): string {
 /* ------------------------------------------------------ 行 -> 领域对象 */
 
 export function toCourse(row: CourseRow): Course {
+  const language = asLanguage(row.language);
   return {
     id: row.id,
     name: row.name,
     description: row.description,
-    language: asLanguage(row.language),
+    language,
+    track: isCourseTrackId(row.track) ? row.track : trackFromLanguage(language),
     colorKey: asColorKey(row.color_key),
     iconKey: row.icon_key,
     sortOrder: row.sort_order,
@@ -345,6 +354,7 @@ export function courseParams(course: Course) {
     name: course.name,
     description: course.description,
     language: course.language,
+    track: course.track,
     color_key: course.colorKey,
     icon_key: course.iconKey,
     sort_order: course.sortOrder,

@@ -25,6 +25,7 @@ import type {
 import {
   COURSE_COLOR_KEYS,
   COURSE_ICON_KEYS,
+  COURSE_TRACK_IDS,
   EDITOR_FONT_FAMILIES,
   EXERCISE_DIFFICULTIES,
   LANGUAGE_IDS,
@@ -182,6 +183,10 @@ export function validateCourseCreate(value: unknown): Partial<Course> & { name: 
     course.description = requireText(record.description, '课程说明', MAX_TITLE);
   }
   if (record.language !== undefined) course.language = requireLanguage(record.language);
+  if (record.track !== undefined) {
+    if (!isOneOf(record.track, COURSE_TRACK_IDS)) throw new Error('课程技术方向无效');
+    course.track = record.track;
+  }
   if (record.colorKey !== undefined) course.colorKey = requireColorKey(record.colorKey);
   if (record.iconKey !== undefined) course.iconKey = requireIconKey(record.iconKey);
   return course;
@@ -195,6 +200,10 @@ export function validateCourseUpdate(value: unknown): Partial<Course> {
     patch.description = requireText(record.description, '课程说明', MAX_TITLE);
   }
   if (record.language !== undefined) patch.language = requireLanguage(record.language);
+  if (record.track !== undefined) {
+    if (!isOneOf(record.track, COURSE_TRACK_IDS)) throw new Error('课程技术方向无效');
+    patch.track = record.track;
+  }
   if (record.colorKey !== undefined) patch.colorKey = requireColorKey(record.colorKey);
   if (record.iconKey !== undefined) patch.iconKey = requireIconKey(record.iconKey);
   if (record.sortOrder !== undefined) {

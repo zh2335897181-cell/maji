@@ -28,6 +28,11 @@ describe('课程数据操作', () => {
     expect(courses[courses.length - 1]?.name).toBe('数据库系统');
   });
 
+  it('保存技术框架方向，并按方向设置新笔记默认语言', async () => {
+    const course = await repo.createCourse({ name: 'Spring Boot 入门', track: 'springboot' });
+    expect(course).toMatchObject({ track: 'springboot', language: 'java' });
+  });
+
   it('课程下还有笔记时拒绝删除，并说明原因', async () => {
     await expect(repo.deleteCourse('course_python')).rejects.toThrow('该课程下还有 6 篇笔记');
   });

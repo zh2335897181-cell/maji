@@ -35,6 +35,7 @@ import { createId } from './text';
 import { applyReviewAction } from './review';
 import { searchDocuments, type SearchDocument } from './search';
 import { docToPlainText, extractCodeText, noteExcerpt, starterDoc, type Doc } from './noteDoc';
+import { defaultLanguageForTrack, trackFromLanguage } from './courseTracks';
 
 const STORAGE_KEY = 'maji.local.v1';
 
@@ -57,6 +58,10 @@ function loadState(): LocalState {
         const parsed = JSON.parse(raw) as LocalState;
         if (parsed.version === STATE_VERSION) {
           parsed.settings = { ...DEFAULT_SETTINGS, ...parsed.settings };
+          parsed.courses = parsed.courses.map((course) => ({
+            ...course,
+            track: course.track ?? trackFromLanguage(course.language),
+          }));
           return parsed;
         }
       }
@@ -99,11 +104,13 @@ export class LocalRepository implements MajiRepository {
 
   async createCourse(input: Partial<Course> & { name: string }): Promise<Course> {
     const now = new Date().toISOString();
+    const track = input.track ?? trackFromLanguage(input.language ?? 'python');
     const course: Course = {
       id: input.id ?? createId('course'),
       name: input.name.trim(),
       description: input.description?.trim() ?? '',
-      language: input.language ?? 'python',
+      language: input.language ?? defaultLanguageForTrack(track),
+      track,
       colorKey: input.colorKey ?? 'teal',
       iconKey: input.iconKey ?? 'book',
       sortOrder: this.state.courses.length,

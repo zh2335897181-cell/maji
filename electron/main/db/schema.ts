@@ -1,14 +1,14 @@
 /* =============================================================================
    码迹 · SQLite 建表与迁移
    -----------------------------------------------------------------------------
-   版本号写在 PRAGMA user_version 里：0 = 空库，1 = 初始结构，2 = 连续掌握计数。
+   版本号写在 PRAGMA user_version 里：0 = 空库，1 = 初始结构，2 = 连续掌握计数，3 = 课程技术方向。
    以后改结构时只允许“追加”一个迁移分支，不要修改已经发布出去的 SQL。
    ============================================================================= */
 
 import type { SqliteDatabase } from './connection';
 
 /** 当前应用期望的数据库结构版本 */
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 /* 说明：
    · 时间统一存 ISO 字符串（TEXT），布尔值存 INTEGER 0/1
@@ -22,6 +22,7 @@ CREATE TABLE courses (
   name TEXT NOT NULL,
   description TEXT NOT NULL DEFAULT '',
   language TEXT NOT NULL,
+  track TEXT NOT NULL DEFAULT 'python',
   color_key TEXT NOT NULL,
   icon_key TEXT NOT NULL,
   sort_order INTEGER NOT NULL DEFAULT 0,
@@ -121,9 +122,15 @@ export function migrate(db: SqliteDatabase): void {
   const upgrade = db.transaction(() => {
     if (current < 1) {
       db.exec(INITIAL_SCHEMA);
-    } else if (current < 2) {
-      db.exec('ALTER TABLE review_items ADD COLUMN mastered_streak INTEGER NOT NULL DEFAULT 0');
-      db.exec("UPDATE review_items SET mastered_streak = 4 WHERE state = 'mastered'");
+    } else {
+      if (current < 2) {
+        db.exec('ALTER TABLE review_items ADD COLUMN mastered_streak INTEGER NOT NULL DEFAULT 0');
+        db.exec("UPDATE review_items SET mastered_streak = 4 WHERE state = 'mastered'");
+      }
+      if (current < 3) {
+        db.exec("ALTER TABLE courses ADD COLUMN track TEXT NOT NULL DEFAULT 'python'");
+        db.exec('UPDATE courses SET track = language');
+      }
     }
     db.pragma(`user_version = ${SCHEMA_VERSION}`);
   });

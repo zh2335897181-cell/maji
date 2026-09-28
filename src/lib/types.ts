@@ -19,6 +19,10 @@ export type LanguageId =
   | 'c'
   | 'text';
 
+export type CourseTrackId =
+  | 'python' | 'javascript' | 'typescript' | 'html' | 'css' | 'java' | 'c' | 'text'
+  | 'vue' | 'react' | 'nodejs' | 'springboot' | 'django' | 'flask' | 'algorithms' | 'database' | 'other';
+
 export interface LanguageMeta {
   id: LanguageId;
   /** 界面上显示的名称 */
@@ -37,6 +41,8 @@ export interface Course {
   description: string;
   /** 课程主语言，用于新建笔记时的默认值 */
   language: LanguageId;
+  /** 学习方向（语言、框架或主题）；笔记语言由该方向映射为合理默认值 */
+  track: CourseTrackId;
   colorKey: CourseColorKey;
   /** Lucide 图标名（见 src/lib/icons.ts 的白名单映射） */
   iconKey: string;
@@ -279,6 +285,7 @@ export interface CreateCoursePayload {
   name: string;
   description: string;
   language: LanguageId;
+  track: CourseTrackId;
   colorKey: CourseColorKey;
   iconKey: string;
 }

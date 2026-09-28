@@ -11,8 +11,8 @@ import {
   courseColorVar,
   courseIcon,
 } from '../../lib/icons';
-import { LANGUAGE_OPTIONS } from '../../lib/languages';
-import type { Course, CourseColorKey, LanguageId } from '../../lib/types';
+import { COURSE_TRACKS, defaultLanguageForTrack, trackFromLanguage } from '../../lib/courseTracks';
+import type { Course, CourseColorKey, CourseTrackId } from '../../lib/types';
 import styles from './courses.module.css';
 
 export interface CourseEditorDialogProps {
@@ -23,7 +23,7 @@ export interface CourseEditorDialogProps {
   onSaved?(course: Course): void;
 }
 
-/** 新建 / 编辑课程：名称、说明、主语言、颜色、图标 */
+/** 新建 / 编辑课程：名称、说明、技术方向、颜色、图标 */
 export function CourseEditorDialog({
   open,
   course,
@@ -35,7 +35,9 @@ export function CourseEditorDialog({
 
   const [name, setName] = useState(course?.name ?? '');
   const [description, setDescription] = useState(course?.description ?? '');
-  const [language, setLanguage] = useState<LanguageId>(course?.language ?? 'python');
+  const [track, setTrack] = useState<CourseTrackId>(
+    course?.track ?? trackFromLanguage(course?.language ?? 'python'),
+  );
   const [colorKey, setColorKey] = useState<CourseColorKey>(course?.colorKey ?? 'teal');
   const [iconKey, setIconKey] = useState(course?.iconKey ?? 'book');
   const [error, setError] = useState<string | null>(null);
@@ -50,7 +52,7 @@ export function CourseEditorDialog({
     if (syncKey !== null) {
       setName(course?.name ?? '');
       setDescription(course?.description ?? '');
-      setLanguage(course?.language ?? 'python');
+      setTrack(course?.track ?? trackFromLanguage(course?.language ?? 'python'));
       setColorKey(course?.colorKey ?? 'teal');
       setIconKey(course?.iconKey ?? 'book');
       setError(null);
@@ -70,10 +72,11 @@ export function CourseEditorDialog({
       return;
     }
     setBusy(true);
+    const language = defaultLanguageForTrack(track);
     try {
       const saved = course
-        ? await updateCourse(course.id, { name: trimmed, description, language, colorKey, iconKey })
-        : await createCourse({ name: trimmed, description, language, colorKey, iconKey });
+        ? await updateCourse(course.id, { name: trimmed, description, language, track, colorKey, iconKey })
+        : await createCourse({ name: trimmed, description, language, track, colorKey, iconKey });
       toast.show(course ? '课程信息已更新' : `已创建课程「${saved.name}」`);
       onSaved?.(saved);
       onClose();
@@ -93,7 +96,7 @@ export function CourseEditorDialog({
       description={
         course
           ? '修改后立即生效，已有笔记不会受影响。'
-          : '课程是笔记的第一层分类，建议按「语言 + 阶段」命名。'
+      : '课程是笔记的第一层分类，可按编程语言、框架或学习主题整理。'
       }
       icon={Icon}
       footer={
@@ -144,11 +147,11 @@ export function CourseEditorDialog({
 
         <div className={styles.courseForm}>
           <SelectField
-            label="主要编程语言"
-            hint="新建笔记时会作为默认语言"
-            value={language}
-            options={LANGUAGE_OPTIONS}
-            onChange={(event) => setLanguage(event.target.value as LanguageId)}
+            label="课程技术方向"
+            hint="Vue、Spring Boot 等方向会自动选用对应的代码语言作为新笔记默认值"
+            value={track}
+            options={COURSE_TRACKS}
+            onChange={(event) => setTrack(event.target.value as CourseTrackId)}
           />
         </div>
 
