@@ -6,10 +6,12 @@
      · callout   —— 说明 / 容易混淆 / 常见报错 / 运行结果 四种语义块
    ============================================================================= */
 
-import { InputRule, Node, mergeAttributes, textblockTypeInputRule } from '@tiptap/core';
+import { Extension, InputRule, Node, mergeAttributes, textblockTypeInputRule } from '@tiptap/core';
 import { CodeBlock } from '@tiptap/extension-code-block';
+import Highlight from '@tiptap/extension-highlight';
 import { Image } from '@tiptap/extension-image';
 import { Placeholder } from '@tiptap/extension-placeholder';
+import { TableKit } from '@tiptap/extension-table';
 import { TaskItem } from '@tiptap/extension-task-item';
 import { TaskList } from '@tiptap/extension-task-list';
 import { ReactNodeViewRenderer } from '@tiptap/react';
@@ -127,6 +129,22 @@ export const Callout = Node.create({
   },
 });
 
+/** 常用编辑操作的自定义快捷键；Mod 在 Windows/Linux 上对应 Ctrl。 */
+const EditorShortcuts = Extension.create({
+  name: 'majiEditorShortcuts',
+
+  addKeyboardShortcuts() {
+    return {
+      'Mod-Shift-1': () => this.editor.commands.toggleHeading({ level: 1 }),
+      'Mod-Shift-2': () => this.editor.commands.toggleHeading({ level: 2 }),
+      'Mod-Shift-3': () => this.editor.commands.toggleHeading({ level: 3 }),
+      'Mod-Shift-H': () => this.editor.commands.toggleHighlight({ color: '#fff3a3' }),
+      'Mod-Alt-t': () =>
+        this.editor.commands.insertTable({ rows: 3, cols: 3, withHeaderRow: true }),
+    };
+  },
+});
+
 /**
  * 编辑器扩展清单。放在一个函数里，方便测试与替换。
  * 关闭 StarterKit 自带的 codeBlock，改用带语言属性 + Shiki 高亮的版本。
@@ -151,7 +169,10 @@ export function buildEditorExtensions() {
     Callout,
     TaskList,
     TaskItem.configure({ nested: true }),
+    TableKit.configure({ table: { resizable: false } }),
+    Highlight.configure({ multicolor: true }),
     Image.configure({ inline: false, allowBase64: true }),
+    EditorShortcuts,
     Placeholder.configure({
       placeholder: '继续记录… 输入 # 加空格插入小标题，输入 ```python 插入代码块',
       showOnlyWhenEditable: true,

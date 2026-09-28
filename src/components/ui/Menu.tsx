@@ -26,6 +26,7 @@ export interface MenuProps {
   text?: string;
   items: MenuEntry[];
   align?: 'start' | 'end';
+  disabled?: boolean;
 }
 
 function isSeparator(entry: MenuEntry): entry is { id: string; separator: true } {
@@ -33,7 +34,7 @@ function isSeparator(entry: MenuEntry): entry is { id: string; separator: true }
 }
 
 /** 下拉菜单：点击展开，点击外部 / Esc 关闭，上下方向键在菜单项之间移动 */
-export function Menu({ label, icon: Icon, text, items, align = 'end' }: MenuProps) {
+export function Menu({ label, icon: Icon, text, items, align = 'end', disabled = false }: MenuProps) {
   const [open, setOpen] = useState(false);
   const anchorRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -88,6 +89,7 @@ export function Menu({ label, icon: Icon, text, items, align = 'end' }: MenuProp
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={open ? menuId : undefined}
+        disabled={disabled}
         aria-label={text ? `${text}（${label}）` : label}
         title={label}
         className={clsx(

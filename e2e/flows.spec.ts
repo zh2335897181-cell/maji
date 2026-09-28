@@ -63,6 +63,40 @@ test.describe('笔记编辑页', () => {
 
     await page.getByRole('button', { name: '复制代码' }).first().click();
     await expect(page.getByRole('button', { name: '复制代码' }).first()).toContainText('已复制');
+
+    await page.getByRole('button', { name: '显示行号' }).first().click();
+    const numberedCode = page.locator('[data-testid="note-editor"] pre[data-line-numbers]').first();
+    await expect(numberedCode).toBeVisible();
+    await expect(numberedCode.locator('span[aria-hidden="true"]')).toContainText('1');
+  });
+
+  test('表格、高亮和快捷键帮助可从编辑工具栏使用', async ({ page }) => {
+    const toolbar = page.getByRole('toolbar', { name: '编辑工具栏' });
+
+    const paragraph = page.locator('[data-testid="note-editor"] .ProseMirror p').filter({ hasText: '函数可以把一段可重复使用的逻辑组织起来' });
+    await paragraph.click({ position: { x: 24, y: 12 } });
+    await page.keyboard.press('Home');
+    await page.keyboard.press('Shift+End');
+    await toolbar.getByRole('button', { name: '高亮文字' }).click();
+    await page.getByRole('menuitem', { name: '黄色重点' }).click();
+    await expect(page.locator('[data-testid="note-editor"] mark').first()).toBeVisible();
+
+    await toolbar.getByRole('button', { name: '表格（插入表格与编辑表格）' }).click();
+    await page.getByRole('menuitem', { name: '插入 3 × 3 表格' }).click();
+    const table = page.locator('[data-testid="note-editor"] table');
+    await expect(table).toBeVisible();
+    await expect(table.locator('tr')).toHaveCount(3);
+    await toolbar.getByRole('button', { name: '表格（插入表格与编辑表格）' }).click();
+    await page.getByRole('menuitem', { name: '在下方添加行' }).click();
+    await expect(table.locator('tr')).toHaveCount(4);
+
+    await toolbar.getByRole('button', { name: '快捷键帮助' }).click();
+    const dialog = page.getByRole('dialog', { name: '键盘快捷键' });
+    await expect(dialog).toContainText('笔记编辑');
+    await expect(dialog).toContainText('Ctrl');
+    await page.keyboard.press('Escape');
+    await page.keyboard.press('Control+/');
+    await expect(page.getByRole('dialog', { name: '键盘快捷键' })).toBeVisible();
   });
 
   test('点击大纲可以跳转到对应小节', async ({ page }) => {

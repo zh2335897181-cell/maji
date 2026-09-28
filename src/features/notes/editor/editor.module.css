@@ -96,6 +96,39 @@
   border: 1px solid var(--line);
 }
 
+.content table {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  font-size: 0.94em;
+}
+
+.content th,
+.content td {
+  min-width: 112px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+
+.content th {
+  background: var(--bg-sunken);
+  color: var(--ink-800);
+  font-weight: var(--weight-semibold);
+}
+
+.content mark {
+  padding: 0 2px;
+  border-radius: 3px;
+  color: inherit;
+  background-color: #fff3a3;
+}
+
 /* 行内代码：与代码块呼应但更轻 */
 .content code {
   padding: 1px 5px;
@@ -244,6 +277,11 @@
   color: var(--ink-700);
 }
 
+.copyButton[data-active] {
+  background: var(--accent-soft);
+  color: var(--accent-700);
+}
+
 .copyButton[data-copied] {
   color: var(--success-600);
 }
@@ -256,6 +294,38 @@
   outline: none;
   white-space: pre;
   tab-size: 4;
+}
+
+.codePre[data-line-numbers] {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+}
+
+.codeLineNumbers {
+  grid-column: 1;
+  grid-row: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 2ch;
+  padding-right: var(--space-3);
+  margin-right: var(--space-3);
+  border-right: 1px solid var(--code-border);
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.72;
+  text-align: right;
+  user-select: none;
+}
+
+.codeLineNumbers span {
+  height: 1.72em;
+}
+
+.codePre[data-line-numbers] .codeText {
+  grid-column: 2;
+  min-width: max-content;
 }
 
 /* 阅读态：隐藏可编辑内容，只显示 Shiki 高亮层 */

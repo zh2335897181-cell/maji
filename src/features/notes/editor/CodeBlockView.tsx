@@ -1,4 +1,4 @@
-import { Check, Copy } from 'lucide-react';
+import { Check, Copy, Rows3 } from 'lucide-react';
 import { NodeViewContent, NodeViewWrapper, type NodeViewProps } from '@tiptap/react';
 import { useEffect, useMemo, useState } from 'react';
 import { copyText } from '../../../lib/clipboard';
@@ -27,6 +27,8 @@ export function CodeBlockView({ node, updateAttributes, editor, getPos }: NodeVi
   const [html, setHtml] = useState('');
   const [copied, setCopied] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [lineNumbers, setLineNumbers] = useState(false);
+  const lineCount = Math.max(1, code.split('\n').length);
 
   // 光标是否落在本代码块内部：决定“高亮阅读”还是“纯文本编辑”
   useEffect(() => {
@@ -109,6 +111,18 @@ export function CodeBlockView({ node, updateAttributes, editor, getPos }: NodeVi
         <button
           type="button"
           className={styles.copyButton}
+          onClick={() => setLineNumbers((visible) => !visible)}
+          aria-label={lineNumbers ? '隐藏行号' : '显示行号'}
+          aria-pressed={lineNumbers}
+          title={lineNumbers ? '隐藏行号' : '显示行号'}
+          data-active={lineNumbers || undefined}
+        >
+          <Rows3 size={13} aria-hidden />
+          行号
+        </button>
+        <button
+          type="button"
+          className={styles.copyButton}
           onClick={() => void onCopy()}
           aria-label="复制代码"
           data-copied={copied || undefined}
@@ -118,7 +132,12 @@ export function CodeBlockView({ node, updateAttributes, editor, getPos }: NodeVi
         </button>
       </div>
 
-      <pre className={styles.codePre}>
+      <pre className={styles.codePre} data-line-numbers={lineNumbers || undefined}>
+        {lineNumbers ? (
+          <span className={styles.codeLineNumbers} aria-hidden="true">
+            {Array.from({ length: lineCount }, (_, index) => <span key={index}>{index + 1}</span>)}
+          </span>
+        ) : null}
         {/* 可编辑内容（常驻，避免 ProseMirror 的 contentDOM 被搬走） */}
         <NodeViewContent className={styles.codeText} />
         {/* 阅读态高亮层：Shiki 输出已转义，可直接注入 */}

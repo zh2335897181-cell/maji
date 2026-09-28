@@ -23,9 +23,12 @@ import {
   Info,
   Eye,
   PenLine,
+  Highlighter,
+  Keyboard,
+  Table2,
 } from 'lucide-react';
 import { useState, type ReactElement } from 'react';
-import { SegmentedControl, TextField } from '../../components/ui/Fields';
+import { Kbd, SegmentedControl, TextField } from '../../components/ui/Fields';
 import { Button, IconButton } from '../../components/ui/Button';
 import { Menu, type MenuEntry } from '../../components/ui/Menu';
 import { Modal } from '../../components/ui/Modal';
@@ -82,6 +85,8 @@ export function EditorToolbar({
           taskList: false,
           blockquote: false,
           codeBlock: false,
+          highlight: false,
+          table: false,
           callout: false,
           link: false,
           canUndo: false,
@@ -101,6 +106,8 @@ export function EditorToolbar({
         taskList: instance.isActive('taskList'),
         blockquote: instance.isActive('blockquote'),
         codeBlock: instance.isActive('codeBlock'),
+        highlight: instance.isActive('highlight'),
+        table: instance.isActive('table'),
         callout: instance.isActive('callout'),
         link: instance.isActive('link'),
         canUndo: instance.can().undo(),
@@ -119,6 +126,31 @@ export function EditorToolbar({
     }),
   );
 
+  const tableItems: MenuEntry[] = [
+    { id: 'insert-3x3', label: '插入 3 × 3 表格', icon: Table2, hint: 'Ctrl Alt T', onSelect: () => chain()?.insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run() },
+    { id: 'insert-2x3', label: '插入 2 × 3 表格', icon: Table2, onSelect: () => chain()?.insertTable({ rows: 2, cols: 3, withHeaderRow: true }).run() },
+    { id: 'table-separator', separator: true },
+    { id: 'row-after', label: '在下方添加行', disabled: !state?.table, onSelect: () => chain()?.addRowAfter().run() },
+    { id: 'column-after', label: '在右侧添加列', disabled: !state?.table, onSelect: () => chain()?.addColumnAfter().run() },
+    { id: 'delete-row', label: '删除当前行', disabled: !state?.table, onSelect: () => chain()?.deleteRow().run() },
+    { id: 'delete-column', label: '删除当前列', disabled: !state?.table, onSelect: () => chain()?.deleteColumn().run() },
+    { id: 'delete-table', label: '删除表格', disabled: !state?.table, danger: true, onSelect: () => chain()?.deleteTable().run() },
+  ];
+
+  const highlightColors = [
+    { color: '#fff3a3', label: '黄色重点' },
+    { color: '#c9f2dc', label: '绿色提示' },
+    { color: '#cfe8ff', label: '蓝色补充' },
+    { color: '#ffd9d5', label: '红色易错' },
+  ];
+  const highlightItems: MenuEntry[] = highlightColors.map(({ color, label }) => ({
+    id: color,
+    label,
+    icon: Highlighter,
+    checked: editor?.isActive('highlight', { color }) ?? false,
+    onSelect: () => editor?.chain().focus().toggleHighlight({ color }).run(),
+  }));
+
   const chain = () => editor?.chain().focus();
 
   return (
@@ -127,6 +159,7 @@ export function EditorToolbar({
         <IconButton
           icon={Undo2}
           label="撤销"
+          shortcut="Ctrl+Z"
           size="sm"
           disabled={!isEditable || !state?.canUndo}
           onClick={() => chain()?.undo().run()}
@@ -134,6 +167,7 @@ export function EditorToolbar({
         <IconButton
           icon={Redo2}
           label="重做"
+          shortcut="Ctrl+Shift+Z"
           size="sm"
           disabled={!isEditable || !state?.canRedo}
           onClick={() => chain()?.redo().run()}
@@ -146,6 +180,7 @@ export function EditorToolbar({
         <IconButton
           icon={Heading1}
           label="一级标题"
+          shortcut="Ctrl+Shift+1"
           size="sm"
           active={state?.h1}
           disabled={!isEditable}
@@ -154,6 +189,7 @@ export function EditorToolbar({
         <IconButton
           icon={Heading2}
           label="二级标题"
+          shortcut="Ctrl+Shift+2"
           size="sm"
           active={state?.h2}
           disabled={!isEditable}
@@ -162,6 +198,7 @@ export function EditorToolbar({
         <IconButton
           icon={Heading3}
           label="三级标题"
+          shortcut="Ctrl+Shift+3"
           size="sm"
           active={state?.h3}
           disabled={!isEditable}
@@ -170,6 +207,7 @@ export function EditorToolbar({
         <IconButton
           icon={Bold}
           label="加粗"
+          shortcut="Ctrl+B"
           size="sm"
           active={state?.bold}
           disabled={!isEditable}
@@ -178,6 +216,7 @@ export function EditorToolbar({
         <IconButton
           icon={Italic}
           label="斜体"
+          shortcut="Ctrl+I"
           size="sm"
           active={state?.italic}
           disabled={!isEditable}
@@ -186,6 +225,7 @@ export function EditorToolbar({
         <IconButton
           icon={Strikethrough}
           label="删除线"
+          shortcut="Ctrl+Shift+X"
           size="sm"
           active={state?.strike}
           disabled={!isEditable}
@@ -194,6 +234,7 @@ export function EditorToolbar({
         <IconButton
           icon={Code}
           label="行内代码"
+          shortcut="Ctrl+E"
           size="sm"
           active={state?.code}
           disabled={!isEditable}
@@ -244,6 +285,7 @@ export function EditorToolbar({
         <IconButton
           icon={Terminal}
           label="代码块"
+          shortcut="Ctrl+Alt+C"
           size="sm"
           active={state?.codeBlock}
           disabled={!isEditable}
@@ -255,6 +297,7 @@ export function EditorToolbar({
           text="语义块"
           items={calloutItems}
           align="start"
+          disabled={!isEditable}
         />
         <IconButton
           icon={Link2}
@@ -281,6 +324,8 @@ export function EditorToolbar({
           disabled={!isEditable}
           onClick={() => chain()?.setHorizontalRule().run()}
         />
+        <Menu label="插入表格与编辑表格" icon={Table2} text="表格" items={tableItems} align="start" disabled={!isEditable} />
+        <Menu label="高亮文字" icon={Highlighter} items={highlightItems} align="start" disabled={!isEditable} />
       </div>
 
       <span className={styles.toolbarSpacer} />
@@ -288,6 +333,17 @@ export function EditorToolbar({
       <span className={styles.toolbarStats}>
         约 {stats.words} 字
         {stats.codeBlocks > 0 ? ` · ${stats.codeBlocks} 段代码` : ''}
+      </span>
+
+      <span className={styles.toolbarShortcutHelp}>
+        <IconButton
+          icon={Keyboard}
+          label="快捷键帮助"
+          shortcut="Ctrl+/"
+          size="sm"
+          onClick={() => window.dispatchEvent(new Event('maji:open-shortcuts'))}
+        />
+        <Kbd>Ctrl /</Kbd>
       </span>
 
       <SegmentedControl<EditorMode>

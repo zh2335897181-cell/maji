@@ -79,6 +79,8 @@ export interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement>
   size?: 'sm' | 'md';
   active?: boolean;
   tone?: 'default' | 'danger';
+  /** 显示在悬浮提示中的键盘操作提示 */
+  shortcut?: string;
 }
 
 export function IconButton({
@@ -87,6 +89,7 @@ export function IconButton({
   size = 'md',
   active = false,
   tone = 'default',
+  shortcut,
   className,
   type = 'button',
   ...rest
@@ -96,7 +99,7 @@ export function IconButton({
       {...rest}
       type={type}
       aria-label={label}
-      title={label}
+      title={shortcut ? `${label} · ${shortcut}` : label}
       aria-pressed={active || undefined}
       className={clsx(
         styles.iconBtn,

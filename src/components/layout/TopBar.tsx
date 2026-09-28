@@ -33,13 +33,36 @@ export function TopBarActions({ children }: { children: ReactNode }): ReactEleme
   return createPortal(children, slot);
 }
 
-const SHORTCUTS: Array<{ label: string; keys: string[] }> = [
-  { label: '打开搜索', keys: ['Ctrl', 'K'] },
-  { label: '新建笔记', keys: ['Ctrl', 'N'] },
-  { label: '保存当前笔记', keys: ['Ctrl', 'S'] },
-  { label: '编辑 / 阅读预览切换', keys: ['Ctrl', 'P'] },
-  { label: '收起或展开左侧导航', keys: ['Ctrl', 'B'] },
-  { label: '关闭浮层或对话框', keys: ['Esc'] },
+type ShortcutDefinition = { label: string; keys: string[]; alternate?: string[] };
+
+const SHORTCUT_GROUPS: Array<{ label: string; shortcuts: ShortcutDefinition[] }> = [
+  {
+    label: '应用操作',
+    shortcuts: [
+      { label: '打开搜索', keys: ['Ctrl', 'K'] },
+      { label: '新建笔记', keys: ['Ctrl', 'N'] },
+      { label: '保存当前笔记', keys: ['Ctrl', 'S'] },
+      { label: '编辑 / 阅读预览切换', keys: ['Ctrl', 'P'] },
+      { label: '收起或展开左侧导航', keys: ['Ctrl', 'B'] },
+      { label: '打开快捷键帮助', keys: ['Ctrl', '/'] },
+      { label: '关闭浮层或对话框', keys: ['Esc'] },
+    ],
+  },
+  {
+    label: '笔记编辑',
+    shortcuts: [
+      { label: '撤销', keys: ['Ctrl', 'Z'] },
+      { label: '重做', keys: ['Ctrl', 'Shift', 'Z'] },
+      { label: '加粗', keys: ['Ctrl', 'B'] },
+      { label: '斜体', keys: ['Ctrl', 'I'] },
+      { label: '删除线', keys: ['Ctrl', 'Shift', 'S'] },
+      { label: '行内代码', keys: ['Ctrl', 'E'] },
+      { label: '代码块', keys: ['Ctrl', 'Alt', 'C'] },
+      { label: '一级 / 二级 / 三级标题', keys: ['Ctrl', 'Shift', '1 / 2 / 3'] },
+      { label: '高亮重点', keys: ['Ctrl', 'Shift', 'H'] },
+      { label: '插入 3×3 表格', keys: ['Ctrl', 'Alt', 'T'] },
+    ],
+  },
 ];
 
 export interface TopBarProps {
@@ -93,8 +116,22 @@ export function TopBar({
 
   useEffect(() => {
     const openAISettings = (): void => setDialog('settings');
+    const openShortcuts = (): void => setDialog('shortcuts');
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.key !== '/' || !event.ctrlKey || event.altKey || event.metaKey) return;
+      const target = event.target;
+      if (target instanceof HTMLElement && target.closest('input, textarea, select, [role="dialog"]')) return;
+      event.preventDefault();
+      setDialog('shortcuts');
+    };
     window.addEventListener('maji:open-ai-settings', openAISettings);
-    return () => window.removeEventListener('maji:open-ai-settings', openAISettings);
+    window.addEventListener('maji:open-shortcuts', openShortcuts);
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.removeEventListener('maji:open-ai-settings', openAISettings);
+      window.removeEventListener('maji:open-shortcuts', openShortcuts);
+      window.removeEventListener('keydown', onKeyDown);
+    };
   }, []);
 
   const checkForUpdates = useCallback(() => {
@@ -207,15 +244,26 @@ export function TopBar({
         icon={Keyboard}
       >
         <div className={styles.shortcutList}>
-          {SHORTCUTS.map((shortcut) => (
-            <div className={styles.shortcutRow} key={shortcut.label}>
-              <span>{shortcut.label}</span>
-              <span className={styles.shortcutKeys}>
-                {shortcut.keys.map((key) => (
-                  <Kbd key={key}>{key}</Kbd>
-                ))}
-              </span>
-            </div>
+          {SHORTCUT_GROUPS.map((group) => (
+            <section className={styles.shortcutGroup} key={group.label}>
+              <h3>{group.label}</h3>
+              {group.shortcuts.map((shortcut) => (
+                <div className={styles.shortcutRow} key={shortcut.label}>
+                  <span>{shortcut.label}</span>
+                  <span className={styles.shortcutKeys}>
+                    {shortcut.keys.map((key) => (
+                      <Kbd key={key}>{key}</Kbd>
+                    ))}
+                    {shortcut.alternate ? (
+                      <>
+                        <span aria-hidden> / </span>
+                        {shortcut.alternate.map((key) => <Kbd key={key}>{key}</Kbd>)}
+                      </>
+                    ) : null}
+                  </span>
+                </div>
+              ))}
+            </section>
           ))}
         </div>
       </Modal>

@@ -167,6 +167,19 @@
   gap: var(--space-3);
 }
 
+.shortcutGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.shortcutGroup h3 {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: var(--weight-semibold);
+}
+
 .shortcutRow {
   display: flex;
   align-items: center;
