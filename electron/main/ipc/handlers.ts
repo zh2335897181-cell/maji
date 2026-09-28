@@ -17,6 +17,8 @@ import * as library from '../db/library';
 import * as notes from '../db/notes';
 import { databaseFile } from '../db/connection';
 import type { UpdateService } from '../updates';
+import type { AIService } from '../ai/service';
+import { createAIHandlers } from '../ai/ipc';
 import {
   requireEntityId,
   requireNoteId,
@@ -118,9 +120,10 @@ const handlers: Record<string, Handler> = {
 };
 
 /** 注册全部白名单通道；重复调用会被 ipcMain.handle 拒绝，所以只调用一次 */
-export function registerIpcHandlers(updates: UpdateService): void {
+export function registerIpcHandlers(updates: UpdateService, ai: AIService): void {
   const activeHandlers: Record<string, Handler> = {
     ...handlers,
+    ...createAIHandlers(ai),
     [IPC.updatesCheck]: () => updates.checkForUpdates(),
     [IPC.updatesInstall]: () => updates.installDownloadedUpdate(),
     [IPC.updatesStatusGet]: () => updates.getStatus(),

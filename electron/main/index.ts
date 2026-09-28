@@ -9,7 +9,7 @@
    · MAJI_SMOKE_TEST 有值时交给 smoke.ts 做无人值守自检
    ============================================================================= */
 
-import { BrowserWindow, Menu, app, dialog, ipcMain, session, shell } from 'electron';
+import { BrowserWindow, Menu, app, dialog, ipcMain, safeStorage, session, shell } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import * as path from 'node:path';
 import { IPC } from '../../src/lib/ipc';
@@ -18,6 +18,8 @@ import { registerIpcHandlers } from './ipc/handlers';
 import { armSmokeTest } from './smoke';
 import { createMainWindow } from './window';
 import { createUpdateService, type UpdateUpdater } from './updates';
+import { AIConfigStore } from './ai/storage';
+import { AIService } from './ai/service';
 
 /** 开发模式下由 npm run dev:electron 注入 */
 const DEV_SERVER = process.env.MAJI_DEV_SERVER;
@@ -191,7 +193,11 @@ function bootstrap(): void {
       }
     }
   });
-  registerIpcHandlers(updates);
+  const aiStore = new AIConfigStore({
+    filePath: path.join(app.getPath('userData'), 'ai-settings.json'),
+    safeStorage,
+  });
+  registerIpcHandlers(updates, new AIService(aiStore));
 
   const openWindow = (): BrowserWindow => {
     const win = createMainWindow();

@@ -59,6 +59,11 @@ export const IPC = {
   settingsUpdate: 'maji:settings:update',
   exportMarkdown: 'maji:file:export-markdown',
   openExternal: 'maji:shell:open-external',
+  aiSettingsGet: 'maji:ai:settings-get',
+  aiSettingsSave: 'maji:ai:settings-save',
+  aiSettingsClearKey: 'maji:ai:settings-clear-key',
+  aiTestConnection: 'maji:ai:test-connection',
+  aiAsk: 'maji:ai:ask',
 } as const;
 
 export interface AppInfo {
@@ -75,6 +80,25 @@ export interface ExportResult {
   /** 取消保存时为 undefined */
   path?: string;
 }
+
+export interface AIProviderSettings {
+  baseUrl: string;
+  model: string;
+}
+export interface AISettingsStatus extends AIProviderSettings {
+  configured: boolean;
+  keyPresent: boolean;
+}
+export type AIAction = 'explain' | 'organize' | 'exercise';
+export interface AIContext {
+  selectedText: string;
+  noteText?: string;
+  scope: 'selection' | 'note';
+  language: import('./types').LanguageId;
+}
+export type AIResult =
+  | { kind: 'text'; text: string }
+  | { kind: 'exercise'; title: string; prompt: string; hint: string; solution: string };
 
 export type UpdateStatus =
   | { state: 'unsupported'; currentVersion: string; message: string }
@@ -143,6 +167,13 @@ export interface MajiApi {
   external: {
     /** 仅允许 https / http，由主进程再次校验 */
     open(url: string): Promise<void>;
+  };
+  ai: {
+    getSettings(): Promise<AISettingsStatus>;
+    saveSettings(settings: AIProviderSettings, apiKey?: string): Promise<AISettingsStatus>;
+    clearKey(): Promise<AISettingsStatus>;
+    testConnection(settings?: AIProviderSettings, apiKey?: string): Promise<void>;
+    ask(action: AIAction, context: AIContext): Promise<AIResult>;
   };
 }
 

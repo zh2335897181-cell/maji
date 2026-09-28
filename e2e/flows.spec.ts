@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 
+type MockAIContext = { scope: string; selectedText: string; noteText?: string };
+
 /**
  * 核心交互流程。
  * 两种目标窗口尺寸都会跑一遍：1440×900（设计稿基准）与 1280×800（笔记本）。
@@ -208,6 +210,150 @@ test.describe('新建内容流程', () => {
     await page.goto('/#/new?type=note');
     await page.getByRole('button', { name: '创建笔记' }).click();
     await expect(page.getByText('请填写笔记标题')).toBeVisible();
+  });
+});
+
+test.describe('AI 学习助手', () => {
+  async function attachMockAI(
+    page: import('@playwright/test').Page,
+    requests: Array<{ action: string; context: { scope: string; selectedText: string; noteText?: string } }>,
+  ): Promise<void> {
+    await page.exposeFunction('__majiMockAIAsk', (action: string, context: { scope: string; selectedText: string; noteText?: string }) => {
+      requests.push({ action, context });
+      return action === 'exercise'
+        ? { kind: 'exercise', title: '循环练习题', prompt: '写一个计算总和的循环', hint: '从 1 开始遍历', solution: 'sum(range(1, 5))' }
+        : { kind: 'text', text: '这是 AI 生成的解释' };
+    });
+    await page.evaluate(() => {
+      const bridge = {
+        ai: {
+          getSettings: async () => ({ baseUrl: 'https://api.deepseek.com/v1', model: 'deepseek-chat', configured: true, keyPresent: true }),
+          saveSettings: async (settings: { baseUrl: string; model: string }, apiKey?: string) => ({
+            ...settings, configured: Boolean(apiKey), keyPresent: Boolean(apiKey),
+          }),
+          clearKey: async () => ({ baseUrl: 'https://api.deepseek.com/v1', model: 'deepseek-chat', configured: false, keyPresent: false }),
+          testConnection: async () => undefined,
+          ask: async (action: string, context: MockAIContext) =>
+            (window as unknown as Window & { __majiMockAIAsk: (action: string, context: MockAIContext) => Promise<unknown> }).__majiMockAIAsk(action, context),
+        },
+      };
+      Object.defineProperty(window, 'maji', { configurable: true, value: bridge });
+    });
+  }
+
+  async function selectEditorText(page: import('@playwright/test').Page): Promise<void> {
+    const editor = page.locator('[data-testid="note-editor"] .ProseMirror');
+    await expect(editor).toBeVisible();
+    await editor.evaluate((element) => {
+      const paragraph = element.querySelector('p');
+      const text = paragraph?.firstChild;
+      if (!(text instanceof Text)) throw new Error('No paragraph text node');
+      (element as HTMLElement).focus();
+      const range = document.createRange();
+      range.setStart(text, 0);
+      range.setEnd(text, Math.min(18, text.textContent?.length ?? 0));
+      window.getSelection()?.removeAllRanges();
+      window.getSelection()?.addRange(range);
+      document.dispatchEvent(new Event('selectionchange'));
+    });
+    await expect(page.getByRole('button', { name: '解释这段内容' })).toBeVisible();
+  }
+
+  test('配置兼容服务、确认首次隐私提示，并且只在点击后插入回答', async ({ page }) => {
+    const requests: Array<{ action: string; context: { scope: string; selectedText: string; noteText?: string } }> = [];
+    await page.goto('/#/notes/note_func_args');
+    await expect(page.getByLabel('笔记标题')).toHaveValue('函数与参数');
+    await attachMockAI(page, requests);
+
+    await page.getByRole('button', { name: '用户菜单' }).click();
+    await page.getByRole('menuitem', { name: '偏好设置' }).click();
+    const settings = page.getByRole('region', { name: 'AI 服务' });
+    await settings.getByLabel('接口地址').fill('https://api.deepseek.com/v1');
+    await settings.getByLabel('模型名称').fill('deepseek-chat');
+    await settings.getByLabel('API 密钥').fill('sk-e2e-only');
+    await settings.getByRole('button', { name: '保存 AI 设置' }).click();
+    await expect(settings.getByText('AI 服务已配置')).toBeVisible();
+    await settings.getByRole('button', { name: '测试连接' }).click();
+    await expect(settings.getByText('连接成功')).toBeVisible();
+    await page.keyboard.press('Escape');
+
+    await selectEditorText(page);
+    const editor = page.locator('[data-testid="note-editor"] .ProseMirror');
+    const originalText = await editor.innerText();
+    await page.getByRole('button', { name: '解释这段内容' }).click();
+    await expect(page.getByText(/首次使用 AI/)).toBeVisible();
+    await expect(page.getByText(/选中内容会发送到你配置的 AI 服务/)).toBeVisible();
+    expect(requests).toHaveLength(0);
+    await page.getByRole('button', { name: '打开 AI 设置' }).click();
+    await expect(page.getByRole('dialog', { name: '偏好设置' }).getByRole('region', { name: 'AI 服务' })).toBeVisible();
+    await page.keyboard.press('Escape');
+    await page.getByRole('button', { name: '我已了解，继续' }).click();
+    await expect(page.getByText('这是 AI 生成的解释')).toBeVisible();
+    expect(requests).toHaveLength(1);
+    expect(requests[0]?.context.scope).toBe('selection');
+    expect(requests[0]?.context.selectedText.length).toBeGreaterThan(0);
+    expect(await editor.innerText()).toBe(originalText);
+
+    await page.getByRole('button', { name: '插入到笔记' }).click();
+    await expect(editor).toContainText('这是 AI 生成的解释');
+  });
+
+  test('整篇笔记需要显式切换，练习需要再次确认，浮层始终在视口内', async ({ page }) => {
+    await page.setViewportSize({ width: 900, height: 700 });
+    await page.goto('/#/notes/note_func_args');
+    await page.evaluate(() => localStorage.setItem('maji.ai.consent.v1', '1'));
+    const requests: Array<{ action: string; context: { scope: string; selectedText: string; noteText?: string } }> = [];
+    await attachMockAI(page, requests);
+    await selectEditorText(page);
+    await page.getByRole('button', { name: '结合整篇笔记' }).click();
+    await expect(page.getByText(/整篇笔记正文将发送到你配置的 AI 服务/)).toBeVisible();
+
+    const floating = page.getByTestId('ai-selection-assistant');
+    const box = await floating.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box!.x).toBeGreaterThanOrEqual(0);
+    expect(box!.y).toBeGreaterThanOrEqual(0);
+    expect(box!.x + box!.width).toBeLessThanOrEqual(900);
+    expect(box!.y + box!.height).toBeLessThanOrEqual(700);
+
+    await page.getByRole('button', { name: '生成练习题' }).click();
+    if (await page.getByRole('button', { name: '我已了解，继续' }).isVisible().catch(() => false)) {
+      await page.getByRole('button', { name: '我已了解，继续' }).click();
+    }
+    await expect(page.getByText('循环练习题')).toBeVisible();
+    expect(requests).toHaveLength(1);
+    expect(requests[0]?.context.scope).toBe('note');
+    expect(requests[0]?.context.noteText?.length).toBeGreaterThan(0);
+    await expect(page.getByText('已添加关联练习')).toBeHidden();
+    await page.getByRole('button', { name: '添加为关联练习' }).click();
+    await expect(page.getByText('已添加关联练习')).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(floating).toBeHidden();
+
+    const editor = page.locator('[data-testid="note-editor"] .ProseMirror');
+    await page.locator('[data-editor-scroll]').evaluate((element) => { element.scrollTop = element.scrollHeight; });
+    await editor.evaluate((element) => {
+      const paragraphs = element.querySelectorAll('p');
+      const paragraph = Array.from(paragraphs).reverse().find((item) => item.textContent?.trim());
+      if (!paragraph) throw new Error('No paragraph found');
+      const walker = document.createTreeWalker(paragraph, NodeFilter.SHOW_TEXT);
+      const text = walker.nextNode();
+      if (!(text instanceof Text)) throw new Error('No final paragraph text node');
+      (element as HTMLElement).focus();
+      const range = document.createRange();
+      range.setStart(text, 0);
+      range.setEnd(text, text.textContent?.length ?? 0);
+      window.getSelection()?.removeAllRanges();
+      window.getSelection()?.addRange(range);
+      document.dispatchEvent(new Event('selectionchange'));
+    });
+    await expect(page.getByRole('button', { name: '解释这段内容' })).toBeVisible();
+    const bottomAnchor = await floating.boundingBox();
+    expect(bottomAnchor).not.toBeNull();
+    expect(bottomAnchor!.x).toBeGreaterThanOrEqual(0);
+    expect(bottomAnchor!.y).toBeGreaterThanOrEqual(0);
+    expect(bottomAnchor!.x + bottomAnchor!.width).toBeLessThanOrEqual(900);
+    expect(bottomAnchor!.y + bottomAnchor!.height).toBeLessThanOrEqual(700);
   });
 });
 

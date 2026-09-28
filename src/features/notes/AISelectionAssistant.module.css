@@ -1,0 +1,202 @@
+.container {
+  position: fixed;
+  z-index: var(--z-overlay);
+  width: min(440px, calc(100vw - 24px));
+  max-height: calc(100vh - 24px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+}
+
+.toolbar,
+.panel {
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-lg);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-lg);
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 6px;
+}
+
+.scopeLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin: 0 3px;
+  color: var(--accent-700);
+  font-size: var(--font-size-xs);
+  white-space: nowrap;
+}
+
+.scopeButton,
+.actionButton,
+.textButton,
+.primaryButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  background: transparent;
+  font: inherit;
+  font-size: var(--font-size-xs);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.scopeButton[aria-pressed='true'] {
+  color: var(--accent-700);
+  background: var(--accent-soft);
+}
+
+.actionButton {
+  color: var(--text-primary);
+}
+
+.scopeButton:hover,
+.actionButton:hover,
+.textButton:hover {
+  background: var(--bg-hover);
+}
+
+.actionButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.divider {
+  width: 1px;
+  height: 20px;
+  margin: 0 2px;
+  background: var(--line-soft);
+}
+
+.limitNotice {
+  flex: 1 0 100%;
+  padding: 3px 7px;
+  color: var(--warning-600);
+  font-size: var(--font-size-xs);
+}
+
+.panel {
+  max-height: min(420px, calc(100vh - 100px));
+  overflow: auto;
+  padding: var(--space-4);
+}
+
+.panelHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+  font-weight: var(--weight-semibold);
+}
+
+.panelHeading > span,
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.disclosure,
+.consent,
+.resultText,
+.exerciseResult {
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--bg-subtle);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-relaxed);
+}
+
+.disclosure {
+  border-left: 3px solid var(--warning-500);
+}
+
+.consent p,
+.exerciseResult p {
+  margin: 0 0 var(--space-2);
+}
+
+.panelActions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.primaryButton {
+  color: var(--accent-contrast);
+  background: var(--accent-700);
+}
+
+.primaryButton:hover {
+  background: var(--accent-800);
+}
+
+.resultText {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.exerciseResult {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.exerciseResult pre {
+  max-width: 100%;
+  overflow: auto;
+  white-space: pre-wrap;
+}
+
+.muted,
+.status,
+.error {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-relaxed);
+}
+
+.error {
+  color: var(--danger-600);
+}
+
+.spinner {
+  animation: rotate 1s linear infinite;
+}
+
+@keyframes rotate {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 520px) {
+  .toolbar {
+    gap: 2px;
+  }
+  .scopeLabel {
+    width: 100%;
+    padding: 3px 4px;
+  }
+  .scopeButton,
+  .actionButton {
+    flex: 1 1 auto;
+  }
+}

@@ -11,6 +11,7 @@ import { Menu, type MenuEntry } from '../ui/Menu';
 import { Modal } from '../ui/Modal';
 import { SaveStatus } from './SaveStatus';
 import { UpdateSettings } from './UpdateSettings';
+import { AISettings } from '../../features/settings/AISettings';
 import styles from './TopBar.module.css';
 
 /** 顶栏右侧插槽：编辑页把自己的操作（大纲、收藏、导出）投递到这里 */
@@ -89,6 +90,12 @@ export function TopBar({
     void updates.getStatus().then(receiveUpdateStatus).catch(() => undefined);
     return unsubscribe;
   }, [receiveUpdateStatus]);
+
+  useEffect(() => {
+    const openAISettings = (): void => setDialog('settings');
+    window.addEventListener('maji:open-ai-settings', openAISettings);
+    return () => window.removeEventListener('maji:open-ai-settings', openAISettings);
+  }, []);
 
   const checkForUpdates = useCallback(() => {
     if (!window.maji) {
@@ -188,6 +195,7 @@ export function TopBar({
             hint="窗口变窄时应用也会自动收起。"
           />
           <UpdateSettings status={updateStatus} onCheck={checkForUpdates} onInstall={() => void installUpdate()} />
+          <AISettings onNotice={(message, tone) => toast.show({ message, tone })} />
         </div>
       </Modal>
 

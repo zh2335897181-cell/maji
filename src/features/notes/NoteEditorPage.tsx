@@ -28,8 +28,9 @@ import { copyText } from '../../lib/clipboard';
 import { useBreakpoints } from '../../lib/useMediaQuery';
 import { noteStats } from '../../lib/noteDoc';
 import { asDoc } from '../../lib/noteDoc';
-import type { NoteStats } from '../../lib/types';
+import type { ExerciseInput, NoteStats } from '../../lib/types';
 import { NoteEditor } from './NoteEditor';
+import { AISelectionAssistant } from './AISelectionAssistant';
 import { EditorToolbar, type EditorMode } from './EditorToolbar';
 import { NoteAside } from './NoteAside';
 import { exportNoteAsMarkdown, noteMarkdown } from './exportNote';
@@ -42,7 +43,7 @@ const EMPTY_STATS: NoteStats = { words: 0, codeBlocks: 0, minutes: 1 };
 export function NoteEditorPage(): ReactElement {
   const { noteId } = useParams<{ noteId: string }>();
   const draft = useNoteDraft(noteId);
-  const { notes, courses, updateNote, deleteNote } = useLibrary();
+  const { notes, courses, updateNote, deleteNote, createExercise } = useLibrary();
   const { asideAutoHidden } = useBreakpoints();
   const toast = useToast();
   const navigate = useNavigate();
@@ -236,6 +237,19 @@ export function NoteEditorPage(): ReactElement {
             />
           </div>
         </div>
+        <AISelectionAssistant
+          editor={editor}
+          editable={mode === 'edit'}
+          noteId={note.id}
+          noteText={editor?.getText({ blockSeparator: '\n' }) ?? ''}
+          language={note.language}
+          courseId={note.courseId}
+          onCreateExercise={async (input: ExerciseInput) => {
+            await createExercise(input);
+            toast.show({ message: '已添加关联练习', tone: 'success' });
+          }}
+          onOpenSettings={() => window.dispatchEvent(new Event('maji:open-ai-settings'))}
+        />
       </div>
 
       {asideVisible ? (

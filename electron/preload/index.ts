@@ -15,7 +15,7 @@
 
 import { contextBridge, ipcRenderer } from 'electron';
 import { IPC } from '../../src/lib/ipc';
-import type { AppInfo, ExportResult, MajiApi } from '../../src/lib/ipc';
+import type { AIAction, AIContext, AIProviderSettings, AIResult, AISettingsStatus, AppInfo, ExportResult, MajiApi } from '../../src/lib/ipc';
 import type { UpdateStatus } from '../../src/lib/ipc';
 import type {
   CodeSnippet,
@@ -70,6 +70,11 @@ const CHANNELS: { [K in keyof typeof IPC]: (typeof IPC)[K] } = {
   settingsUpdate: 'maji:settings:update',
   exportMarkdown: 'maji:file:export-markdown',
   openExternal: 'maji:shell:open-external',
+  aiSettingsGet: 'maji:ai:settings-get',
+  aiSettingsSave: 'maji:ai:settings-save',
+  aiSettingsClearKey: 'maji:ai:settings-clear-key',
+  aiTestConnection: 'maji:ai:test-connection',
+  aiAsk: 'maji:ai:ask',
 };
 
 /** 通道名只能来自上面的常量表，调用方无法传入任意通道 */
@@ -165,6 +170,16 @@ const api: MajiApi = {
   },
   external: {
     open: (url: string) => invoke<void>(CHANNELS.openExternal, url),
+  },
+  ai: {
+    getSettings: () => invoke<AISettingsStatus>(CHANNELS.aiSettingsGet),
+    saveSettings: (settings: AIProviderSettings, apiKey?: string) =>
+      invoke<AISettingsStatus>(CHANNELS.aiSettingsSave, settings, apiKey),
+    clearKey: () => invoke<AISettingsStatus>(CHANNELS.aiSettingsClearKey),
+    testConnection: (settings?: AIProviderSettings, apiKey?: string) =>
+      invoke<void>(CHANNELS.aiTestConnection, ...(settings ? [settings, apiKey] : [])),
+    ask: (action: AIAction, context: AIContext) =>
+      invoke<AIResult>(CHANNELS.aiAsk, action, context),
   },
 };
 
