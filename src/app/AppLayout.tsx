@@ -71,17 +71,23 @@ export function AppLayout(): ReactElement {
 
   // 窗口变宽后自动收起抽屉，避免遮住内容
   useEffect(() => {
-    if (!sidebarDrawer && drawerOpen) setDrawerOpen(false);
-  }, [sidebarDrawer, drawerOpen]);
+    if (!sidebarRail && drawerOpen) setDrawerOpen(false);
+  }, [sidebarRail, drawerOpen]);
 
   return (
     <TopBarSlotProvider value={slot}>
       <div className={styles.shell}>
         <AppSidebar
           collapsed={collapsed && !drawerOpen}
-          asDrawer={sidebarDrawer && drawerOpen}
+          asDrawer={sidebarRail && drawerOpen}
           onCloseDrawer={() => setDrawerOpen(false)}
-          onToggleCollapsed={() => void updateSettings({ sidebarCollapsed: !collapsed })}
+          onToggleCollapsed={() => {
+            if (sidebarRail) {
+              setDrawerOpen(true);
+              return;
+            }
+            void updateSettings({ sidebarCollapsed: !settings.sidebarCollapsed });
+          }}
         />
         <div className={styles.main}>
           <TopBar

@@ -36,7 +36,7 @@
 .drawerScrim {
   position: fixed;
   inset: 0;
-  z-index: var(--z-overlay);
+  z-index: calc(var(--z-sidebar) - 1);
   background: var(--bg-scrim);
 }
 

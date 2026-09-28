@@ -212,6 +212,31 @@ test.describe('新建内容流程', () => {
 });
 
 test.describe('响应式布局', () => {
+  test('中等窄度窗口的图标栏可以浮层展开和关闭', async ({ page }) => {
+    await page.setViewportSize({ width: 1100, height: 800 });
+    await page.goto('/#/');
+
+    await expect(page.getByRole('complementary', { name: '主导航' })).toBeVisible();
+    await expect(page.getByRole('link', { name: '学习首页' })).toBeVisible();
+    await page.getByRole('button', { name: '展开侧栏' }).click();
+
+    await expect(page.getByText('编程学习笔记')).toBeVisible();
+    await expect(page.getByRole('button', { name: '关闭导航' })).toBeVisible();
+    await page.getByRole('button', { name: '关闭导航' }).click();
+    await expect(page.getByText('编程学习笔记')).toBeHidden();
+    await expect(page.getByRole('complementary', { name: '主导航' })).toBeVisible();
+  });
+
+  test('抽屉断点可从顶栏展开，并能通过遮罩关闭', async ({ page }) => {
+    await page.setViewportSize({ width: 900, height: 800 });
+    await page.goto('/#/');
+
+    await page.getByRole('button', { name: '展开导航' }).click();
+    await expect(page.getByText('编程学习笔记')).toBeVisible();
+    await page.getByRole('presentation').click({ position: { x: 280, y: 300 } });
+    await expect(page.getByText('编程学习笔记')).toBeHidden();
+  });
+
   test('窄窗口收起右侧辅助栏，可手动展开为浮层', async ({ page }) => {
     const viewport = page.viewportSize();
     test.skip((viewport?.width ?? 1440) > 1300, '只在 1280 及更窄的窗口下验证');
