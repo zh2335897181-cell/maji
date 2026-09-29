@@ -28,6 +28,11 @@ describe('课程数据操作', () => {
     expect(courses[courses.length - 1]?.name).toBe('数据库系统');
   });
 
+  it('保存技术框架方向，并按方向设置新笔记默认语言', async () => {
+    const course = await repo.createCourse({ name: 'Spring Boot 入门', track: 'springboot' });
+    expect(course).toMatchObject({ track: 'springboot', language: 'java' });
+  });
+
   it('课程下还有笔记时拒绝删除，并说明原因', async () => {
     await expect(repo.deleteCourse('course_python')).rejects.toThrow('该课程下还有 6 篇笔记');
   });
@@ -209,5 +214,60 @@ describe('设置与持久化', () => {
     expect(await repo.getNote('note_html')).toBeNull();
     repo.reset(NOW);
     expect(await repo.getNote('note_html')).not.toBeNull();
+  });
+});
+
+describe('AI 复习会话', () => {
+  it('保存会话与答案、评分，且来源笔记删除后历史快照仍可读', async () => {
+    const source = {
+      noteId: 'note_func_args',
+      noteTitle: '函数与参数',
+      courseName: 'Python 入门',
+      contentExcerpt: '函数可以接收参数并返回结果。',
+      reviewItemIds: ['review_param_arg'],
+    };
+    const session = await repo.reviewSessions.create({
+      scope: 'notes',
+      depth: 'standard',
+      plannedQuestionCount: 1,
+      sources: [source],
+      questions: [{
+        type: 'code-writing',
+        difficulty: 'easy',
+        title: '编写 greet',
+        prompt: '编写接收 name 并返回问候语的函数。',
+        hint: '使用参数。',
+        referenceAnswer: 'def greet(name): return name',
+        explanation: '参数可接收调用方提供的数据。',
+        language: 'python',
+        sourceNoteId: source.noteId,
+      }],
+    });
+    expect(session.status).toBe('in-progress');
+    expect(session.questions).toHaveLength(1);
+
+    const questionId = session.questions[0]!.id;
+    await repo.reviewSessions.saveAnswer(session.id, { questionId, answer: 'def greet(name): return name' });
+    await repo.reviewSessions.saveGrade(session.id, {
+      questionId,
+      grade: { score: 90, rationale: '满足要求。', omissions: [], feedback: '不错。', referenceAnswer: 'def greet(name): return name', explanation: '参数接收姓名。' },
+    });
+    const activeStart = new Date(session.startedAt);
+    const activeEnd = new Date(activeStart.getTime() + 12 * 60 * 1000);
+    const completed = await repo.reviewSessions.update(session.id, {
+      status: 'completed',
+      endedAt: activeEnd.toISOString(),
+      activeSegments: [{ startedAt: activeStart.toISOString(), endedAt: activeEnd.toISOString() }],
+    });
+    expect(completed).toMatchObject({ durationSeconds: 720, averageScore: 90 });
+
+    await repo.updateNote('note_func_args', { title: '改名后的函数笔记' });
+    await repo.deleteNote('note_func_args');
+    const restored = await new LocalRepository().reviewSessions.get(session.id);
+    expect(restored?.sources[0]?.noteTitle).toBe('函数与参数');
+    expect(restored?.questions[0]?.grade?.score).toBe(90);
+    const date = new Date(session.startedAt);
+    const localDay = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    expect(await repo.reviewSessions.list({ fromDate: localDay, toDate: localDay })).toHaveLength(1);
   });
 });

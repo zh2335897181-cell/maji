@@ -31,6 +31,14 @@ import type {
   ReviewAction,
   ReviewItem,
   ReviewItemWithNote,
+  ReviewQuestion,
+  ReviewQuestionAnswerInput,
+  ReviewQuestionGradeInput,
+  ReviewSessionFilter,
+  ReviewSessionInput,
+  ReviewSessionPatch,
+  ReviewSessionSummary,
+  ReviewSessionWithQuestions,
   SearchQuery,
   SearchResult,
   Tag,
@@ -66,6 +74,12 @@ const CHANNELS: { [K in keyof typeof IPC]: (typeof IPC)[K] } = {
   exercisesToggle: 'maji:exercises:toggle',
   reviewList: 'maji:review:list',
   reviewApply: 'maji:review:apply',
+  reviewSessionsList: 'maji:review-sessions:list',
+  reviewSessionsGet: 'maji:review-sessions:get',
+  reviewSessionsCreate: 'maji:review-sessions:create',
+  reviewSessionsUpdate: 'maji:review-sessions:update',
+  reviewSessionsSaveAnswer: 'maji:review-sessions:save-answer',
+  reviewSessionsSaveGrade: 'maji:review-sessions:save-grade',
   settingsGet: 'maji:settings:get',
   settingsUpdate: 'maji:settings:update',
   exportMarkdown: 'maji:file:export-markdown',
@@ -75,6 +89,8 @@ const CHANNELS: { [K in keyof typeof IPC]: (typeof IPC)[K] } = {
   aiSettingsClearKey: 'maji:ai:settings-clear-key',
   aiTestConnection: 'maji:ai:test-connection',
   aiAsk: 'maji:ai:ask',
+  aiReviewGenerate: 'maji:ai:review-generate',
+  aiReviewGrade: 'maji:ai:review-grade',
 };
 
 /** 通道名只能来自上面的常量表，调用方无法传入任意通道 */
@@ -159,6 +175,19 @@ const api: MajiApi = {
     apply: (id: string, action: ReviewAction) =>
       invoke<ReviewItem>(CHANNELS.reviewApply, id, action),
   },
+  reviewSessions: {
+    list: (filter?: ReviewSessionFilter) =>
+      invoke<ReviewSessionSummary[]>(CHANNELS.reviewSessionsList, filter ?? {}),
+    get: (id: string) => invoke<ReviewSessionWithQuestions | null>(CHANNELS.reviewSessionsGet, id),
+    create: (input: ReviewSessionInput) =>
+      invoke<ReviewSessionWithQuestions>(CHANNELS.reviewSessionsCreate, input),
+    update: (id: string, patch: ReviewSessionPatch) =>
+      invoke<ReviewSessionWithQuestions>(CHANNELS.reviewSessionsUpdate, id, patch),
+    saveAnswer: (sessionId: string, input: ReviewQuestionAnswerInput) =>
+      invoke<ReviewQuestion>(CHANNELS.reviewSessionsSaveAnswer, sessionId, input),
+    saveGrade: (sessionId: string, input: ReviewQuestionGradeInput) =>
+      invoke<ReviewQuestion>(CHANNELS.reviewSessionsSaveGrade, sessionId, input),
+  },
   settings: {
     get: () => invoke<UserSettings>(CHANNELS.settingsGet),
     update: (patch: Partial<UserSettings>) =>
@@ -180,6 +209,10 @@ const api: MajiApi = {
       invoke<void>(CHANNELS.aiTestConnection, ...(settings ? [settings, apiKey] : [])),
     ask: (action: AIAction, context: AIContext) =>
       invoke<AIResult>(CHANNELS.aiAsk, action, context),
+    review: {
+      generate: (input) => invoke(CHANNELS.aiReviewGenerate, input),
+      grade: (input) => invoke(CHANNELS.aiReviewGrade, input),
+    },
   },
 };
 

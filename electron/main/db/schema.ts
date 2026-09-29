@@ -1,14 +1,14 @@
 /* =============================================================================
    码迹 · SQLite 建表与迁移
    -----------------------------------------------------------------------------
-   版本号写在 PRAGMA user_version 里：0 = 空库，1 = 初始结构，2 = 连续掌握计数。
+   版本号写在 PRAGMA user_version 里：0 = 空库，1 = 初始结构，2 = 连续掌握计数，3 = 课程技术方向，4 = AI 复习会话。
    以后改结构时只允许“追加”一个迁移分支，不要修改已经发布出去的 SQL。
    ============================================================================= */
 
 import type { SqliteDatabase } from './connection';
 
 /** 当前应用期望的数据库结构版本 */
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 4;
 
 /* 说明：
    · 时间统一存 ISO 字符串（TEXT），布尔值存 INTEGER 0/1
@@ -22,6 +22,7 @@ CREATE TABLE courses (
   name TEXT NOT NULL,
   description TEXT NOT NULL DEFAULT '',
   language TEXT NOT NULL,
+  track TEXT NOT NULL DEFAULT 'python',
   color_key TEXT NOT NULL,
   icon_key TEXT NOT NULL,
   sort_order INTEGER NOT NULL DEFAULT 0,
@@ -90,6 +91,42 @@ CREATE TABLE review_items (
   updated_at TEXT NOT NULL
 );
 
+CREATE TABLE review_sessions (
+  id TEXT PRIMARY KEY,
+  scope TEXT NOT NULL,
+  status TEXT NOT NULL,
+  depth TEXT NOT NULL,
+  planned_question_count INTEGER NOT NULL,
+  sources TEXT NOT NULL,
+  started_at TEXT NOT NULL,
+  ended_at TEXT,
+  duration_seconds INTEGER NOT NULL DEFAULT 0,
+  active_segments TEXT NOT NULL DEFAULT '[]',
+  active_segment_started_at TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE review_questions (
+  id TEXT PRIMARY KEY,
+  session_id TEXT NOT NULL REFERENCES review_sessions(id) ON DELETE CASCADE,
+  question_order INTEGER NOT NULL,
+  type TEXT NOT NULL,
+  difficulty TEXT NOT NULL,
+  title TEXT NOT NULL,
+  prompt TEXT NOT NULL,
+  hint TEXT NOT NULL DEFAULT '',
+  reference_answer TEXT NOT NULL,
+  explanation TEXT NOT NULL,
+  language TEXT NOT NULL,
+  source_note_id TEXT,
+  answer TEXT,
+  grade TEXT,
+  answered_at TEXT,
+  graded_at TEXT,
+  UNIQUE(session_id, question_order)
+);
+
 CREATE TABLE settings (
   key TEXT PRIMARY KEY,
   value TEXT NOT NULL
@@ -100,6 +137,9 @@ CREATE INDEX idx_notes_updated ON notes(updated_at DESC);
 CREATE INDEX idx_notes_archived ON notes(archived, updated_at DESC);
 CREATE INDEX idx_review_note ON review_items(note_id);
 CREATE INDEX idx_review_state ON review_items(state);
+CREATE INDEX idx_review_sessions_start ON review_sessions(started_at DESC);
+CREATE INDEX idx_review_sessions_status ON review_sessions(status);
+CREATE INDEX idx_review_questions_session ON review_questions(session_id, question_order);
 CREATE INDEX idx_snippets_updated ON snippets(updated_at DESC);
 CREATE INDEX idx_exercises_course ON exercises(course_id);
 CREATE INDEX idx_exercises_note ON exercises(note_id);
@@ -121,11 +161,60 @@ export function migrate(db: SqliteDatabase): void {
   const upgrade = db.transaction(() => {
     if (current < 1) {
       db.exec(INITIAL_SCHEMA);
-    } else if (current < 2) {
-      db.exec('ALTER TABLE review_items ADD COLUMN mastered_streak INTEGER NOT NULL DEFAULT 0');
-      db.exec("UPDATE review_items SET mastered_streak = 4 WHERE state = 'mastered'");
+    } else {
+      if (current < 2) {
+        db.exec('ALTER TABLE review_items ADD COLUMN mastered_streak INTEGER NOT NULL DEFAULT 0');
+        db.exec("UPDATE review_items SET mastered_streak = 4 WHERE state = 'mastered'");
+      }
+      if (current < 3) {
+        db.exec("ALTER TABLE courses ADD COLUMN track TEXT NOT NULL DEFAULT 'python'");
+        db.exec('UPDATE courses SET track = language');
+      }
+      if (current < 4) {
+        db.exec(REVIEW_SESSION_SCHEMA);
+      }
     }
     db.pragma(`user_version = ${SCHEMA_VERSION}`);
   });
   upgrade();
 }
+
+const REVIEW_SESSION_SCHEMA = `
+CREATE TABLE review_sessions (
+  id TEXT PRIMARY KEY,
+  scope TEXT NOT NULL,
+  status TEXT NOT NULL,
+  depth TEXT NOT NULL,
+  planned_question_count INTEGER NOT NULL,
+  sources TEXT NOT NULL,
+  started_at TEXT NOT NULL,
+  ended_at TEXT,
+  duration_seconds INTEGER NOT NULL DEFAULT 0,
+  active_segments TEXT NOT NULL DEFAULT '[]',
+  active_segment_started_at TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE TABLE review_questions (
+  id TEXT PRIMARY KEY,
+  session_id TEXT NOT NULL REFERENCES review_sessions(id) ON DELETE CASCADE,
+  question_order INTEGER NOT NULL,
+  type TEXT NOT NULL,
+  difficulty TEXT NOT NULL,
+  title TEXT NOT NULL,
+  prompt TEXT NOT NULL,
+  hint TEXT NOT NULL DEFAULT '',
+  reference_answer TEXT NOT NULL,
+  explanation TEXT NOT NULL,
+  language TEXT NOT NULL,
+  source_note_id TEXT,
+  answer TEXT,
+  grade TEXT,
+  answered_at TEXT,
+  graded_at TEXT,
+  UNIQUE(session_id, question_order)
+);
+CREATE INDEX idx_review_sessions_start ON review_sessions(started_at DESC);
+CREATE INDEX idx_review_sessions_status ON review_sessions(status);
+CREATE INDEX idx_review_questions_session ON review_questions(session_id, question_order);
+`;

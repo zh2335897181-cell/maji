@@ -9,6 +9,7 @@
 
 import type { Course } from '../../../src/lib/types';
 import { createId } from '../../../src/lib/text';
+import { defaultLanguageForTrack, trackFromLanguage } from '../../../src/lib/courseTracks';
 import { getDb } from './connection';
 import {
   courseParams,
@@ -21,14 +22,15 @@ import {
 
 const SELECT_COURSES = 'SELECT * FROM courses ORDER BY sort_order ASC, rowid ASC';
 const INSERT_COURSE = `
-INSERT INTO courses (id, name, description, language, color_key, icon_key, sort_order, created_at, updated_at)
-VALUES (@id, @name, @description, @language, @color_key, @icon_key, @sort_order, @created_at, @updated_at)`;
+INSERT INTO courses (id, name, description, language, track, color_key, icon_key, sort_order, created_at, updated_at)
+VALUES (@id, @name, @description, @language, @track, @color_key, @icon_key, @sort_order, @created_at, @updated_at)`;
 
 /** 课程补丁字段 -> 数据库列；id / updatedAt 不允许被补丁改写 */
 const COURSE_COLUMNS: Record<string, string> = {
   name: 'name',
   description: 'description',
   language: 'language',
+  track: 'track',
   colorKey: 'color_key',
   iconKey: 'icon_key',
   sortOrder: 'sort_order',
@@ -48,11 +50,13 @@ export function createCourse(input: Partial<Course> & { name: string }): Course 
   const db = getDb();
   const now = new Date().toISOString();
   const total = selectOne<CountRow>(db, 'SELECT COUNT(*) AS count FROM courses')?.count ?? 0;
+  const track = input.track ?? trackFromLanguage(input.language ?? 'python');
   const course: Course = {
     id: input.id ?? createId('course'),
     name: input.name.trim(),
     description: input.description?.trim() ?? '',
-    language: input.language ?? 'python',
+    language: input.language ?? defaultLanguageForTrack(track),
+    track,
     colorKey: input.colorKey ?? 'teal',
     iconKey: input.iconKey ?? 'book',
     sortOrder: total,

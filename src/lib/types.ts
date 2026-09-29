@@ -19,6 +19,10 @@ export type LanguageId =
   | 'c'
   | 'text';
 
+export type CourseTrackId =
+  | 'python' | 'javascript' | 'typescript' | 'html' | 'css' | 'java' | 'c' | 'text'
+  | 'vue' | 'react' | 'nodejs' | 'springboot' | 'django' | 'flask' | 'algorithms' | 'database' | 'other';
+
 export interface LanguageMeta {
   id: LanguageId;
   /** 界面上显示的名称 */
@@ -37,6 +41,8 @@ export interface Course {
   description: string;
   /** 课程主语言，用于新建笔记时的默认值 */
   language: LanguageId;
+  /** 学习方向（语言、框架或主题）；笔记语言由该方向映射为合理默认值 */
+  track: CourseTrackId;
   colorKey: CourseColorKey;
   /** Lucide 图标名（见 src/lib/icons.ts 的白名单映射） */
   iconKey: string;
@@ -161,6 +167,128 @@ export interface ReviewItemWithNote extends ReviewItem {
   courseColorKey: CourseColorKey;
 }
 
+/** AI 练习生成时使用的原始笔记快照；历史不依赖笔记外键存活。 */
+export interface ReviewSourceSnapshot {
+  noteId: string | null;
+  noteTitle: string;
+  courseName: string;
+  contentExcerpt: string;
+  reviewItemIds: string[];
+}
+
+export type ReviewDepth = 'quick' | 'standard' | 'deep';
+export type ReviewQuestionType =
+  | 'concept'
+  | 'short-answer'
+  | 'code-reading'
+  | 'code-writing'
+  | 'code-fix';
+export type ReviewSessionStatus = 'in-progress' | 'completed';
+
+export interface GeneratedReviewQuestion {
+  type: ReviewQuestionType;
+  difficulty: ExerciseDifficulty;
+  title: string;
+  prompt: string;
+  hint: string;
+  referenceAnswer: string;
+  explanation: string;
+  language: LanguageId;
+  sourceNoteId: string | null;
+}
+
+export interface ReviewGrade {
+  score: number;
+  rationale: string;
+  omissions: string[];
+  feedback: string;
+  referenceAnswer: string;
+  explanation: string;
+}
+
+export interface ActiveTimeSegment {
+  startedAt: string;
+  endedAt: string;
+}
+
+export interface ReviewQuestion extends GeneratedReviewQuestion {
+  id: string;
+  sessionId: string;
+  order: number;
+  answer: string | null;
+  grade: ReviewGrade | null;
+  answeredAt: string | null;
+  gradedAt: string | null;
+}
+
+export interface ReviewSession {
+  id: string;
+  scope: 'due' | 'course' | 'notes';
+  status: ReviewSessionStatus;
+  depth: ReviewDepth;
+  plannedQuestionCount: number;
+  sources: ReviewSourceSnapshot[];
+  startedAt: string;
+  endedAt: string | null;
+  durationSeconds: number;
+  activeSegments: ActiveTimeSegment[];
+  activeSegmentStartedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ReviewSessionSummary extends ReviewSession {
+  questionCount: number;
+  averageScore: number | null;
+}
+
+export interface ReviewSessionWithQuestions extends ReviewSessionSummary {
+  questions: ReviewQuestion[];
+}
+
+export interface ReviewSessionInput {
+  scope: ReviewSession['scope'];
+  depth: ReviewDepth;
+  plannedQuestionCount: number;
+  sources: ReviewSourceSnapshot[];
+  questions: GeneratedReviewQuestion[];
+}
+
+export interface ReviewSessionPatch {
+  status?: ReviewSessionStatus;
+  activeSegments?: ActiveTimeSegment[];
+  activeSegmentStartedAt?: string | null;
+  endedAt?: string | null;
+}
+
+export interface ReviewSessionFilter {
+  fromDate?: string;
+  toDate?: string;
+  status?: ReviewSessionStatus;
+}
+
+export interface ReviewQuestionAnswerInput {
+  questionId: string;
+  answer: string;
+}
+
+export interface ReviewQuestionGradeInput {
+  questionId: string;
+  grade: ReviewGrade;
+}
+
+export interface ReviewGenerationInput {
+  sources: ReviewSourceSnapshot[];
+  depth: ReviewDepth;
+  count: number;
+  language: LanguageId;
+}
+
+export interface ReviewGradingInput {
+  question: GeneratedReviewQuestion;
+  answer: string;
+}
+
 export type ExerciseDifficulty = 'easy' | 'medium' | 'hard';
 
 export interface Exercise {
@@ -279,6 +407,7 @@ export interface CreateCoursePayload {
   name: string;
   description: string;
   language: LanguageId;
+  track: CourseTrackId;
   colorKey: CourseColorKey;
   iconKey: string;
 }

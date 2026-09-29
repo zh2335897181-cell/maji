@@ -12,6 +12,7 @@ import type {
   CodeSnippet,
   Course,
   CourseColorKey,
+  CourseTrackId,
   Exercise,
   ExerciseDifficulty,
   LanguageId,
@@ -19,10 +20,16 @@ import type {
   NoteSummary,
   ReviewItem,
   ReviewItemWithNote,
+  ActiveTimeSegment,
+  ReviewGrade,
+  ReviewQuestion,
+  ReviewSession,
+  ReviewSessionWithQuestions,
   ReviewState,
   UserSettings,
 } from '../../../src/lib/types';
 import { DEFAULT_SETTINGS } from '../../../src/lib/types';
+import { isCourseTrackId, trackFromLanguage } from '../../../src/lib/courseTracks';
 import { extractCodeText, type Doc } from '../../../src/lib/noteDoc';
 import type { SearchDocument } from '../../../src/lib/search';
 import type { SqliteDatabase } from './connection';
@@ -48,6 +55,10 @@ export const COURSE_COLOR_KEYS = [
   'rose',
   'slate',
 ] as const;
+export const COURSE_TRACK_IDS = [
+  'python', 'javascript', 'typescript', 'html', 'css', 'java', 'c', 'text',
+  'vue', 'react', 'nodejs', 'springboot', 'django', 'flask', 'algorithms', 'database', 'other',
+] as const satisfies readonly CourseTrackId[];
 export const COURSE_ICON_KEYS = [
   'book',
   'braces',
@@ -64,6 +75,8 @@ export const COURSE_ICON_KEYS = [
 ] as const;
 export const REVIEW_STATES = ['due', 'scheduled', 'mastered', 'archived'] as const;
 export const REVIEW_ACTIONS = ['review-again', 'mastered', 'remind-later'] as const;
+export const REVIEW_DEPTHS = ['quick', 'standard', 'deep'] as const;
+export const REVIEW_QUESTION_TYPES = ['concept', 'short-answer', 'code-reading', 'code-writing', 'code-fix'] as const;
 export const EXERCISE_DIFFICULTIES = ['easy', 'medium', 'hard'] as const;
 export const CONFIDENCE_LEVELS = ['low', 'medium', 'high'] as const;
 export const THEME_MODES = ['light', 'dark'] as const;
@@ -101,6 +114,7 @@ export interface CourseRow {
   name: string;
   description: string;
   language: string;
+  track: string;
   color_key: string;
   icon_key: string;
   sort_order: number;
@@ -170,6 +184,39 @@ export interface ReviewRow {
   course_name?: string | null;
   course_color_key?: string | null;
 }
+export interface ReviewSessionRow {
+  id: string;
+  scope: string;
+  status: string;
+  depth: string;
+  planned_question_count: number;
+  sources: string;
+  started_at: string;
+  ended_at: string | null;
+  duration_seconds: number;
+  active_segments: string;
+  active_segment_started_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+export interface ReviewQuestionRow {
+  id: string;
+  session_id: string;
+  question_order: number;
+  type: string;
+  difficulty: string;
+  title: string;
+  prompt: string;
+  hint: string;
+  reference_answer: string;
+  explanation: string;
+  language: string;
+  source_note_id: string | null;
+  answer: string | null;
+  grade: string | null;
+  answered_at: string | null;
+  graded_at: string | null;
+}
 
 /* ------------------------------------------------------------ 读回兜底 */
 
@@ -199,6 +246,15 @@ export function parseTags(value: unknown): string[] {
   }
 }
 
+function parseJson<T>(value: unknown, fallback: T): T {
+  if (typeof value !== 'string') return fallback;
+  try {
+    return JSON.parse(value) as T;
+  } catch {
+    return fallback;
+  }
+}
+
 /** 从 TipTap 文档 JSON 派生 code_text 列（搜索粗筛用）；文档损坏时按空串处理 */
 export function deriveCodeText(contentJson: string): string {
   try {
@@ -211,11 +267,13 @@ export function deriveCodeText(contentJson: string): string {
 /* ------------------------------------------------------ 行 -> 领域对象 */
 
 export function toCourse(row: CourseRow): Course {
+  const language = asLanguage(row.language);
   return {
     id: row.id,
     name: row.name,
     description: row.description,
-    language: asLanguage(row.language),
+    language,
+    track: isCourseTrackId(row.track) ? row.track : trackFromLanguage(language),
     colorKey: asColorKey(row.color_key),
     iconKey: row.icon_key,
     sortOrder: row.sort_order,
@@ -320,6 +378,96 @@ export function toReviewItemWithNote(row: ReviewRow): ReviewItemWithNote {
   };
 }
 
+export function toReviewQuestion(row: ReviewQuestionRow): ReviewQuestion {
+  const parsedGrade = parseJson<unknown>(row.grade, null);
+  const grade = typeof parsedGrade === 'object' && parsedGrade !== null && !Array.isArray(parsedGrade)
+    ? parsedGrade as ReviewGrade
+    : null;
+  return {
+    id: row.id,
+    sessionId: row.session_id,
+    order: row.question_order,
+    type: isOneOf(row.type, REVIEW_QUESTION_TYPES) ? row.type : 'concept',
+    difficulty: asDifficulty(row.difficulty),
+    title: row.title,
+    prompt: row.prompt,
+    hint: row.hint,
+    referenceAnswer: row.reference_answer,
+    explanation: row.explanation,
+    language: asLanguage(row.language),
+    sourceNoteId: row.source_note_id,
+    answer: row.answer,
+    grade,
+    answeredAt: row.answered_at,
+    gradedAt: row.graded_at,
+  };
+}
+
+export function toReviewSession(
+  row: ReviewSessionRow,
+  questionRows: ReviewQuestionRow[],
+): ReviewSessionWithQuestions {
+  const questions = questionRows.map(toReviewQuestion);
+  const scores = questions.flatMap((question) => question.grade ? [question.grade.score] : []);
+  return {
+    id: row.id,
+    scope: isOneOf(row.scope, ['due', 'course', 'notes'] as const) ? row.scope : 'notes',
+    status: isOneOf(row.status, ['in-progress', 'completed'] as const) ? row.status : 'in-progress',
+    depth: isOneOf(row.depth, REVIEW_DEPTHS) ? row.depth : 'standard',
+    plannedQuestionCount: row.planned_question_count,
+    sources: parseJson(row.sources, []),
+    startedAt: row.started_at,
+    endedAt: row.ended_at,
+    durationSeconds: Math.max(0, row.duration_seconds),
+    activeSegments: parseJson<ActiveTimeSegment[]>(row.active_segments, []),
+    activeSegmentStartedAt: row.active_segment_started_at,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    questionCount: questions.length,
+    averageScore: scores.length ? Math.round(scores.reduce((sum, score) => sum + score, 0) / scores.length) : null,
+    questions,
+  };
+}
+
+export function reviewSessionParams(session: ReviewSession) {
+  return {
+    id: session.id,
+    scope: session.scope,
+    status: session.status,
+    depth: session.depth,
+    planned_question_count: session.plannedQuestionCount,
+    sources: JSON.stringify(session.sources),
+    started_at: session.startedAt,
+    ended_at: session.endedAt,
+    duration_seconds: session.durationSeconds,
+    active_segments: JSON.stringify(session.activeSegments),
+    active_segment_started_at: session.activeSegmentStartedAt,
+    created_at: session.createdAt,
+    updated_at: session.updatedAt,
+  };
+}
+
+export function reviewQuestionParams(question: ReviewQuestion) {
+  return {
+    id: question.id,
+    session_id: question.sessionId,
+    question_order: question.order,
+    type: question.type,
+    difficulty: question.difficulty,
+    title: question.title,
+    prompt: question.prompt,
+    hint: question.hint,
+    reference_answer: question.referenceAnswer,
+    explanation: question.explanation,
+    language: question.language,
+    source_note_id: question.sourceNoteId,
+    answer: question.answer,
+    grade: question.grade ? JSON.stringify(question.grade) : null,
+    answered_at: question.answeredAt,
+    graded_at: question.gradedAt,
+  };
+}
+
 /** 搜索用文档：正文与代码分开，代码来自 code_text 派生列 */
 export function toSearchDocument(row: NoteRow): SearchDocument {
   return {
@@ -345,6 +493,7 @@ export function courseParams(course: Course) {
     name: course.name,
     description: course.description,
     language: course.language,
+    track: course.track,
     color_key: course.colorKey,
     icon_key: course.iconKey,
     sort_order: course.sortOrder,

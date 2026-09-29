@@ -12,6 +12,7 @@ import type {
   Exercise,
   Note,
   ReviewItem,
+  ReviewSessionWithQuestions,
   UserSettings,
 } from './types';
 import { DEFAULT_SETTINGS } from './types';
@@ -38,6 +39,7 @@ export interface SeedData {
   snippets: CodeSnippet[];
   exercises: Exercise[];
   reviewItems: ReviewItem[];
+  reviewSessions: ReviewSessionWithQuestions[];
   settings: UserSettings;
 }
 
@@ -123,6 +125,7 @@ export const SEED_COURSES: Course[] = [
     name: 'Python 入门',
     description: '第 3 周 · 函数与模块',
     language: 'python',
+    track: 'python',
     colorKey: 'teal',
     iconKey: 'braces',
     sortOrder: 0,
@@ -134,6 +137,7 @@ export const SEED_COURSES: Course[] = [
     name: 'Web 前端基础',
     description: 'HTML / CSS / JavaScript',
     language: 'html',
+    track: 'html',
     colorKey: 'blue',
     iconKey: 'layout',
     sortOrder: 1,
@@ -145,6 +149,7 @@ export const SEED_COURSES: Course[] = [
     name: 'Java 面向对象',
     description: '类、继承、接口',
     language: 'java',
+    track: 'java',
     colorKey: 'amber',
     iconKey: 'coffee',
     sortOrder: 2,
@@ -156,6 +161,7 @@ export const SEED_COURSES: Course[] = [
     name: '数据结构与算法',
     description: '配合 C 语言练习',
     language: 'c',
+    track: 'c',
     colorKey: 'violet',
     iconKey: 'binary',
     sortOrder: 3,
@@ -866,7 +872,7 @@ export function createSeedData(now: Date = new Date()): SeedData {
     ],
   };
 
-  return { courses, notes, snippets, exercises, reviewItems, settings };
+  return { courses, notes, snippets, exercises, reviewItems, reviewSessions: [], settings };
 }
 
 /** 用于搜索的代码文本：把 CodeSnippet 也拼进可检索文本 */

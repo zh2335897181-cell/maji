@@ -1,6 +1,7 @@
 import { IPC } from '../../../src/lib/ipc';
 import type { AIService } from './service';
 import { validateAIAction, validateAIContext, validateAPIKey, validateProviderSettings } from './validation';
+import { validateReviewGenerationInput, validateReviewGradingInput } from '../ipc/validate';
 
 type AIHandler = (args: unknown[]) => Promise<unknown>;
 
@@ -29,6 +30,14 @@ export function createAIHandlers(service: AIService): Record<string, AIHandler> 
     [IPC.aiAsk]: async (args) => {
       requireArgCount(args, 2);
       return await service.ask(validateAIAction(args[0]), validateAIContext(args[1]));
+    },
+    [IPC.aiReviewGenerate]: async (args) => {
+      requireArgCount(args, 1);
+      return await service.generateReview(validateReviewGenerationInput(args[0]));
+    },
+    [IPC.aiReviewGrade]: async (args) => {
+      requireArgCount(args, 1);
+      return await service.gradeReviewAnswer(validateReviewGradingInput(args[0]));
     },
   };
 }

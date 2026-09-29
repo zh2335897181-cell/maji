@@ -15,6 +15,17 @@ import type {
   ReviewAction,
   ReviewItem,
   ReviewItemWithNote,
+  ActiveTimeSegment,
+  GeneratedReviewQuestion,
+  ReviewQuestion,
+  ReviewQuestionAnswerInput,
+  ReviewQuestionGradeInput,
+  ReviewSession,
+  ReviewSessionFilter,
+  ReviewSessionInput,
+  ReviewSessionPatch,
+  ReviewSessionSummary,
+  ReviewSessionWithQuestions,
   Tag,
   UserSettings,
 } from '../../../src/lib/types';
@@ -25,6 +36,8 @@ import type { SqliteDatabase } from './connection';
 import {
   exerciseParams,
   reviewParams,
+  reviewQuestionParams,
+  reviewSessionParams,
   selectOne,
   selectRows,
   settingsParams,
@@ -32,10 +45,14 @@ import {
   toExercise,
   toReviewItem,
   toReviewItemWithNote,
+  toReviewQuestion,
+  toReviewSession,
   toSettings,
   toSnippet,
   type ExerciseRow,
   type ReviewRow,
+  type ReviewQuestionRow,
+  type ReviewSessionRow,
   type SettingRow,
   type SnippetRow,
 } from './mappers';
@@ -188,6 +205,163 @@ export function restoreReviewItem(item: ReviewItem): void {
        WHERE id = @id`,
     )
     .run(reviewParams(item));
+}
+
+/* -------------------------------------------------------- AI 复习会话 */
+
+function readReviewSession(id: string): ReviewSessionWithQuestions | null {
+  const db = getDb();
+  const row = selectOne<ReviewSessionRow>(db, 'SELECT * FROM review_sessions WHERE id = ?', [id]);
+  if (!row) return null;
+  const questions = selectRows<ReviewQuestionRow>(
+    db,
+    'SELECT * FROM review_questions WHERE session_id = ? ORDER BY question_order ASC',
+    [id],
+  );
+  return toReviewSession(row, questions);
+}
+
+function localDay(iso: string): string {
+  const date = new Date(iso);
+  if (!Number.isFinite(date.getTime())) return '';
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+function activeDurationSeconds(segments: ActiveTimeSegment[], activeStart: string | null, now = new Date()): number {
+  const milliseconds = segments.reduce((sum, segment) => {
+    const start = Date.parse(segment.startedAt);
+    const end = Date.parse(segment.endedAt);
+    return Number.isFinite(start) && Number.isFinite(end) && end > start ? sum + end - start : sum;
+  }, 0);
+  const openStart = activeStart ? Date.parse(activeStart) : NaN;
+  return Math.max(0, Math.floor((milliseconds + (Number.isFinite(openStart) ? Math.max(0, now.getTime() - openStart) : 0)) / 1000));
+}
+
+export function listReviewSessions(filter: ReviewSessionFilter = {}): ReviewSessionSummary[] {
+  const rows = selectRows<ReviewSessionRow>(getDb(), 'SELECT * FROM review_sessions ORDER BY started_at DESC');
+  return rows
+    .filter((row) => !filter.status || row.status === filter.status)
+    .filter((row) => {
+      const day = localDay(row.started_at);
+      return (!filter.fromDate || day >= filter.fromDate) && (!filter.toDate || day <= filter.toDate);
+    })
+    .flatMap((row) => {
+      const session = readReviewSession(row.id);
+      if (!session) return [];
+      const { questions: _questions, ...summary } = session;
+      return [summary];
+    });
+}
+
+export function getReviewSession(id: string): ReviewSessionWithQuestions | null {
+  return readReviewSession(id);
+}
+
+export function createReviewSession(input: ReviewSessionInput): ReviewSessionWithQuestions {
+  const db = getDb();
+  const now = new Date().toISOString();
+  const id = createId('review_session');
+  const session: ReviewSession = {
+    id,
+    scope: input.scope,
+    status: 'in-progress',
+    depth: input.depth,
+    plannedQuestionCount: input.plannedQuestionCount,
+    sources: input.sources,
+    startedAt: now,
+    endedAt: null,
+    durationSeconds: 0,
+    activeSegments: [],
+    activeSegmentStartedAt: now,
+    createdAt: now,
+    updatedAt: now,
+  };
+  const questions: ReviewQuestion[] = input.questions.map((question: GeneratedReviewQuestion, index) => ({
+    ...question,
+    id: createId('review_question'),
+    sessionId: id,
+    order: index + 1,
+    answer: null,
+    grade: null,
+    answeredAt: null,
+    gradedAt: null,
+  }));
+  const insert = db.transaction(() => {
+    db.prepare(
+      `INSERT INTO review_sessions
+       (id, scope, status, depth, planned_question_count, sources, started_at, ended_at, duration_seconds, active_segments, active_segment_started_at, created_at, updated_at)
+       VALUES (@id, @scope, @status, @depth, @planned_question_count, @sources, @started_at, @ended_at, @duration_seconds, @active_segments, @active_segment_started_at, @created_at, @updated_at)`,
+    ).run(reviewSessionParams(session));
+    const insertQuestion = db.prepare(
+      `INSERT INTO review_questions
+       (id, session_id, question_order, type, difficulty, title, prompt, hint, reference_answer, explanation, language, source_note_id, answer, grade, answered_at, graded_at)
+       VALUES (@id, @session_id, @question_order, @type, @difficulty, @title, @prompt, @hint, @reference_answer, @explanation, @language, @source_note_id, @answer, @grade, @answered_at, @graded_at)`,
+    );
+    for (const question of questions) insertQuestion.run(reviewQuestionParams(question));
+  });
+  insert();
+  const created = readReviewSession(id);
+  if (!created) throw new Error('创建复习会话失败');
+  return created;
+}
+
+export function updateReviewSession(id: string, patch: ReviewSessionPatch): ReviewSessionWithQuestions {
+  const db = getDb();
+  const current = readReviewSession(id);
+  if (!current) throw new Error(`复习会话不存在：${id}`);
+  const now = new Date().toISOString();
+  const next: ReviewSession = { ...current, ...patch, updatedAt: now };
+  if (patch.status === 'completed') {
+    next.endedAt ??= patch.endedAt ?? now;
+    if (current.activeSegmentStartedAt && patch.activeSegmentStartedAt === undefined) {
+      next.activeSegments = [...next.activeSegments, { startedAt: current.activeSegmentStartedAt, endedAt: next.endedAt }];
+      next.activeSegmentStartedAt = null;
+    }
+  }
+  if (patch.status === 'in-progress') next.endedAt = null;
+  next.durationSeconds = activeDurationSeconds(next.activeSegments, next.activeSegmentStartedAt);
+  db.prepare(
+    `UPDATE review_sessions SET status = @status, ended_at = @ended_at, duration_seconds = @duration_seconds,
+       active_segments = @active_segments, active_segment_started_at = @active_segment_started_at, updated_at = @updated_at
+     WHERE id = @id`,
+  ).run(reviewSessionParams(next));
+  const updated = readReviewSession(id);
+  if (!updated) throw new Error(`复习会话不存在：${id}`);
+  return updated;
+}
+
+export function saveReviewQuestionAnswer(sessionId: string, input: ReviewQuestionAnswerInput): ReviewQuestion {
+  const db = getDb();
+  const now = new Date().toISOString();
+  const save = db.transaction(() => {
+    const result = db.prepare(
+      `UPDATE review_questions SET answer = ?, grade = NULL, answered_at = ?, graded_at = NULL
+       WHERE id = ? AND session_id = ?`,
+    ).run(input.answer, now, input.questionId, sessionId);
+    if (result.changes === 0) throw new Error(`练习题不存在：${input.questionId}`);
+    db.prepare('UPDATE review_sessions SET updated_at = ? WHERE id = ?').run(now, sessionId);
+  });
+  save();
+  const row = selectOne<ReviewQuestionRow>(db, 'SELECT * FROM review_questions WHERE id = ? AND session_id = ?', [input.questionId, sessionId]);
+  if (!row) throw new Error(`练习题不存在：${input.questionId}`);
+  return toReviewQuestion(row);
+}
+
+export function saveReviewQuestionGrade(sessionId: string, input: ReviewQuestionGradeInput): ReviewQuestion {
+  const db = getDb();
+  const question = selectOne<ReviewQuestionRow>(db, 'SELECT * FROM review_questions WHERE id = ? AND session_id = ?', [input.questionId, sessionId]);
+  if (!question) throw new Error(`练习题不存在：${input.questionId}`);
+  if (question.answer === null) throw new Error('请先保存答案再提交评阅');
+  const now = new Date().toISOString();
+  const save = db.transaction(() => {
+    db.prepare('UPDATE review_questions SET grade = ?, graded_at = ? WHERE id = ? AND session_id = ?')
+      .run(JSON.stringify(input.grade), now, input.questionId, sessionId);
+    db.prepare('UPDATE review_sessions SET updated_at = ? WHERE id = ?').run(now, sessionId);
+  });
+  save();
+  const row = selectOne<ReviewQuestionRow>(db, 'SELECT * FROM review_questions WHERE id = ? AND session_id = ?', [input.questionId, sessionId]);
+  if (!row) throw new Error(`练习题不存在：${input.questionId}`);
+  return toReviewQuestion(row);
 }
 
 /* ------------------------------------------------------------- 标签 */

@@ -23,6 +23,15 @@ import type {
   ReviewAction,
   ReviewItem,
   ReviewItemWithNote,
+  ActiveTimeSegment,
+  ReviewQuestion,
+  ReviewQuestionAnswerInput,
+  ReviewQuestionGradeInput,
+  ReviewSessionFilter,
+  ReviewSessionInput,
+  ReviewSessionPatch,
+  ReviewSessionSummary,
+  ReviewSessionWithQuestions,
   SearchQuery,
   SearchResult,
   Tag,
@@ -35,6 +44,7 @@ import { createId } from './text';
 import { applyReviewAction } from './review';
 import { searchDocuments, type SearchDocument } from './search';
 import { docToPlainText, extractCodeText, noteExcerpt, starterDoc, type Doc } from './noteDoc';
+import { defaultLanguageForTrack, trackFromLanguage } from './courseTracks';
 
 const STORAGE_KEY = 'maji.local.v1';
 
@@ -56,7 +66,12 @@ function loadState(): LocalState {
       if (raw) {
         const parsed = JSON.parse(raw) as LocalState;
         if (parsed.version === STATE_VERSION) {
+          parsed.reviewSessions ??= [];
           parsed.settings = { ...DEFAULT_SETTINGS, ...parsed.settings };
+          parsed.courses = parsed.courses.map((course) => ({
+            ...course,
+            track: course.track ?? trackFromLanguage(course.language),
+          }));
           return parsed;
         }
       }
@@ -67,9 +82,126 @@ function loadState(): LocalState {
   return { ...createSeedData(), version: STATE_VERSION };
 }
 
+function sessionSummary(session: ReviewSessionWithQuestions): ReviewSessionSummary {
+  const scores = session.questions.flatMap((question) => question.grade ? [question.grade.score] : []);
+  return {
+    ...session,
+    questionCount: session.questions.length,
+    averageScore: scores.length ? Math.round(scores.reduce((sum, score) => sum + score, 0) / scores.length) : null,
+  };
+}
+
+function activeDurationSeconds(
+  segments: ActiveTimeSegment[],
+  activeSegmentStartedAt: string | null,
+  now = new Date(),
+): number {
+  const milliseconds = segments.reduce((sum, segment) => {
+    const start = Date.parse(segment.startedAt);
+    const end = Date.parse(segment.endedAt);
+    return Number.isFinite(start) && Number.isFinite(end) && end > start ? sum + end - start : sum;
+  }, 0);
+  const openStart = activeSegmentStartedAt ? Date.parse(activeSegmentStartedAt) : NaN;
+  return Math.max(0, Math.floor((milliseconds + (Number.isFinite(openStart) ? Math.max(0, now.getTime() - openStart) : 0)) / 1000));
+}
+
+function localDay(iso: string): string {
+  const date = new Date(iso);
+  if (!Number.isFinite(date.getTime())) return '';
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+function findQuestion(sessions: ReviewSessionWithQuestions[], sessionId: string, questionId: string): ReviewQuestion {
+  const question = sessions.find((item) => item.id === sessionId)?.questions.find((item) => item.id === questionId);
+  if (!question) throw new Error(`练习题不存在：${questionId}`);
+  return question;
+}
+
 export class LocalRepository implements MajiRepository {
   readonly source = 'local' as const;
   private state: LocalState;
+
+  readonly reviewSessions = {
+    list: async (filter: ReviewSessionFilter = {}): Promise<ReviewSessionSummary[]> => {
+      const matches = this.state.reviewSessions
+        .filter((session) => !filter.status || session.status === filter.status)
+        .filter((session) => {
+          const localDate = localDay(session.startedAt);
+          return (!filter.fromDate || localDate >= filter.fromDate) && (!filter.toDate || localDate <= filter.toDate);
+        })
+        .sort((a, b) => b.startedAt.localeCompare(a.startedAt));
+      return clone(matches.map(sessionSummary));
+    },
+    get: async (id: string): Promise<ReviewSessionWithQuestions | null> => {
+      const session = this.state.reviewSessions.find((item) => item.id === id);
+      return session ? clone(sessionSummary(session) as ReviewSessionWithQuestions) : null;
+    },
+    create: async (input: ReviewSessionInput): Promise<ReviewSessionWithQuestions> => {
+      const now = new Date().toISOString();
+      const id = createId('review_session');
+      const session: ReviewSessionWithQuestions = {
+        id,
+        scope: input.scope,
+        status: 'in-progress',
+        depth: input.depth,
+        plannedQuestionCount: input.plannedQuestionCount,
+        sources: clone(input.sources),
+        startedAt: now,
+        endedAt: null,
+        durationSeconds: 0,
+        activeSegments: [],
+        activeSegmentStartedAt: now,
+        createdAt: now,
+        updatedAt: now,
+        questionCount: input.questions.length,
+        averageScore: null,
+        questions: input.questions.map((question, index) => ({
+          ...clone(question),
+          id: createId('review_question'),
+          sessionId: id,
+          order: index + 1,
+          answer: null,
+          grade: null,
+          answeredAt: null,
+          gradedAt: null,
+        })),
+      };
+      this.state.reviewSessions.push(session);
+      this.persist();
+      return clone(session);
+    },
+    update: async (id: string, patch: ReviewSessionPatch): Promise<ReviewSessionWithQuestions> => {
+      const session = this.state.reviewSessions.find((item) => item.id === id);
+      if (!session) throw new Error(`复习会话不存在：${id}`);
+      Object.assign(session, clone(patch), { updatedAt: new Date().toISOString() });
+      if (patch.status === 'completed') session.endedAt ??= patch.endedAt ?? new Date().toISOString();
+      if (patch.status === 'in-progress') session.endedAt = null;
+      session.durationSeconds = activeDurationSeconds(session.activeSegments, session.activeSegmentStartedAt);
+      this.persist();
+      return clone(sessionSummary(session) as ReviewSessionWithQuestions);
+    },
+    saveAnswer: async (sessionId: string, input: ReviewQuestionAnswerInput): Promise<ReviewQuestion> => {
+      const question = findQuestion(this.state.reviewSessions, sessionId, input.questionId);
+      question.answer = input.answer;
+      question.answeredAt = new Date().toISOString();
+      question.grade = null;
+      question.gradedAt = null;
+      const session = this.state.reviewSessions.find((item) => item.id === sessionId)!;
+      session.updatedAt = question.answeredAt;
+      this.persist();
+      return clone(question);
+    },
+    saveGrade: async (sessionId: string, input: ReviewQuestionGradeInput): Promise<ReviewQuestion> => {
+      const question = findQuestion(this.state.reviewSessions, sessionId, input.questionId);
+      if (question.answer === null) throw new Error('请先保存答案再提交评阅');
+      question.grade = clone(input.grade);
+      question.gradedAt = new Date().toISOString();
+      const session = this.state.reviewSessions.find((item) => item.id === sessionId)!;
+      session.updatedAt = question.gradedAt;
+      this.persist();
+      return clone(question);
+    },
+  };
 
   constructor(state?: LocalState) {
     this.state = state ?? loadState();
@@ -99,11 +231,13 @@ export class LocalRepository implements MajiRepository {
 
   async createCourse(input: Partial<Course> & { name: string }): Promise<Course> {
     const now = new Date().toISOString();
+    const track = input.track ?? trackFromLanguage(input.language ?? 'python');
     const course: Course = {
       id: input.id ?? createId('course'),
       name: input.name.trim(),
       description: input.description?.trim() ?? '',
-      language: input.language ?? 'python',
+      language: input.language ?? defaultLanguageForTrack(track),
+      track,
       colorKey: input.colorKey ?? 'teal',
       iconKey: input.iconKey ?? 'book',
       sortOrder: this.state.courses.length,

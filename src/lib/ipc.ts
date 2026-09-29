@@ -17,6 +17,18 @@ import type {
   NoteListFilter,
   NotePatch,
   NoteSummary,
+  GeneratedReviewQuestion,
+  ReviewGenerationInput,
+  ReviewGrade,
+  ReviewGradingInput,
+  ReviewQuestion,
+  ReviewQuestionAnswerInput,
+  ReviewQuestionGradeInput,
+  ReviewSessionFilter,
+  ReviewSessionInput,
+  ReviewSessionPatch,
+  ReviewSessionSummary,
+  ReviewSessionWithQuestions,
   ReviewAction,
   ReviewItem,
   ReviewItemWithNote,
@@ -25,6 +37,8 @@ import type {
   Tag,
   UserSettings,
 } from './types';
+
+export type { ReviewGenerationInput, ReviewGradingInput, GeneratedReviewQuestion, ReviewGrade } from './types';
 
 /** 通道名集中定义，避免字符串散落各处 */
 export const IPC = {
@@ -55,6 +69,12 @@ export const IPC = {
   exercisesToggle: 'maji:exercises:toggle',
   reviewList: 'maji:review:list',
   reviewApply: 'maji:review:apply',
+  reviewSessionsList: 'maji:review-sessions:list',
+  reviewSessionsGet: 'maji:review-sessions:get',
+  reviewSessionsCreate: 'maji:review-sessions:create',
+  reviewSessionsUpdate: 'maji:review-sessions:update',
+  reviewSessionsSaveAnswer: 'maji:review-sessions:save-answer',
+  reviewSessionsSaveGrade: 'maji:review-sessions:save-grade',
   settingsGet: 'maji:settings:get',
   settingsUpdate: 'maji:settings:update',
   exportMarkdown: 'maji:file:export-markdown',
@@ -64,6 +84,8 @@ export const IPC = {
   aiSettingsClearKey: 'maji:ai:settings-clear-key',
   aiTestConnection: 'maji:ai:test-connection',
   aiAsk: 'maji:ai:ask',
+  aiReviewGenerate: 'maji:ai:review-generate',
+  aiReviewGrade: 'maji:ai:review-grade',
 } as const;
 
 export interface AppInfo {
@@ -157,6 +179,14 @@ export interface MajiApi {
     list(filter?: { state?: string }): Promise<ReviewItemWithNote[]>;
     apply(id: string, action: ReviewAction): Promise<ReviewItem>;
   };
+  reviewSessions: {
+    list(filter?: ReviewSessionFilter): Promise<ReviewSessionSummary[]>;
+    get(id: string): Promise<ReviewSessionWithQuestions | null>;
+    create(input: ReviewSessionInput): Promise<ReviewSessionWithQuestions>;
+    update(id: string, patch: ReviewSessionPatch): Promise<ReviewSessionWithQuestions>;
+    saveAnswer(sessionId: string, input: ReviewQuestionAnswerInput): Promise<ReviewQuestion>;
+    saveGrade(sessionId: string, input: ReviewQuestionGradeInput): Promise<ReviewQuestion>;
+  };
   settings: {
     get(): Promise<UserSettings>;
     update(patch: Partial<UserSettings>): Promise<UserSettings>;
@@ -174,6 +204,10 @@ export interface MajiApi {
     clearKey(): Promise<AISettingsStatus>;
     testConnection(settings?: AIProviderSettings, apiKey?: string): Promise<void>;
     ask(action: AIAction, context: AIContext): Promise<AIResult>;
+    review: {
+      generate(input: ReviewGenerationInput): Promise<GeneratedReviewQuestion[]>;
+      grade(input: ReviewGradingInput): Promise<ReviewGrade>;
+    };
   };
 }
 

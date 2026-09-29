@@ -5,6 +5,7 @@ import {
   RotateCcw,
   Sparkles,
   Target,
+  History,
 } from 'lucide-react';
 import { useMemo, useState, type ReactElement } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -18,18 +19,28 @@ import page from '../../components/layout/page.module.css';
 import { formatDueLabel, formatRelativeTime } from '../../lib/format';
 import { groupReviewItems, reviewFeedback } from '../../lib/review';
 import { languageName } from '../../lib/languages';
-import type { ReviewAction, ReviewItemWithNote } from '../../lib/types';
+import type { ReviewAction, ReviewItemWithNote, ReviewSessionWithQuestions } from '../../lib/types';
+import { ReviewSessionSetup } from './ReviewSessionSetup';
+import { ReviewSessionRunner } from './ReviewSessionRunner';
+import { ReviewSessionHistory } from './ReviewSessionHistory';
 import styles from './review.module.css';
 
 type Tab = 'due' | 'upcoming' | 'mastered';
 
 /** 复习页：只呈现知识点本身与三个动作，避免复杂仪表盘 */
 export function ReviewPage(): ReactElement {
-  const { reviews, applyReviewAction, notes } = useLibrary();
+  const { reviews, applyReviewAction, notes, courses, reviewSessions, loadNote, createReviewSession, getReviewSession } = useLibrary();
   const toast = useToast();
   const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>('due');
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [view, setView] = useState<'queue' | 'setup' | 'history' | 'runner'>('queue');
+  const [activeSession, setActiveSession] = useState<ReviewSessionWithQuestions | null>(null);
+
+  const openSession = async (id: string): Promise<void> => {
+    const loaded = await getReviewSession(id);
+    if (loaded) { setActiveSession(loaded); setView('runner'); }
+  };
 
   const buckets = useMemo(() => groupReviewItems(reviews), [reviews]);
   const list: ReviewItemWithNote[] =
@@ -63,6 +74,10 @@ export function ReviewPage(): ReactElement {
     { id: 'mastered', label: '已掌握', count: buckets.mastered.length },
   ];
 
+  if (view === 'setup') return <div className={page.page} data-scroll-container><div className={page.inner}><ReviewSessionSetup notes={notes} courses={courses} reviews={reviews} loadNote={loadNote} onBack={() => setView('queue')} onCreate={createReviewSession} onStarted={(session) => { setActiveSession(session); setView('runner'); }} /></div></div>;
+  if (view === 'history') return <div className={page.page} data-scroll-container><div className={page.inner}><ReviewSessionHistory sessions={reviewSessions} onBack={() => setView('queue')} onOpen={(id) => void openSession(id)} /></div></div>;
+  if (view === 'runner' && activeSession) return <div className={page.page} data-scroll-container><div className={page.inner}><ReviewSessionRunner key={activeSession.id} session={activeSession} onBack={() => setView('queue')} /></div></div>;
+
   return (
     <div className={page.page} data-scroll-container>
       <div className={page.inner}>
@@ -74,11 +89,18 @@ export function ReviewPage(): ReactElement {
             </p>
           </div>
           <div className={page.pageActions}>
+            <Button variant="secondary" icon={History} onClick={() => setView('history')}>练习记录</Button>
+            <Button variant="primary" icon={Sparkles} onClick={() => setView('setup')}>AI 每日练习</Button>
             <Tag tone="accent" icon={Target}>
               今天 {buckets.due.length} 项
             </Tag>
           </div>
         </header>
+
+        {reviewSessions.some((session) => session.status === 'in-progress') ? <div className={styles.sessionNotice}>
+          <span>你有未完成的 AI 练习，继续后会从上次进度恢复。</span>
+          <Button variant="secondary" onClick={() => { const session = reviewSessions.find((item) => item.status === 'in-progress'); if (session) void openSession(session.id); }}>继续练习</Button>
+        </div> : null}
 
         <div className={styles.tabs} role="tablist" aria-label="复习分组">
           {tabs.map((item) => (

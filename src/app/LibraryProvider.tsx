@@ -28,6 +28,13 @@ import type {
   NoteSummary,
   ReviewAction,
   ReviewItemWithNote,
+  ReviewQuestion,
+  ReviewQuestionAnswerInput,
+  ReviewQuestionGradeInput,
+  ReviewSessionInput,
+  ReviewSessionPatch,
+  ReviewSessionSummary,
+  ReviewSessionWithQuestions,
   SaveState,
   SearchQuery,
   SearchResult,
@@ -54,6 +61,7 @@ interface LibraryContextValue {
   notes: NoteSummary[];
   tags: Tag[];
   reviews: ReviewItemWithNote[];
+  reviewSessions: ReviewSessionSummary[];
   exercises: Exercise[];
   snippets: CodeSnippet[];
   settings: UserSettings;
@@ -81,6 +89,11 @@ interface LibraryContextValue {
   createSnippet(input: CodeSnippetInput): Promise<CodeSnippet>;
 
   applyReviewAction(id: string, action: ReviewAction): Promise<ReviewItemWithNote | null>;
+  getReviewSession(id: string): Promise<ReviewSessionWithQuestions | null>;
+  createReviewSession(input: ReviewSessionInput): Promise<ReviewSessionWithQuestions>;
+  updateReviewSession(id: string, patch: ReviewSessionPatch): Promise<ReviewSessionWithQuestions>;
+  saveReviewAnswer(sessionId: string, input: ReviewQuestionAnswerInput): Promise<ReviewQuestion>;
+  saveReviewGrade(sessionId: string, input: ReviewQuestionGradeInput): Promise<ReviewQuestion>;
   updateSettings(patch: Partial<UserSettings>): Promise<void>;
 }
 
@@ -97,6 +110,7 @@ export function LibraryProvider({ children }: { children: ReactNode }): ReactNod
   const [notes, setNotes] = useState<NoteSummary[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
   const [reviews, setReviews] = useState<ReviewItemWithNote[]>([]);
+  const [reviewSessions, setReviewSessions] = useState<ReviewSessionSummary[]>([]);
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [snippets, setSnippets] = useState<CodeSnippet[]>([]);
   const [settings, setSettings] = useState<UserSettings>(DEFAULT_SETTINGS);
@@ -109,6 +123,7 @@ export function LibraryProvider({ children }: { children: ReactNode }): ReactNod
         nextNotes,
         nextTags,
         nextReviews,
+        nextReviewSessions,
         nextExercises,
         nextSnippets,
         nextSettings,
@@ -117,6 +132,7 @@ export function LibraryProvider({ children }: { children: ReactNode }): ReactNod
         repository.listNotes(),
         repository.listTags(),
         repository.listReviewItems(),
+        repository.reviewSessions.list(),
         repository.listExercises(),
         repository.listSnippets(20),
         repository.getSettings(),
@@ -125,6 +141,7 @@ export function LibraryProvider({ children }: { children: ReactNode }): ReactNod
       setNotes(nextNotes);
       setTags(nextTags);
       setReviews(nextReviews);
+      setReviewSessions(nextReviewSessions);
       setExercises(nextExercises);
       setSnippets(nextSnippets);
       setSettings(nextSettings);
@@ -335,6 +352,51 @@ export function LibraryProvider({ children }: { children: ReactNode }): ReactNod
     [repository],
   );
 
+  const getReviewSession = useCallback(
+    (id: string) => repository.reviewSessions.get(id),
+    [repository],
+  );
+
+  const refreshReviewSessions = useCallback(async () => {
+    setReviewSessions(await repository.reviewSessions.list());
+  }, [repository]);
+
+  const createReviewSession = useCallback(
+    async (input: ReviewSessionInput) => {
+      const session = await repository.reviewSessions.create(input);
+      await refreshReviewSessions();
+      return session;
+    },
+    [repository, refreshReviewSessions],
+  );
+
+  const updateReviewSession = useCallback(
+    async (id: string, patch: ReviewSessionPatch) => {
+      const session = await repository.reviewSessions.update(id, patch);
+      await refreshReviewSessions();
+      return session;
+    },
+    [repository, refreshReviewSessions],
+  );
+
+  const saveReviewAnswer = useCallback(
+    async (sessionId: string, input: ReviewQuestionAnswerInput) => {
+      const question = await repository.reviewSessions.saveAnswer(sessionId, input);
+      await refreshReviewSessions();
+      return question;
+    },
+    [repository, refreshReviewSessions],
+  );
+
+  const saveReviewGrade = useCallback(
+    async (sessionId: string, input: ReviewQuestionGradeInput) => {
+      const question = await repository.reviewSessions.saveGrade(sessionId, input);
+      await refreshReviewSessions();
+      return question;
+    },
+    [repository, refreshReviewSessions],
+  );
+
   const updateSettings = useCallback(
     async (patch: Partial<UserSettings>) => {
       const next = await repository.updateSettings(patch);
@@ -352,6 +414,7 @@ export function LibraryProvider({ children }: { children: ReactNode }): ReactNod
       notes,
       tags,
       reviews,
+      reviewSessions,
       exercises,
       snippets,
       settings,
@@ -374,6 +437,11 @@ export function LibraryProvider({ children }: { children: ReactNode }): ReactNod
       toggleExercise,
       createSnippet,
       applyReviewAction,
+      getReviewSession,
+      createReviewSession,
+      updateReviewSession,
+      saveReviewAnswer,
+      saveReviewGrade,
       updateSettings,
     }),
     [
@@ -384,6 +452,7 @@ export function LibraryProvider({ children }: { children: ReactNode }): ReactNod
       notes,
       tags,
       reviews,
+      reviewSessions,
       exercises,
       snippets,
       settings,
@@ -406,6 +475,11 @@ export function LibraryProvider({ children }: { children: ReactNode }): ReactNod
       toggleExercise,
       createSnippet,
       applyReviewAction,
+      getReviewSession,
+      createReviewSession,
+      updateReviewSession,
+      saveReviewAnswer,
+      saveReviewGrade,
       updateSettings,
     ],
   );

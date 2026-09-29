@@ -35,6 +35,11 @@ import {
   validateNotePatch,
   validateOrderedIds,
   validateReviewFilter,
+  validateReviewQuestionAnswerInput,
+  validateReviewQuestionGradeInput,
+  validateReviewSessionFilter,
+  validateReviewSessionInput,
+  validateReviewSessionPatch,
   validateSearchQuery,
   validateSettingsPatch,
   validateSnippetCreate,
@@ -109,6 +114,15 @@ const handlers: Record<string, Handler> = {
   [IPC.reviewList]: (args) => library.listReviewItems(validateReviewFilter(args[0])),
   [IPC.reviewApply]: (args) =>
     library.applyReviewAction(requireEntityId(args[0], '复习 ID'), requireReviewAction(args[1])),
+  [IPC.reviewSessionsList]: (args) => library.listReviewSessions(validateReviewSessionFilter(args[0])),
+  [IPC.reviewSessionsGet]: (args) => library.getReviewSession(requireEntityId(args[0], '复习会话 ID')),
+  [IPC.reviewSessionsCreate]: (args) => library.createReviewSession(validateReviewSessionInput(args[0])),
+  [IPC.reviewSessionsUpdate]: (args) =>
+    library.updateReviewSession(requireEntityId(args[0], '复习会话 ID'), validateReviewSessionPatch(args[1])),
+  [IPC.reviewSessionsSaveAnswer]: (args) =>
+    library.saveReviewQuestionAnswer(requireEntityId(args[0], '复习会话 ID'), validateReviewQuestionAnswerInput(args[1])),
+  [IPC.reviewSessionsSaveGrade]: (args) =>
+    library.saveReviewQuestionGrade(requireEntityId(args[0], '复习会话 ID'), validateReviewQuestionGradeInput(args[1])),
 
   [IPC.settingsGet]: () => library.getSettings(),
   [IPC.settingsUpdate]: (args) => library.updateSettings(validateSettingsPatch(args[0])),

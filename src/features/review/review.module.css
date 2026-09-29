@@ -196,3 +196,42 @@
   font-size: var(--font-size-xs);
   color: var(--text-muted);
 }
+
+.sessionPage { display: flex; flex-direction: column; gap: var(--space-5); }
+.sessionHeader { display: flex; align-items: flex-start; gap: var(--space-4); }
+.sessionHeader h2 { margin: 0 0 var(--space-1); color: var(--ink-900); font-size: var(--font-size-xl); }
+.sessionHeader p, .sessionFieldHint { margin: 0; color: var(--text-muted); font-size: var(--font-size-sm); line-height: var(--line-relaxed); }
+.sessionNotice, .sessionError { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); background: var(--accent-soft); color: var(--accent-800); }
+.sessionError { background: var(--danger-bg); color: var(--danger-700); }
+.sessionSetupGrid { display: grid; grid-template-columns: minmax(240px, 0.8fr) minmax(0, 1.4fr); gap: var(--space-4); align-items: start; }
+.sessionSetupControls, .sessionPreview, .runnerCard, .historyDay { display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-5); border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--bg-surface); }
+.sessionLabel { color: var(--ink-700); font-size: var(--font-size-sm); font-weight: var(--weight-medium); }
+.sessionSelect, .answerInput { width: 100%; min-height: 42px; padding: var(--space-2) var(--space-3); border: 1px solid var(--line-strong); border-radius: var(--radius-md); background: var(--bg-surface); color: var(--ink-800); font: inherit; }
+.sessionNotePicker { display: flex; flex-direction: column; gap: var(--space-2); max-height: 240px; overflow: auto; border: 1px solid var(--line); border-radius: var(--radius-md); padding: var(--space-3); }
+.sessionNotePicker legend { padding: 0 var(--space-1); color: var(--ink-700); font-size: var(--font-size-sm); }
+.sessionCheckbox { display: flex; gap: var(--space-2); align-items: flex-start; font-size: var(--font-size-sm); }
+.sessionCheckbox span { display: flex; flex-direction: column; gap: 2px; }
+.sessionCheckbox small, .sessionSource small, .runnerMeta { color: var(--text-muted); font-size: var(--font-size-xs); }
+.sessionPreview { min-height: 300px; }
+.sessionPreviewEmpty { display: flex; flex: 1; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-2); color: var(--text-muted); text-align: center; }
+.sessionPreviewHeading, .runnerTop, .runnerActions, .historyRow { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
+.sessionPreviewHeading h3 { margin: 0; color: var(--ink-800); }
+.sessionPreviewHeading p { margin: var(--space-1) 0 0; color: var(--text-muted); font-size: var(--font-size-xs); }
+.sessionSourceList, .historyList { display: flex; flex-direction: column; gap: var(--space-2); }
+.sessionSource { border: 1px solid var(--line); border-radius: var(--radius-md); padding: var(--space-3); }
+.sessionSource summary { display: flex; justify-content: space-between; gap: var(--space-2); cursor: pointer; }
+.sessionSource pre, .questionCode, .answerInput { white-space: pre-wrap; overflow-wrap: anywhere; }
+.sessionSource pre { max-height: 280px; overflow: auto; margin: var(--space-3) 0 0; padding: var(--space-3); border-radius: var(--radius-sm); background: var(--bg-subtle); font: var(--font-size-xs)/1.6 var(--font-mono); }
+.runnerCard { gap: var(--space-4); }
+.runnerCard h2, .runnerCard h3 { margin: 0; color: var(--ink-900); }
+.runnerPrompt, .gradePanel { padding: var(--space-4); border-radius: var(--radius-md); background: var(--bg-subtle); line-height: var(--line-relaxed); white-space: pre-wrap; }
+.questionCode { margin: 0; padding: var(--space-3); border-radius: var(--radius-md); background: var(--bg-sunken); font: var(--font-size-sm)/1.6 var(--font-mono); }
+.answerInput { min-height: 150px; resize: vertical; }
+.gradePanel { border-left: 3px solid var(--success-500); }
+.gradePanel p { margin: var(--space-2) 0; }
+.runnerProgress { height: 6px; overflow: hidden; border-radius: var(--radius-full); background: var(--bg-sunken); }
+.runnerProgress span { display: block; height: 100%; background: var(--accent); transition: width 180ms ease; }
+.historyDay h3 { margin: 0; }
+.historyRow { padding: var(--space-3) 0; border-top: 1px solid var(--line-soft); }
+.historyRow > div { display: flex; flex-direction: column; gap: var(--space-1); }
+@media (max-width: 760px) { .sessionSetupGrid { grid-template-columns: 1fr; } .sessionHeader { flex-wrap: wrap; } }

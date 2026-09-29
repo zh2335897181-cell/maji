@@ -226,6 +226,74 @@ test.describe('课程与笔记管理', () => {
 });
 
 test.describe('复习', () => {
+  async function attachReviewSessionAI(page: import('@playwright/test').Page): Promise<void> {
+    await page.evaluate(() => {
+      const question = {
+        type: 'code-writing', difficulty: 'easy', title: '编写 greet', prompt: '写一个接收 name 参数并返回问候语的函数。',
+        hint: '使用函数参数。', referenceAnswer: 'def greet(name): return f"你好，{name}"', explanation: '参数让函数可处理不同输入。',
+        language: 'python', sourceNoteId: 'note_func_args',
+      };
+      Object.defineProperty(window, 'maji', { configurable: true, value: {
+        ai: {
+          getSettings: async () => ({ configured: true, keyPresent: true, baseUrl: 'https://api.example/v1', model: 'test' }),
+          review: {
+            generate: async () => [question],
+            grade: async () => ({ score: 88, rationale: '函数结构正确。', omissions: ['补上返回值。'], feedback: '继续练习返回语句。', referenceAnswer: question.referenceAnswer, explanation: question.explanation }),
+          },
+        },
+      } });
+    });
+  }
+
+  test('AI 练习生成、评阅、恢复历史记录，并仅在确认后更新复习排期', async ({ page }) => {
+    await page.goto('/#/review');
+    // 页面仓库已在应用启动时选为 localStorage；此后只挂接模拟 AI 能力。
+    await attachReviewSessionAI(page);
+
+    await page.getByRole('button', { name: 'AI 每日练习' }).click();
+    await page.getByLabel('练习范围').selectOption('notes');
+    await expect(page.getByRole('checkbox', { name: /函数与参数/ })).toBeChecked();
+    await page.getByRole('button', { name: '预览将发送内容' }).click();
+    await expect(page.getByText('只有点击“确认并生成练习”后，内容才会发送至已配置的 AI 服务。')).toBeVisible();
+    await page.getByRole('button', { name: '确认并生成练习' }).click();
+    await expect(page.getByRole('heading', { name: '编写 greet' })).toBeVisible();
+
+    // 模拟应用异常退出后的下次启动；此刻没有发送暂停动作，恢复时只能统计最近一次心跳。
+    await page.reload();
+    await attachReviewSessionAI(page);
+    await page.getByRole('button', { name: '继续练习' }).click();
+    await expect(page.getByRole('heading', { name: '编写 greet' })).toBeVisible();
+
+    await page.getByLabel('你的答案').fill('def greet(name):\n    return f"你好，{name}"');
+    await page.getByRole('button', { name: '提交答案并查看解析' }).click();
+    await expect(page.getByRole('heading', { name: '88 分' })).toBeVisible();
+    await expect(page.getByText('补上返回值。')).toBeVisible();
+    await page.getByRole('button', { name: '完成本次练习' }).click();
+    await expect(page.getByRole('heading', { name: '本次练习已完成' })).toBeVisible();
+    await expect(page.getByRole('button', { name: '标记关联知识点为已掌握' })).toBeVisible();
+
+    const beforeSchedule = await page.evaluate(() => {
+      const state = JSON.parse(localStorage.getItem('maji.local.v1') ?? '{}') as { reviewItems?: Array<{ id: string; reviewCount: number }> };
+      return state.reviewItems?.filter((item) => ['review_param_arg', 'review_return_print'].includes(item.id)).map(({ id, reviewCount }) => ({ id, reviewCount }));
+    });
+    await page.getByRole('button', { name: '标记关联知识点为已掌握' }).click();
+    await expect(page.getByText('已更新关联知识点的复习安排。')).toBeVisible();
+    const afterSchedule = await page.evaluate(() => {
+      const state = JSON.parse(localStorage.getItem('maji.local.v1') ?? '{}') as { reviewItems?: Array<{ id: string; reviewCount: number }> };
+      return state.reviewItems?.filter((item) => ['review_param_arg', 'review_return_print'].includes(item.id)).map(({ id, reviewCount }) => ({ id, reviewCount }));
+    });
+    expect(afterSchedule).toEqual(beforeSchedule?.map((item) => ({ ...item, reviewCount: item.reviewCount + 1 })));
+
+    await page.reload();
+    await page.getByRole('button', { name: '练习记录' }).click();
+    await expect(page.getByRole('heading', { name: 'AI 练习记录' })).toBeVisible();
+    await expect(page.getByText('函数与参数')).toBeVisible();
+    await page.getByRole('button', { name: '查看详情' }).click();
+    await page.getByText('1. 编写 greet').click();
+    await expect(page.getByText('你的答案：')).toBeVisible();
+    await expect(page.locator('h3').filter({ hasText: '88 分' })).toBeVisible();
+  });
+
   test('标记已掌握后知识点离开待复习列表', async ({ page }) => {
     await page.goto('/#/review');
     await expect(page.getByRole('tab', { name: /今天待复习/ })).toContainText('3');

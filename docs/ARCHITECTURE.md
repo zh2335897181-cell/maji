@@ -125,6 +125,8 @@ Exercise    { id, title, prompt, hint, solution, language, difficulty, done,
 Tag         { name, noteCount }
 UserSettings{ theme, editorFontSize, editorFontFamily, autoSaveDelayMs, sidebarCollapsed,
               asideCollapsed, lastOpenedNoteId, recentNoteIds[] }
+ReviewSession{ id, scope, status, depth, sources[], startedAt, endedAt, activeSegments[], durationSeconds }
+ReviewQuestion{ id, sessionId, order, type, difficulty, prompt, answer, grade, sourceNoteId }
 ```
 
 \* `codeText` 是 SQLite 侧的派生列（从 `contentJson` 抽取代码块），仅用于搜索粗筛，界面不使用。
@@ -136,7 +138,10 @@ Course 1──n Note 1──n ReviewItem        （删除笔记 → 级联删除
                 └──n Exercise           （删除笔记 → exercises.note_id 置空）
                 └──n CodeSnippet        （删除笔记 → snippets.note_id 置空）
 Course 1──n Note                        （课程下还有笔记时拒绝删除课程）
+ReviewSession 1──n ReviewQuestion         （练习以来源快照留存，不依赖笔记仍存在）
 ```
+
+**AI 每日练习**：复习页通过独立的 `ai.review.generate` / `ai.review.grade` IPC 操作，复用 AI 设置里的 OpenAI 兼容服务。用户确认后才发送所选笔记文本；代码题采用静态评阅，不执行提交的代码。会话和题目保存在 SQLite `review_sessions` / `review_questions` 表（schema v4），浏览器示例模式保存在 `maji.local.v1`。练习历史保存来源标题和正文快照，因此原笔记改名或删除后仍可查看；答案先保存再请求 AI 评分，服务失败时可以重试。活跃计时按暂停与 15 秒心跳切成时间段，再按本地日期统计；暂停及应用关闭后的时间不会计入。AI 分数不会自动改变间隔复习排期，只有用户完成后明确选择，才会更新关联知识点。
 
 **笔记正文格式**：TipTap 文档 JSON，存 `content_json`。同时派生：
 

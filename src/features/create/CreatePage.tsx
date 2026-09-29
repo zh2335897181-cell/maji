@@ -18,8 +18,9 @@ import { Button } from '../../components/ui/Button';
 import { SelectField, TextareaField, TextField } from '../../components/ui/Fields';
 import page from '../../components/layout/page.module.css';
 import { LANGUAGE_OPTIONS, languageMeta, languageName } from '../../lib/languages';
+import { COURSE_TRACKS, defaultLanguageForTrack, trackFromLanguage } from '../../lib/courseTracks';
 import { doc, heading, paragraph } from '../../lib/noteDoc';
-import type { CreateKind, ExerciseDifficulty, LanguageId } from '../../lib/types';
+import type { CourseTrackId, CreateKind, ExerciseDifficulty, LanguageId } from '../../lib/types';
 import styles from './create.module.css';
 
 const KIND_META: Array<{
@@ -68,6 +69,7 @@ export function CreatePage(): ReactElement {
   const [difficulty, setDifficulty] = useState<ExerciseDifficulty>('easy');
   const [courseName, setCourseName] = useState('');
   const [courseDescription, setCourseDescription] = useState('');
+  const [courseTrack, setCourseTrack] = useState<CourseTrackId>(trackFromLanguage(courses[0]?.language ?? 'python'));
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [success, setSuccess] = useState<SuccessInfo | null>(null);
@@ -104,7 +106,8 @@ export function CreatePage(): ReactElement {
         const created = await createCourse({
           name: courseName.trim(),
           description: courseDescription.trim(),
-          language,
+          track: courseTrack,
+          language: defaultLanguageForTrack(courseTrack),
           colorKey: 'teal',
           iconKey: 'book',
         });
@@ -288,8 +291,8 @@ export function CreatePage(): ReactElement {
               <TextField
                 label="课程名称"
                 required
-                example="Python 入门"
-                hint="建议用「语言 + 阶段」命名"
+                example="Vue 入门"
+                hint="建议用「技术方向 + 阶段」命名"
                 value={courseName}
                 error={errors['courseName'] ?? null}
                 onChange={(event) => setCourseName(event.target.value)}
@@ -301,10 +304,11 @@ export function CreatePage(): ReactElement {
                 onChange={(event) => setCourseDescription(event.target.value)}
               />
               <SelectField
-                label="主要编程语言"
-                value={language}
-                options={LANGUAGE_OPTIONS}
-                onChange={(event) => setLanguage(event.target.value as LanguageId)}
+                label="课程技术方向"
+                hint="新建笔记时会自动选择对应的默认代码语言"
+                value={courseTrack}
+                options={COURSE_TRACKS}
+                onChange={(event) => setCourseTrack(event.target.value as CourseTrackId)}
               />
             </>
           ) : null}

@@ -22,8 +22,8 @@ import {
 } from './mappers';
 
 const INSERT_COURSE = `
-INSERT INTO courses (id, name, description, language, color_key, icon_key, sort_order, created_at, updated_at)
-VALUES (@id, @name, @description, @language, @color_key, @icon_key, @sort_order, @created_at, @updated_at)`;
+INSERT INTO courses (id, name, description, language, track, color_key, icon_key, sort_order, created_at, updated_at)
+VALUES (@id, @name, @description, @language, @track, @color_key, @icon_key, @sort_order, @created_at, @updated_at)`;
 
 const INSERT_NOTE = `
 INSERT INTO notes (id, course_id, title, content_json, content_text, code_text, excerpt, language, tags, favorite, archived, created_at, updated_at, last_opened_at)

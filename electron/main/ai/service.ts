@@ -1,11 +1,24 @@
 import { AIClient } from './client';
 import { validateAIAction, validateAIContext, validateAPIKey, validateProviderSettings } from './validation';
+import { validateReviewGenerationInput, validateReviewGradingInput } from '../ipc/validate';
 import type { AIConfigStore } from './storage';
-import type { AIAction, AIContext, AIProviderSettings, AIResult, AISettingsStatus } from './types';
+import type {
+  AIAction,
+  AIContext,
+  AIProviderSettings,
+  AIResult,
+  AISettingsStatus,
+  GeneratedReviewQuestion,
+  ReviewGenerationInput,
+  ReviewGrade,
+  ReviewGradingInput,
+} from './types';
 
 interface AIClientLike {
   testConnection(settings: AIProviderSettings, key: string): Promise<void>;
   ask(settings: AIProviderSettings, key: string, action: AIAction, context: AIContext): Promise<AIResult>;
+  generateReview(settings: AIProviderSettings, key: string, input: ReviewGenerationInput): Promise<GeneratedReviewQuestion[]>;
+  gradeReviewAnswer(settings: AIProviderSettings, key: string, input: ReviewGradingInput): Promise<ReviewGrade>;
 }
 
 export class AIService {
@@ -45,6 +58,18 @@ export class AIService {
     const safeContext = validateAIContext(context);
     const credential = await this.requireCredential();
     return this.client.ask(credential.settings, credential.key, safeAction, safeContext);
+  }
+
+  async generateReview(input: ReviewGenerationInput): Promise<GeneratedReviewQuestion[]> {
+    const safeInput = validateReviewGenerationInput(input);
+    const credential = await this.requireCredential();
+    return this.client.generateReview(credential.settings, credential.key, safeInput);
+  }
+
+  async gradeReviewAnswer(input: ReviewGradingInput): Promise<ReviewGrade> {
+    const safeInput = validateReviewGradingInput(input);
+    const credential = await this.requireCredential();
+    return this.client.gradeReviewAnswer(credential.settings, credential.key, safeInput);
   }
 
   private async requireCredential(): Promise<{ settings: AIProviderSettings; key: string }> {

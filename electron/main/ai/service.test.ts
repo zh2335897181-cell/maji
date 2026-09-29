@@ -12,7 +12,7 @@ describe('AI service orchestration', () => {
       getCredential: vi.fn().mockResolvedValue({ settings: { baseUrl: status.baseUrl, model: status.model }, key: 'secret' }),
       save: vi.fn(), clearKey: vi.fn(),
     };
-    const client = { testConnection: vi.fn(), ask: vi.fn().mockResolvedValue({ kind: 'text', text: 'answer' }) };
+    const client = { testConnection: vi.fn(), ask: vi.fn().mockResolvedValue({ kind: 'text', text: 'answer' }), generateReview: vi.fn(), gradeReviewAnswer: vi.fn() };
     const service = new AIService(store, client);
     await service.getSettings();
     expect(client.ask).not.toHaveBeenCalled();
@@ -25,7 +25,7 @@ describe('AI service orchestration', () => {
       getStatus: vi.fn().mockResolvedValue({ ...status, configured: false, keyPresent: false }),
       getCredential: vi.fn().mockResolvedValue(null), save: vi.fn(), clearKey: vi.fn(),
     };
-    const client = { testConnection: vi.fn(), ask: vi.fn() };
+    const client = { testConnection: vi.fn(), ask: vi.fn(), generateReview: vi.fn(), gradeReviewAnswer: vi.fn() };
     const service = new AIService(store, client);
     await expect(service.ask('explain', context)).rejects.toThrow('请先在偏好设置中配置 AI 服务');
     await expect(service.ask('explain', { ...context, selectedText: '' })).rejects.toThrow();
@@ -38,7 +38,7 @@ describe('AI service orchestration', () => {
       getCredential: vi.fn().mockResolvedValue({ settings: { baseUrl: status.baseUrl, model: status.model }, key: 'secret' }),
       save: vi.fn().mockResolvedValue(status), clearKey: vi.fn().mockResolvedValue({ ...status, configured: false }),
     };
-    const client = { testConnection: vi.fn().mockResolvedValue(undefined), ask: vi.fn() };
+    const client = { testConnection: vi.fn().mockResolvedValue(undefined), ask: vi.fn(), generateReview: vi.fn(), gradeReviewAnswer: vi.fn() };
     const service = new AIService(store, client);
     await service.testConnection();
     expect(client.testConnection).toHaveBeenCalledWith({ baseUrl: status.baseUrl, model: status.model }, 'secret');

@@ -21,6 +21,14 @@ import type {
   ReviewAction,
   ReviewItem,
   ReviewItemWithNote,
+  ReviewSessionFilter,
+  ReviewSessionInput,
+  ReviewSessionPatch,
+  ReviewSessionSummary,
+  ReviewSessionWithQuestions,
+  ReviewQuestion,
+  ReviewQuestionAnswerInput,
+  ReviewQuestionGradeInput,
   SearchQuery,
   SearchResult,
   Tag,
@@ -56,6 +64,14 @@ export interface MajiRepository {
 
   listReviewItems(filter?: { state?: string }): Promise<ReviewItemWithNote[]>;
   applyReviewAction(id: string, action: ReviewAction): Promise<ReviewItem>;
+  reviewSessions: {
+    list(filter?: ReviewSessionFilter): Promise<ReviewSessionSummary[]>;
+    get(id: string): Promise<ReviewSessionWithQuestions | null>;
+    create(input: ReviewSessionInput): Promise<ReviewSessionWithQuestions>;
+    update(id: string, patch: ReviewSessionPatch): Promise<ReviewSessionWithQuestions>;
+    saveAnswer(sessionId: string, input: ReviewQuestionAnswerInput): Promise<ReviewQuestion>;
+    saveGrade(sessionId: string, input: ReviewQuestionGradeInput): Promise<ReviewQuestion>;
+  };
 
   getSettings(): Promise<UserSettings>;
   updateSettings(patch: Partial<UserSettings>): Promise<UserSettings>;
@@ -90,6 +106,14 @@ export function createIpcRepository(api: MajiApi): MajiRepository {
 
     listReviewItems: (filter) => api.review.list(filter),
     applyReviewAction: (id, action) => api.review.apply(id, action),
+    reviewSessions: {
+      list: (filter) => api.reviewSessions.list(filter),
+      get: (id) => api.reviewSessions.get(id),
+      create: (input) => api.reviewSessions.create(input),
+      update: (id, patch) => api.reviewSessions.update(id, patch),
+      saveAnswer: (sessionId, input) => api.reviewSessions.saveAnswer(sessionId, input),
+      saveGrade: (sessionId, input) => api.reviewSessions.saveGrade(sessionId, input),
+    },
 
     getSettings: () => api.settings.get(),
     updateSettings: (patch) => api.settings.update(patch),

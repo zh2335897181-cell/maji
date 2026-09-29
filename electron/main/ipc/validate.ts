@@ -19,12 +19,24 @@ import type {
   NoteListFilter,
   NotePatch,
   ReviewAction,
+  GeneratedReviewQuestion,
+  ReviewDepth,
+  ReviewGenerationInput,
+  ReviewGrade,
+  ReviewGradingInput,
+  ReviewQuestionAnswerInput,
+  ReviewQuestionGradeInput,
+  ReviewSessionFilter,
+  ReviewSessionInput,
+  ReviewSessionPatch,
+  ReviewSourceSnapshot,
   SearchQuery,
   UserSettings,
 } from '../../../src/lib/types';
 import {
   COURSE_COLOR_KEYS,
   COURSE_ICON_KEYS,
+  COURSE_TRACK_IDS,
   EDITOR_FONT_FAMILIES,
   EXERCISE_DIFFICULTIES,
   LANGUAGE_IDS,
@@ -45,6 +57,14 @@ const MAX_SHORT = 2000;
 const MAX_SNIPPET_NAME = 120;
 const MAX_LIMIT = 500;
 const MAX_RECENT_NOTES = 6;
+const MAX_REVIEW_SOURCES = 12;
+const MAX_REVIEW_COUNT = 12;
+const MAX_REVIEW_SOURCE_TEXT = 12_000;
+const MAX_REVIEW_TOTAL_TEXT = 48_000;
+const MAX_REVIEW_QUESTION_TEXT = 8_000;
+const MAX_REVIEW_QUESTIONS = 12;
+const REVIEW_DEPTHS = ['quick', 'standard', 'deep'] as const;
+const REVIEW_QUESTION_TYPES = ['concept', 'short-answer', 'code-reading', 'code-writing', 'code-fix'] as const;
 
 /* ------------------------------------------------------------ 基础类型 */
 
@@ -182,6 +202,10 @@ export function validateCourseCreate(value: unknown): Partial<Course> & { name: 
     course.description = requireText(record.description, '课程说明', MAX_TITLE);
   }
   if (record.language !== undefined) course.language = requireLanguage(record.language);
+  if (record.track !== undefined) {
+    if (!isOneOf(record.track, COURSE_TRACK_IDS)) throw new Error('课程技术方向无效');
+    course.track = record.track;
+  }
   if (record.colorKey !== undefined) course.colorKey = requireColorKey(record.colorKey);
   if (record.iconKey !== undefined) course.iconKey = requireIconKey(record.iconKey);
   return course;
@@ -195,6 +219,10 @@ export function validateCourseUpdate(value: unknown): Partial<Course> {
     patch.description = requireText(record.description, '课程说明', MAX_TITLE);
   }
   if (record.language !== undefined) patch.language = requireLanguage(record.language);
+  if (record.track !== undefined) {
+    if (!isOneOf(record.track, COURSE_TRACK_IDS)) throw new Error('课程技术方向无效');
+    patch.track = record.track;
+  }
   if (record.colorKey !== undefined) patch.colorKey = requireColorKey(record.colorKey);
   if (record.iconKey !== undefined) patch.iconKey = requireIconKey(record.iconKey);
   if (record.sortOrder !== undefined) {
@@ -385,4 +413,191 @@ export function validateExternalUrl(value: unknown): string {
     throw new Error('只能打开 http 或 https 链接');
   }
   return parsed.toString();
+}
+
+function requireReviewDepth(value: unknown): ReviewDepth {
+  if (!isOneOf(value, REVIEW_DEPTHS)) throw new Error('练习深度不在允许的范围内');
+  return value;
+}
+
+function validateReviewSource(value: unknown): ReviewSourceSnapshot {
+  const input = asRecord(value, '笔记来源');
+  const noteId = input.noteId === null ? null : requireNoteId(input.noteId);
+  const noteTitle = requireText(input.noteTitle, '笔记标题', MAX_TITLE).trim();
+  const courseName = requireText(input.courseName, '课程名称', MAX_TITLE).trim();
+  const contentExcerpt = requireText(input.contentExcerpt, '笔记内容', MAX_REVIEW_SOURCE_TEXT).trim();
+  if (!noteTitle || !courseName || !contentExcerpt) throw new Error('笔记来源信息不能为空');
+  if (!Array.isArray(input.reviewItemIds) || input.reviewItemIds.length > 100) {
+    throw new Error('关联知识点格式无效');
+  }
+  return {
+    noteId,
+    noteTitle,
+    courseName,
+    contentExcerpt,
+    reviewItemIds: input.reviewItemIds.map((id) => requireEntityId(id, '知识点 ID')),
+  };
+}
+
+export function validateReviewGenerationInput(value: unknown): ReviewGenerationInput {
+  const input = asRecord(value, 'AI 出题参数');
+  if (!Array.isArray(input.sources) || input.sources.length < 1 || input.sources.length > MAX_REVIEW_SOURCES) {
+    throw new Error(`笔记来源数量必须为 1 到 ${MAX_REVIEW_SOURCES}`);
+  }
+  const sources = input.sources.map(validateReviewSource);
+  if (sources.reduce((sum, source) => sum + source.contentExcerpt.length, 0) > MAX_REVIEW_TOTAL_TEXT) {
+    throw new Error('笔记内容总长度过大，请减少来源笔记');
+  }
+  return {
+    sources,
+    depth: requireReviewDepth(input.depth),
+    count: requireInteger(input.count, '题目数量', 1, MAX_REVIEW_COUNT),
+    language: requireLanguage(input.language),
+  };
+}
+
+export function validateGeneratedReviewQuestions(value: unknown): GeneratedReviewQuestion[] {
+  if (!Array.isArray(value) || value.length < 1 || value.length > MAX_REVIEW_QUESTIONS) {
+    throw new Error(`题目数量必须为 1 到 ${MAX_REVIEW_QUESTIONS}`);
+  }
+  return value.map((item) => {
+    const input = asRecord(item, '题目');
+    if (!isOneOf(input.type, REVIEW_QUESTION_TYPES)) throw new Error('题型不在允许的范围内');
+    const difficulty = requireDifficulty(input.difficulty);
+    const language = requireLanguage(input.language);
+    const title = requireText(input.title, '题目标题', MAX_TITLE).trim();
+    const prompt = requireText(input.prompt, '题目', MAX_REVIEW_QUESTION_TEXT).trim();
+    const hint = requireText(input.hint, '提示', 2_000).trim();
+    const referenceAnswer = requireText(input.referenceAnswer, '参考答案', MAX_REVIEW_QUESTION_TEXT).trim();
+    const explanation = requireText(input.explanation, '解析', 4_000).trim();
+    if (!title || !prompt || !referenceAnswer || !explanation) throw new Error('题目内容不能为空');
+    const sourceNoteId = input.sourceNoteId === null ? null : requireNoteId(input.sourceNoteId);
+    return { type: input.type, difficulty, title, prompt, hint, referenceAnswer, explanation, language, sourceNoteId };
+  });
+}
+
+export function validateReviewGrade(value: unknown): ReviewGrade {
+  const input = asRecord(value, 'AI 评阅结果');
+  const score = requireInteger(input.score, '评分', 0, 100);
+  if (!Array.isArray(input.omissions) || input.omissions.length > 20) throw new Error('遗漏点格式无效');
+  const omissions = input.omissions.map((item) => {
+    const omission = requireText(item, '遗漏点', 500).trim();
+    if (!omission) throw new Error('遗漏点不能为空');
+    return omission;
+  });
+  const rationale = requireText(input.rationale, '评分理由', 2_000).trim();
+  const feedback = requireText(input.feedback, '针对性建议', 2_000).trim();
+  const referenceAnswer = requireText(input.referenceAnswer, '参考答案', MAX_REVIEW_QUESTION_TEXT).trim();
+  const explanation = requireText(input.explanation, '答案解析', 4_000).trim();
+  if (!rationale || !feedback || !referenceAnswer || !explanation) throw new Error('评阅内容不能为空');
+  return { score, rationale, omissions, feedback, referenceAnswer, explanation };
+}
+
+export function validateReviewGradingInput(value: unknown): ReviewGradingInput {
+  const input = asRecord(value, 'AI 评阅参数');
+  const question = validateGeneratedReviewQuestions([input.question])[0];
+  const answer = requireText(input.answer, '答案', MAX_REVIEW_QUESTION_TEXT).trim();
+  if (!answer) throw new Error('答案不能为空');
+  return { question, answer };
+}
+
+function requireIsoTimestamp(value: unknown, label: string): string {
+  const text = requireText(value, label, 64);
+  if (!text || !Number.isFinite(Date.parse(text))) throw new Error(`${label}格式无效`);
+  return text;
+}
+
+export function validateReviewSessionInput(value: unknown): ReviewSessionInput {
+  const input = asRecord(value, '复习会话');
+  if (!isOneOf(input.scope, ['due', 'course', 'notes'] as const)) throw new Error('复习范围无效');
+  const sourcesValue = input.sources;
+  if (!Array.isArray(sourcesValue) || sourcesValue.length < 1 || sourcesValue.length > MAX_REVIEW_SOURCES) {
+    throw new Error(`笔记来源数量必须为 1 到 ${MAX_REVIEW_SOURCES}`);
+  }
+  const sources = sourcesValue.map(validateReviewSource);
+  if (sources.reduce((sum, source) => sum + source.contentExcerpt.length, 0) > MAX_REVIEW_TOTAL_TEXT) {
+    throw new Error('笔记内容总长度过大，请减少来源笔记');
+  }
+  const questions = validateGeneratedReviewQuestions(input.questions);
+  const plannedQuestionCount = requireInteger(input.plannedQuestionCount, '计划题目数量', 1, MAX_REVIEW_COUNT);
+  if (questions.length > plannedQuestionCount) throw new Error('实际题目数量不能超过计划题量');
+  return {
+    scope: input.scope,
+    depth: requireReviewDepth(input.depth),
+    plannedQuestionCount,
+    sources,
+    questions,
+  };
+}
+
+export function validateReviewSessionPatch(value: unknown): ReviewSessionPatch {
+  const input = asRecord(value, '复习会话更新');
+  const patch: ReviewSessionPatch = {};
+  if (input.status !== undefined) {
+    if (!isOneOf(input.status, ['in-progress', 'completed'] as const)) throw new Error('复习会话状态无效');
+    patch.status = input.status;
+  }
+  if (input.activeSegments !== undefined) {
+    if (!Array.isArray(input.activeSegments) || input.activeSegments.length > 2_000) throw new Error('计时记录格式无效');
+    const segments = input.activeSegments.map((segment) => {
+      const row = asRecord(segment, '计时记录');
+      const startedAt = requireIsoTimestamp(row.startedAt, '计时开始时间');
+      const endedAt = requireIsoTimestamp(row.endedAt, '计时结束时间');
+      if (Date.parse(endedAt) < Date.parse(startedAt)) throw new Error('计时结束时间不能早于开始时间');
+      return { startedAt, endedAt };
+    }).sort((a, b) => Date.parse(a.startedAt) - Date.parse(b.startedAt));
+    patch.activeSegments = segments.reduce<typeof segments>((merged, segment) => {
+      const previous = merged.at(-1);
+      if (previous && Date.parse(segment.startedAt) <= Date.parse(previous.endedAt)) {
+        if (Date.parse(segment.endedAt) > Date.parse(previous.endedAt)) previous.endedAt = segment.endedAt;
+      } else {
+        merged.push({ ...segment });
+      }
+      return merged;
+    }, []);
+  }
+  if (input.activeSegmentStartedAt !== undefined) {
+    patch.activeSegmentStartedAt = input.activeSegmentStartedAt === null
+      ? null
+      : requireIsoTimestamp(input.activeSegmentStartedAt, '当前计时开始时间');
+  }
+  if (input.endedAt !== undefined) {
+    patch.endedAt = input.endedAt === null ? null : requireIsoTimestamp(input.endedAt, '结束时间');
+  }
+  if (Object.keys(patch).length === 0) throw new Error('没有可更新的复习会话内容');
+  return patch;
+}
+
+export function validateReviewSessionFilter(value: unknown): ReviewSessionFilter {
+  const input = optionalRecord(value, '复习记录筛选');
+  const filter: ReviewSessionFilter = {};
+  for (const field of ['fromDate', 'toDate'] as const) {
+    const raw = input[field];
+    if (raw === undefined || raw === null || raw === '') continue;
+    if (typeof raw !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(raw) || !Number.isFinite(Date.parse(`${raw}T00:00:00`))) {
+      throw new Error('日期筛选格式无效');
+    }
+    filter[field] = raw;
+  }
+  if (filter.fromDate && filter.toDate && filter.fromDate > filter.toDate) throw new Error('开始日期不能晚于结束日期');
+  if (input.status !== undefined && input.status !== null && input.status !== '') {
+    if (!isOneOf(input.status, ['in-progress', 'completed'] as const)) throw new Error('复习会话状态无效');
+    filter.status = input.status;
+  }
+  return filter;
+}
+
+export function validateReviewQuestionAnswerInput(value: unknown): ReviewQuestionAnswerInput {
+  const input = asRecord(value, '练习答案');
+  const answer = requireText(input.answer, '答案', MAX_REVIEW_QUESTION_TEXT).trim();
+  if (!answer) throw new Error('答案不能为空');
+  return { questionId: requireEntityId(input.questionId, '题目 ID'), answer };
+}
+
+export function validateReviewQuestionGradeInput(value: unknown): ReviewQuestionGradeInput {
+  const input = asRecord(value, '练习评分');
+  return {
+    questionId: requireEntityId(input.questionId, '题目 ID'),
+    grade: validateReviewGrade(input.grade),
+  };
 }
