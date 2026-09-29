@@ -31,6 +31,7 @@ import { asDoc } from '../../lib/noteDoc';
 import type { ExerciseInput, NoteStats } from '../../lib/types';
 import { NoteEditor } from './NoteEditor';
 import { AISelectionAssistant } from './AISelectionAssistant';
+import { AICompletionAssistant } from './AICompletionAssistant';
 import { EditorToolbar, type EditorMode } from './EditorToolbar';
 import { NoteAside } from './NoteAside';
 import { exportNoteAsMarkdown, noteMarkdown } from './exportNote';
@@ -248,6 +249,12 @@ export function NoteEditorPage(): ReactElement {
             await createExercise(input);
             toast.show({ message: '已添加关联练习', tone: 'success' });
           }}
+          onOpenSettings={() => window.dispatchEvent(new Event('maji:open-ai-settings'))}
+        />
+        <AICompletionAssistant
+          editor={editor}
+          editable={mode === 'edit'}
+          language={note.language}
           onOpenSettings={() => window.dispatchEvent(new Event('maji:open-ai-settings'))}
         />
       </div>

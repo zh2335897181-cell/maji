@@ -55,6 +55,26 @@ describe('AI input validation', () => {
 
   it('accepts only known AI actions', () => {
     expect(validateAIAction('explain')).toBe('explain');
+    expect(validateAIAction('continue')).toBe('continue');
     expect(() => validateAIAction('anything')).toThrow();
+  });
+
+  it('validates bounded continuation context for prose and code', () => {
+    expect(validateAIContext({
+      scope: 'completion', selectedText: '', language: 'python',
+      continuation: { before: 'def greet(name):', after: '', code: true },
+    })).toMatchObject({ scope: 'completion', continuation: { before: 'def greet(name):', code: true } });
+    expect(validateAIContext({
+      scope: 'completion', selectedText: '', language: 'text',
+      continuation: { before: '函数可以复用一段逻辑', after: '并接收参数', code: false },
+    })).toMatchObject({ continuation: { code: false } });
+    expect(() => validateAIContext({
+      scope: 'completion', selectedText: '', language: 'python',
+      continuation: { before: '', after: '', code: true },
+    })).toThrow();
+    expect(() => validateAIContext({
+      scope: 'completion', selectedText: '', language: 'python',
+      continuation: { before: 'x'.repeat(12001), after: '', code: true },
+    })).toThrow();
   });
 });

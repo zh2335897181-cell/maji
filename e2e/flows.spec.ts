@@ -50,7 +50,7 @@ test.describe('笔记编辑页', () => {
 
     // 正文里的示例代码与运行结果（只看可见的高亮层，可编辑层在阅读态下 display:none）
     await expect(page.locator('[data-language] pre code').first()).toContainText('def greet(name):');
-    await expect(page.getByText('你好，小林！').first()).toBeVisible();
+    await expect(page.locator('[data-variant="output"] pre > code')).toContainText('你好，小林！');
     await expect(page.getByText('容易混淆').first()).toBeVisible();
 
     await openAside(page);

@@ -111,11 +111,17 @@ export interface AISettingsStatus extends AIProviderSettings {
   configured: boolean;
   keyPresent: boolean;
 }
-export type AIAction = 'explain' | 'organize' | 'exercise';
+export type AIAction = 'explain' | 'organize' | 'exercise' | 'continue';
+export interface AIContinuationContext {
+  before: string;
+  after: string;
+  code: boolean;
+}
 export interface AIContext {
   selectedText: string;
   noteText?: string;
-  scope: 'selection' | 'note';
+  continuation?: AIContinuationContext;
+  scope: 'selection' | 'note' | 'completion';
   language: import('./types').LanguageId;
 }
 export type AIResult =

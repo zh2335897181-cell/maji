@@ -26,6 +26,7 @@ import {
   Highlighter,
   Keyboard,
   Table2,
+  Sparkles,
 } from 'lucide-react';
 import { useState, type ReactElement } from 'react';
 import { Kbd, SegmentedControl, TextField } from '../../components/ui/Fields';
@@ -334,6 +335,18 @@ export function EditorToolbar({
         约 {stats.words} 字
         {stats.codeBlocks > 0 ? ` · ${stats.codeBlocks} 段代码` : ''}
       </span>
+
+      <IconButton
+        icon={Sparkles}
+        label="AI 续写"
+        shortcut="Ctrl+Shift+Space"
+        size="sm"
+        disabled={!isEditable || !editor}
+        onClick={() => {
+          editor?.commands.focus();
+          window.dispatchEvent(new Event('maji:ai-complete'));
+        }}
+      />
 
       <span className={styles.toolbarShortcutHelp}>
         <IconButton

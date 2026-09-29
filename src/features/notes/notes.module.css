@@ -16,6 +16,8 @@
   flex: 1;
   min-width: 0;
   background: var(--bg-surface);
+  container-name: note-editor-center;
+  container-type: inline-size;
 }
 
 /* ------------------------------------------------------------------ 文档头 */
@@ -136,6 +138,19 @@
   margin-right: var(--space-2);
   flex: 0 0 auto;
   white-space: nowrap;
+}
+
+.toolbar [role='tablist'][aria-label='编辑与预览'],
+.toolbar [role='tablist'][aria-label='编辑与预览'] [role='tab'] {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+@container note-editor-center (max-width: 1040px) {
+  .toolbarStats,
+  .toolbarShortcutHelp > kbd {
+    display: none;
+  }
 }
 
 .previewNotice {

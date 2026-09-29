@@ -56,18 +56,35 @@ export function validateAPIKey(value: unknown): string {
 }
 
 export function validateAIAction(value: unknown): AIAction {
-  if (value === 'explain' || value === 'organize' || value === 'exercise') return value;
+  if (value === 'explain' || value === 'organize' || value === 'exercise' || value === 'continue') return value;
   throw new Error('AI 操作无效');
 }
 
 export function validateAIContext(value: unknown): AIContext {
   const input = record(value, 'AI 上下文格式无效');
-  const selectedText = nonEmptyString(input.selectedText, MAX_INPUT_UNITS, '所选内容');
-  if (input.scope !== 'selection' && input.scope !== 'note') throw new Error('上下文范围无效');
+  if (input.scope !== 'selection' && input.scope !== 'note' && input.scope !== 'completion') throw new Error('上下文范围无效');
   if (typeof input.language !== 'string' || !LANGUAGES.has(input.language as LanguageId)) {
     throw new Error('编程语言无效');
   }
+  if (input.scope === 'completion') {
+    const raw = record(input.continuation, '续写上下文格式无效');
+    const before = boundedString(raw.before, MAX_INPUT_UNITS, '光标前内容');
+    const after = boundedString(raw.after, MAX_INPUT_UNITS, '光标后内容');
+    if (!before.trim() && !after.trim()) throw new Error('续写上下文不能为空');
+    if (before.length + after.length > MAX_INPUT_UNITS) throw new Error('续写上下文不能超过 12000 个字符');
+    if (typeof raw.code !== 'boolean') throw new Error('续写内容类型无效');
+    return {
+      selectedText: '', scope: 'completion', language: input.language as LanguageId,
+      continuation: { before, after, code: raw.code },
+    };
+  }
+  const selectedText = nonEmptyString(input.selectedText, MAX_INPUT_UNITS, '所选内容');
   if (input.scope === 'selection') return { selectedText, scope: 'selection', language: input.language as LanguageId };
   const noteText = nonEmptyString(input.noteText, MAX_INPUT_UNITS, '笔记内容');
   return { selectedText, noteText, scope: 'note', language: input.language as LanguageId };
+}
+
+function boundedString(value: unknown, max: number, label: string): string {
+  if (typeof value !== 'string' || value.length > max) throw new Error(`${label}不能超过 ${max} 个字符`);
+  return value;
 }

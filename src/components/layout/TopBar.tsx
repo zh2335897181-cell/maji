@@ -62,6 +62,9 @@ const SHORTCUT_GROUPS: Array<{ label: string; shortcuts: ShortcutDefinition[] }>
       { label: '一级 / 二级 / 三级标题', keys: ['Ctrl', 'Shift', '1 / 2 / 3'] },
       { label: '高亮重点', keys: ['Ctrl', 'Shift', 'H'] },
       { label: '插入 3×3 表格', keys: ['Ctrl', 'Alt', 'T'] },
+      { label: 'AI 根据上下文续写', keys: ['Ctrl', 'Shift', 'Space'] },
+      { label: '接受 AI 续写建议', keys: ['Tab'] },
+      { label: '忽略 AI 续写建议', keys: ['Esc'] },
     ],
   },
 ];

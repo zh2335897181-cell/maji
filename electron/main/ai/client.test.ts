@@ -35,6 +35,18 @@ describe('OpenAI-compatible client', () => {
     expect(JSON.stringify(JSON.parse(String(fetcher.mock.calls[0][1]?.body)))).toContain('整篇笔记正文');
   });
 
+  it('requests a continuation using nearby prose or code and only returns the suggestion', async () => {
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(completion('return f"你好，{name}！"'));
+    await expect(new AIClient({ fetch: fetcher }).ask(settings, 'key', 'continue', {
+      selectedText: '', scope: 'completion', language: 'python',
+      continuation: { before: 'def greet(name):\n    ', after: '', code: true },
+    })).resolves.toEqual({ kind: 'text', text: 'return f"你好，{name}！"' });
+    const payload = JSON.parse(String(fetcher.mock.calls[0][1]?.body));
+    expect(JSON.stringify(payload)).toContain('def greet(name):');
+    expect(JSON.stringify(payload)).toContain('Python');
+    expect(JSON.stringify(payload)).toContain('只输出');
+  });
+
   it('tests connections using only GET /models', async () => {
     const fetcher = vi.fn<typeof fetch>().mockResolvedValue(new Response('{}', { status: 200 }));
     await new AIClient({ fetch: fetcher }).testConnection(settings, 'key');

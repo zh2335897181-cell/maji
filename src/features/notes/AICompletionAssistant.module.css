@@ -1,0 +1,82 @@
+.panel {
+  position: fixed;
+  z-index: 80;
+  width: min(480px, calc(100vw - 24px));
+  max-height: min(260px, calc(100vh - 24px));
+  overflow: auto;
+  padding: 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-lg);
+  color: var(--text-primary);
+}
+
+.header,
+.header > span,
+.actions,
+.primaryButton,
+.loading {
+  display: flex;
+  align-items: center;
+}
+
+.header,
+.actions { justify-content: space-between; gap: 12px; }
+.header > span { gap: 7px; font-size: var(--font-size-sm); font-weight: var(--weight-semibold); }
+.header > span svg { color: var(--accent); }
+
+.iconButton {
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.iconButton:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+.suggestion {
+  max-height: 150px;
+  margin: 8px 0 10px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  border-radius: var(--radius-sm);
+  background: var(--bg-subtle);
+  padding: 10px;
+  color: var(--text-primary);
+  font: inherit;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-normal);
+}
+
+.hint,
+.disclosure,
+.loading,
+.error { margin: 8px 0; font-size: var(--font-size-xs); color: var(--text-muted); }
+.loading { gap: 7px; }
+.error { color: var(--danger-600); }
+.disclosure { line-height: var(--line-normal); }
+.spinner { animation: spin 1s linear infinite; }
+
+.primaryButton,
+.textButton {
+  min-height: 30px;
+  border-radius: var(--radius-sm);
+  padding: 0 10px;
+  font: inherit;
+  font-size: var(--font-size-xs);
+  cursor: pointer;
+}
+.primaryButton { gap: 6px; border: 1px solid var(--accent); background: var(--accent); color: white; }
+.primaryButton:hover { filter: brightness(.96); }
+.textButton { border: 1px solid var(--line-strong); background: transparent; color: var(--text-primary); }
+.textButton:hover { background: var(--bg-hover); }
+
+@keyframes spin { to { transform: rotate(360deg); } }
