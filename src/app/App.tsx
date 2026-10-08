@@ -9,6 +9,7 @@ import { DesignSystemPage } from '../features/design/DesignSystemPage';
 import { HomePage } from '../features/home/HomePage';
 import { NoteEditorPage } from '../features/notes/NoteEditorPage';
 import { ReviewPage } from '../features/review/ReviewPage';
+import { MindMapPage } from '../features/mindmap/MindMapPage';
 import { SearchPage } from '../features/search/SearchPage';
 import { NotFoundPage } from '../features/home/NotFoundPage';
 import { ROUTES } from './routes';
@@ -52,6 +53,8 @@ export function App(): ReactElement {
         <Route path={ROUTES.courses} element={<CoursesPage />} />
         <Route path={ROUTES.search} element={<SearchPage />} />
         <Route path={ROUTES.review} element={<ReviewPage />} />
+        <Route path={ROUTES.mindMaps} element={<MindMapPage />} />
+        <Route path="/mindmaps/:mapId" element={<MindMapPage />} />
         <Route path={ROUTES.create} element={<CreatePage />} />
         <Route path={ROUTES.designSystem} element={<DesignSystemPage />} />
         <Route path={ROUTES.designStates} element={<DesignStatesPage />} />

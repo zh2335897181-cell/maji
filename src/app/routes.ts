@@ -18,6 +18,8 @@ export const ROUTES = {
   search: '/search',
   searchWith: (text: string) => `/search?q=${encodeURIComponent(text)}`,
   review: '/review',
+  mindMaps: '/mindmaps',
+  mindMap: (id: string) => `/mindmaps/${encodeURIComponent(id)}`,
   create: '/new',
   createWith: (kind: string, extra?: Record<string, string>) => {
     const search = new URLSearchParams({ type: kind, ...extra });

@@ -42,6 +42,15 @@ export type { ReviewGenerationInput, ReviewGradingInput, GeneratedReviewQuestion
 
 /** 通道名集中定义，避免字符串散落各处 */
 export const IPC = {
+  mindMapsList: 'maji:mindmaps:list',
+  mindMapsSave: 'maji:mindmaps:save',
+  mindMapsRemove: 'maji:mindmaps:remove',
+  mindMapsPreview: 'maji:mindmaps:preview',
+  mindMapsGenerate: 'maji:mindmaps:generate',
+  mindMapsCancel: 'maji:mindmaps:cancel',
+  mindMapsGetView: 'maji:mindmaps:get-view',
+  mindMapsSaveView: 'maji:mindmaps:save-view',
+  mindMapsExport: 'maji:mindmaps:export',
   appInfo: 'maji:app:info',
   appPrepareClose: 'maji:app:prepare-close',
   appCloseReady: 'maji:app:close-ready',
@@ -142,6 +151,7 @@ export type UpdateStatus =
  * window.maji 的形状。所有方法都是 Promise，失败时 reject 一个可读的错误。
  */
 export interface MajiApi {
+  mindMaps?: import('./mindmap').MindMapApi;
   app: {
     getInfo(): Promise<AppInfo>;
     onPrepareClose(handler: () => Promise<void>): () => void;

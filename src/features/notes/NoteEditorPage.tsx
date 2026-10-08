@@ -150,6 +150,7 @@ export function NoteEditorPage(): ReactElement {
   ];
 
   const moreItems: MenuEntry[] = [
+    { id: 'mindmap', label: 'AI 生成思维导图', icon: ListTree, onSelect: () => { void draft.saveNow().then(saved => { if (saved) navigate(`${ROUTES.mindMaps}?note=${encodeURIComponent(note.id)}`); else toast.show({ message: '笔记保存失败，请重试后生成思维导图', tone: 'error' }); }); } },
     {
       id: 'favorite',
       label: draft.favorite ? '取消收藏' : '加入收藏',

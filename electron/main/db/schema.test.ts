@@ -3,6 +3,13 @@ import { migrate, SCHEMA_VERSION } from './schema';
 import type { SqliteDatabase } from './connection';
 
 describe('database schema migration', () => {
+  it('adds mind maps to v4 while retaining existing tables', () => {
+    const statements: string[] = [];
+    const db = { pragma: (s: string, o?: { simple?: boolean }) => o?.simple ? 4 : statements.push(s), exec: (s: string) => statements.push(s), transaction: (fn: () => void) => fn } as unknown as SqliteDatabase;
+    migrate(db);
+    expect(statements.some(s => s.includes('CREATE TABLE mind_maps'))).toBe(true);
+    expect(statements.some(s => s.includes('DROP TABLE'))).toBe(false);
+  });
   it('adds AI review session tables to a v3 database without rebuilding existing data', () => {
     const statements: string[] = [];
     const db = {

@@ -16,6 +16,7 @@ import type {
   ReviewSessionWithQuestions,
 } from '../../lib/types';
 import styles from './review.module.css';
+import type { MindMapReviewPreset } from '../mindmap/reviewPreset';
 
 type Scope = ReviewSessionInput['scope'];
 type AIStatus = 'loading' | 'ready' | 'missing' | 'unavailable' | 'error';
@@ -26,6 +27,7 @@ const MAX_SOURCE_UNITS = 12_000;
 const MAX_TOTAL_UNITS = 48_000;
 
 export interface ReviewSessionSetupProps {
+  preset?: MindMapReviewPreset | null;
   notes: NoteSummary[];
   courses: Course[];
   reviews: ReviewItemWithNote[];
@@ -36,6 +38,7 @@ export interface ReviewSessionSetupProps {
 }
 
 export function ReviewSessionSetup({
+  preset,
   notes,
   courses,
   reviews,
@@ -46,7 +49,7 @@ export function ReviewSessionSetup({
 }: ReviewSessionSetupProps): ReactElement {
   const api = window.maji?.ai;
   const [status, setStatus] = useState<AIStatus>(api ? 'loading' : 'unavailable');
-  const [scope, setScope] = useState<Scope>('due');
+  const [scope, setScope] = useState<Scope>(preset ? 'notes' : 'due');
   const [courseId, setCourseId] = useState(courses[0]?.id ?? '');
   const [selectedNoteIds, setSelectedNoteIds] = useState<string[]>([]);
   const [depth, setDepth] = useState<ReviewDepth>('standard');
@@ -101,6 +104,7 @@ export function ReviewSessionSetup({
   }, [candidateNotes, dueReviews, scope, selectedNoteIds]);
 
   const loadSources = async (): Promise<ReviewGenerationInput> => {
+    if (preset) return { sources: preset.sources, language: preset.language, depth, count: questionCount };
     if (selectedIds.length === 0) throw new Error('先选择至少一篇笔记或一个待复习知识点。');
     if (selectedIds.length > MAX_SOURCES) throw new Error(`一次最多选择 ${MAX_SOURCES} 篇笔记，请缩小范围。`);
     const sourceSnapshots: ReviewGenerationInput['sources'] = [];
@@ -175,6 +179,7 @@ export function ReviewSessionSetup({
         <Button variant="ghost" icon={ArrowLeft} onClick={onBack}>返回复习</Button>
         <div>
           <h2 id="ai-review-title">AI 每日练习</h2>
+          {preset && <p>导图复习范围：{preset.title}。生成内容来自选中的分支快照，计时与结果保存在现有练习记录中。</p>}
           <p>按你的课程笔记出题，完成后会保存用时、内容范围和掌握情况。</p>
         </div>
       </div>
@@ -193,10 +198,10 @@ export function ReviewSessionSetup({
       <div className={styles.sessionSetupGrid}>
         <div className={styles.sessionSetupControls}>
           <label className={styles.sessionLabel} htmlFor="review-scope">练习范围</label>
-          <select id="review-scope" className={styles.sessionSelect} value={scope} onChange={(event) => { setScope(event.target.value as Scope); setPreview(null); }}>
+          <select id="review-scope" disabled={!!preset} className={styles.sessionSelect} value={scope} onChange={(event) => { setScope(event.target.value as Scope); setPreview(null); }}>
             <option value="due">今日待复习知识点</option>
             <option value="course">选择课程</option>
-            <option value="notes">选择笔记</option>
+            <option value="notes">{preset ? '选中导图分支' : '选择笔记'}</option>
           </select>
 
           {scope === 'course' ? (
@@ -208,7 +213,7 @@ export function ReviewSessionSetup({
             </>
           ) : null}
 
-          {scope === 'notes' ? (
+          {scope === 'notes' && !preset ? (
             <fieldset className={styles.sessionNotePicker}>
               <legend>选择笔记</legend>
               {candidateNotes.map((note) => (
@@ -230,7 +235,7 @@ export function ReviewSessionSetup({
           <label className={styles.sessionLabel} htmlFor="review-count">题目数量</label>
           <input id="review-count" className={styles.sessionSelect} type="number" min={1} max={12} value={questionCount} onChange={(event) => { const count = Number(event.target.value); if (Number.isInteger(count) && count >= 1 && count <= 12) { setQuestionCount(count); setPreview(null); } }} />
           <p className={styles.sessionFieldHint}>包含概念、简答、代码阅读及编写/修复题。代码由 AI 静态评阅，不会执行。</p>
-          <Button variant="secondary" icon={BookOpen} loading={loadingPreview} disabled={status === 'loading' || selectedIds.length === 0 || questionCount < 1} onClick={() => void showPreview()}>
+          <Button variant="secondary" icon={BookOpen} loading={loadingPreview} disabled={status === 'loading' || (!preset && selectedIds.length === 0) || questionCount < 1} onClick={() => void showPreview()}>
             预览将发送内容
           </Button>
         </div>

@@ -1,0 +1,20 @@
+import { act, fireEvent, render, screen } from '@testing-library/react';
+import { expect, it, vi } from 'vitest';
+import { MindMapSetup } from './MindMapSetup';
+import { graph } from '../../test/mindmapFixture';
+import { DEFAULT_MAP_OPTIONS, type MindMapApi, type MindMapDraft } from '../../lib/mindmap';
+vi.mock('../../app/LibraryProvider', () => ({ useLibrary: () => ({ notes: [{ id: 'note_one', title: '函数', courseName: 'Python', courseId: 'course_one' }], courses: [] }) }));
+it('ignores a late successful response after the user cancels', async () => {
+  let resolve!: (draft: MindMapDraft) => void;
+  const sources = [{ noteId: 'note_one', noteTitle: '函数', courseName: 'Python', noteUpdatedAt: '', contentExcerpt: '函数参数' }];
+  const cancel = vi.fn(async () => {}), generated = vi.fn(), close = vi.fn();
+  const api = { preview: vi.fn(async () => sources), cancel, generate: vi.fn(() => new Promise<MindMapDraft>(r => { resolve = r; })) } as unknown as MindMapApi;
+  window.maji = { ai: { getSettings: async () => ({ configured: true, baseUrl: 'https://example.com', model: 'test' }) } } as never;
+  render(<MindMapSetup api={api} initialIds={['note_one']} onClose={close} onGenerated={generated}/>);
+  fireEvent.click(screen.getByRole('button', { name: '预览发送范围' }));
+  fireEvent.click(await screen.findByRole('button', { name: '确认发送并生成' }));
+  await screen.findByRole('button', { name: '取消生成' });
+  fireEvent.click(screen.getByRole('button', { name: '取消生成' }));
+  await act(async () => { resolve({ ...graph, options: DEFAULT_MAP_OPTIONS, sources }); });
+  expect(cancel).toHaveBeenCalled(); expect(close).toHaveBeenCalled(); expect(generated).not.toHaveBeenCalled();
+});

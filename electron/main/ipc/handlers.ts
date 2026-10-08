@@ -19,6 +19,7 @@ import { databaseFile } from '../db/connection';
 import type { UpdateService } from '../updates';
 import type { AIService } from '../ai/service';
 import { createAIHandlers } from '../ai/ipc';
+import { createMindMapHandlers } from './mindMaps';
 import {
   requireEntityId,
   requireNoteId,
@@ -138,6 +139,7 @@ export function registerIpcHandlers(updates: UpdateService, ai: AIService): void
   const activeHandlers: Record<string, Handler> = {
     ...handlers,
     ...createAIHandlers(ai),
+    ...createMindMapHandlers(ai),
     [IPC.updatesCheck]: () => updates.checkForUpdates(),
     [IPC.updatesInstall]: () => updates.installDownloadedUpdate(),
     [IPC.updatesStatusGet]: () => updates.getStatus(),

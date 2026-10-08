@@ -1,0 +1,30 @@
+import { EventEmitter } from 'node:events';
+import { beforeEach, expect, it, vi } from 'vitest';
+import { IPC } from '../../../src/lib/ipc';
+import { DEFAULT_MAP_OPTIONS } from '../../../src/lib/mindmap';
+import { graph } from '../../../src/test/mindmapFixture';
+import { createMindMapHandlers, previewMapSources } from './mindMaps';
+const data = vi.hoisted(() => ({ text: '函数支持位置参数。', exists: true }));
+vi.mock('electron', () => ({ BrowserWindow: {}, dialog: {} }));
+vi.mock('../db/notes', () => ({ getNote: () => data.exists ? { id: 'note_one', courseId: 'course_one', title: '函数', updatedAt: '2026-10-08', contentJson: JSON.stringify({ type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: data.text }] }] }) } : null }));
+vi.mock('../db/courses', () => ({ listCourses: () => [{ id: 'course_one', name: 'Python' }] }));
+beforeEach(() => { data.text = '函数支持位置参数。'; data.exists = true; });
+const event = (id: number) => ({ sender: Object.assign(new EventEmitter(), { id }) }) as never;
+it('refuses to send changed or deleted sources after the user confirms the preview', async () => {
+  const generate = vi.fn(async () => graph), handlers = createMindMapHandlers({ generateMindMap: generate } as never);
+  const sources = previewMapSources(['note_one']);
+  const request = { requestId: 'request_one', noteIds: ['note_one'], sources, title: '函数', options: DEFAULT_MAP_OPTIONS };
+  data.text = '已修改';
+  await expect(handlers[IPC.mindMapsGenerate]([request], event(1))).rejects.toThrow('变化');
+  expect(generate).not.toHaveBeenCalled();
+  data.exists = false;
+  expect(() => previewMapSources(['note_one'])).toThrow('删除');
+});
+it('cancels only the request owned by the calling window', async () => {
+  let signal!: AbortSignal;
+  const generate = vi.fn(async (_input, nextSignal) => { signal = nextSignal; return await new Promise((_resolve, reject) => signal.addEventListener('abort', () => reject(new Error('已取消')), { once: true })); });
+  const handlers = createMindMapHandlers({ generateMindMap: generate } as never), owner = event(1);
+  const task = handlers[IPC.mindMapsGenerate]([{ requestId: 'request_one', noteIds: ['note_one'], sources: previewMapSources(['note_one']), title: '函数', options: DEFAULT_MAP_OPTIONS }], owner);
+  handlers[IPC.mindMapsCancel](['request_one'], event(2)); expect(signal.aborted).toBe(false);
+  handlers[IPC.mindMapsCancel](['request_one'], owner); await expect(task).rejects.toThrow('取消');
+});

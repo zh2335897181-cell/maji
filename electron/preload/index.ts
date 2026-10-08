@@ -47,6 +47,15 @@ import type {
 
 /** 通道名必须与 src/lib/ipc.ts 的 IPC 常量表逐字一致：键和值都由编译器核对 */
 const CHANNELS: { [K in keyof typeof IPC]: (typeof IPC)[K] } = {
+  mindMapsList: 'maji:mindmaps:list',
+  mindMapsSave: 'maji:mindmaps:save',
+  mindMapsRemove: 'maji:mindmaps:remove',
+  mindMapsPreview: 'maji:mindmaps:preview',
+  mindMapsGenerate: 'maji:mindmaps:generate',
+  mindMapsCancel: 'maji:mindmaps:cancel',
+  mindMapsGetView: 'maji:mindmaps:get-view',
+  mindMapsSaveView: 'maji:mindmaps:save-view',
+  mindMapsExport: 'maji:mindmaps:export',
   appInfo: 'maji:app:info',
   appPrepareClose: 'maji:app:prepare-close',
   appCloseReady: 'maji:app:close-ready',
@@ -114,6 +123,17 @@ ipcRenderer.on(CHANNELS.appPrepareClose, () => {
 });
 
 const api: MajiApi = {
+  mindMaps: {
+    list: () => invoke(CHANNELS.mindMapsList),
+    save: (draft, id, revision) => invoke(CHANNELS.mindMapsSave, draft, id, revision),
+    remove: (id) => invoke(CHANNELS.mindMapsRemove, id),
+    preview: (ids) => invoke(CHANNELS.mindMapsPreview, ids),
+    generate: (input) => invoke(CHANNELS.mindMapsGenerate, input),
+    cancel: (id) => invoke(CHANNELS.mindMapsCancel, id),
+    getView: (id) => invoke(CHANNELS.mindMapsGetView, id),
+    saveView: (id, view) => invoke(CHANNELS.mindMapsSaveView, id, view),
+    exportFile: (name, format, content) => invoke(CHANNELS.mindMapsExport, name, format, content),
+  },
   app: {
     getInfo: () => invoke<AppInfo>(CHANNELS.appInfo),
     onPrepareClose: (handler) => {

@@ -25,7 +25,7 @@ export interface NoteDraftState {
   setTags(tags: string[]): void;
   toggleFavorite(): Promise<void>;
   handleEditorChange(json: string, plainText: string): void;
-  saveNow(): Promise<void>;
+  saveNow(): Promise<boolean>;
 }
 
 export function useNoteDraft(noteId: string | undefined): NoteDraftState {
@@ -217,7 +217,7 @@ export function useNoteDraft(noteId: string | undefined): NoteDraftState {
   );
 
   const saveNow = useCallback(async () => {
-    await flush();
+    return await flush();
   }, [flush]);
 
   return {

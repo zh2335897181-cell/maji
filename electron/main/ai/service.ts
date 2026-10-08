@@ -1,4 +1,6 @@
 import { AIClient } from './client';
+import type { MindMapAIInput } from './client';
+import type { MindMapGraph } from '../../../src/lib/mindmap';
 import { validateAIAction, validateAIContext, validateAPIKey, validateProviderSettings } from './validation';
 import { validateReviewGenerationInput, validateReviewGradingInput } from '../ipc/validate';
 import type { AIConfigStore } from './storage';
@@ -15,6 +17,7 @@ import type {
 } from './types';
 
 interface AIClientLike {
+  generateMindMap?(settings: AIProviderSettings, key: string, input: MindMapAIInput, signal?: AbortSignal): Promise<MindMapGraph>;
   testConnection(settings: AIProviderSettings, key: string): Promise<void>;
   ask(settings: AIProviderSettings, key: string, action: AIAction, context: AIContext): Promise<AIResult>;
   generateReview(settings: AIProviderSettings, key: string, input: ReviewGenerationInput): Promise<GeneratedReviewQuestion[]>;
@@ -22,6 +25,11 @@ interface AIClientLike {
 }
 
 export class AIService {
+  async generateMindMap(input: MindMapAIInput, signal?: AbortSignal): Promise<MindMapGraph> {
+    const credential = await this.requireCredential();
+    if (!this.client.generateMindMap) throw new Error('AI 导图服务不可用');
+    return this.client.generateMindMap(credential.settings, credential.key, input, signal);
+  }
   private readonly store: Pick<AIConfigStore, 'getStatus' | 'getCredential' | 'save' | 'clearKey'>;
   private readonly client: AIClientLike;
 

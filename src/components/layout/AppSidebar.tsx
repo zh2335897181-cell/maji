@@ -1,6 +1,7 @@
 import clsx from 'clsx';
 import {
   Database,
+  GitBranch,
   Home,
   Library,
   PanelLeftClose,
@@ -42,6 +43,7 @@ export function AppSidebar({
   const navItems = [
     { to: ROUTES.home, icon: Home, label: '学习首页' },
     { to: ROUTES.courses, icon: Library, label: '课程与笔记', badge: notes.length },
+    { to: ROUTES.mindMaps, icon: GitBranch, label: '思维导图' },
     { to: ROUTES.review, icon: RotateCcw, label: '复习', badge: dueCount, accent: true },
     { to: ROUTES.search, icon: Search, label: '搜索', hint: 'Ctrl K' },
   ];

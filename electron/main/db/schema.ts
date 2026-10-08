@@ -8,7 +8,7 @@
 import type { SqliteDatabase } from './connection';
 
 /** 当前应用期望的数据库结构版本 */
-export const SCHEMA_VERSION = 4;
+export const SCHEMA_VERSION = 5;
 
 /* 说明：
    · 时间统一存 ISO 字符串（TEXT），布尔值存 INTEGER 0/1
@@ -174,6 +174,11 @@ export function migrate(db: SqliteDatabase): void {
         db.exec(REVIEW_SESSION_SCHEMA);
       }
     }
+    if (current < 5) db.exec(`
+      CREATE TABLE mind_maps (id TEXT PRIMARY KEY, title TEXT NOT NULL, document TEXT NOT NULL, revision INTEGER NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
+      CREATE TABLE mind_map_views (map_id TEXT PRIMARY KEY REFERENCES mind_maps(id) ON DELETE CASCADE, state TEXT NOT NULL);
+      CREATE INDEX idx_mind_maps_updated ON mind_maps(updated_at DESC);
+    `);
     db.pragma(`user_version = ${SCHEMA_VERSION}`);
   });
   upgrade();

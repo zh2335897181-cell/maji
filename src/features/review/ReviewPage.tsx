@@ -7,8 +7,8 @@ import {
   Target,
   History,
 } from 'lucide-react';
-import { useMemo, useState, type ReactElement } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useState, type ReactElement } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useLibrary } from '../../app/LibraryProvider';
 import { ROUTES } from '../../app/routes';
 import { useToast } from '../../app/ToastProvider';
@@ -24,6 +24,8 @@ import { ReviewSessionSetup } from './ReviewSessionSetup';
 import { ReviewSessionRunner } from './ReviewSessionRunner';
 import { ReviewSessionHistory } from './ReviewSessionHistory';
 import styles from './review.module.css';
+import { mindMapApi } from '../mindmap/repository';
+import { mindMapReviewPreset, type MindMapReviewPreset } from '../mindmap/reviewPreset';
 
 type Tab = 'due' | 'upcoming' | 'mastered';
 
@@ -36,6 +38,14 @@ export function ReviewPage(): ReactElement {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [view, setView] = useState<'queue' | 'setup' | 'history' | 'runner'>('queue');
   const [activeSession, setActiveSession] = useState<ReviewSessionWithQuestions | null>(null);
+  const [params] = useSearchParams();
+  const [preset, setPreset] = useState<MindMapReviewPreset | null>(null);
+  useEffect(() => {
+    const mapId = params.get('map'), nodeId = params.get('node'); if (!mapId || !nodeId) return;
+    let active = true;
+    void mindMapApi().list().then(maps => { if (!active) return; const map = maps.find(m => m.id === mapId); if (!map) throw new Error('导图已删除'); setPreset(mindMapReviewPreset(map, nodeId, notes)); setView('setup'); }).catch(cause => { if (active) toast.show({ message: cause instanceof Error ? cause.message : '读取导图失败', tone: 'error' }); });
+    return () => { active = false; };
+  }, [params]);
 
   const openSession = async (id: string): Promise<void> => {
     const loaded = await getReviewSession(id);
@@ -74,7 +84,7 @@ export function ReviewPage(): ReactElement {
     { id: 'mastered', label: '已掌握', count: buckets.mastered.length },
   ];
 
-  if (view === 'setup') return <div className={page.page} data-scroll-container><div className={page.inner}><ReviewSessionSetup notes={notes} courses={courses} reviews={reviews} loadNote={loadNote} onBack={() => setView('queue')} onCreate={createReviewSession} onStarted={(session) => { setActiveSession(session); setView('runner'); }} /></div></div>;
+  if (view === 'setup') return <div className={page.page} data-scroll-container><div className={page.inner}><ReviewSessionSetup preset={preset} notes={notes} courses={courses} reviews={reviews} loadNote={loadNote} onBack={() => { setPreset(null); setView('queue'); }} onCreate={createReviewSession} onStarted={(session) => { setActiveSession(session); setView('runner'); }} /></div></div>;
   if (view === 'history') return <div className={page.page} data-scroll-container><div className={page.inner}><ReviewSessionHistory sessions={reviewSessions} onBack={() => setView('queue')} onOpen={(id) => void openSession(id)} /></div></div>;
   if (view === 'runner' && activeSession) return <div className={page.page} data-scroll-container><div className={page.inner}><ReviewSessionRunner key={activeSession.id} session={activeSession} onBack={() => setView('queue')} /></div></div>;
 
