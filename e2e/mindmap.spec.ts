@@ -1,5 +1,40 @@
 import { expect, test, type Page } from '@playwright/test';
 
+test('note mind map entry and subsequent note switches do not crash', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await page.goto('/#/notes/note_func_args');
+  await expect(page.getByLabel('笔记标题')).toHaveValue('函数与参数');
+  await page.evaluate(async value => {
+    const repoPath = '/src/lib/dataSource.ts';
+    const repoModule: typeof import('../src/lib/dataSource') = await import(repoPath);
+    const repo = repoModule.getRepository();
+    const original = repo.getNote.bind(repo);
+    repo.getNote = async id => { await new Promise(resolve => setTimeout(resolve, 150)); return original(id); };
+    const apiPath = '/src/features/mindmap/repository.ts';
+    const { mindMapApi }: typeof import('../src/features/mindmap/repository') = await import(apiPath);
+    const api = mindMapApi();
+    window.maji = { ai: { getSettings: async () => ({ configured: true, baseUrl: 'local test', model: 'test' }) }, app: { onPrepareClose: () => () => {} }, mindMaps: { ...api, generate: async (input: Parameters<typeof api.generate>[0]) => ({ ...value, sources: input.sources, options: input.options }) } } as never;
+  }, graph);
+  await page.getByRole('button', { name: '更多操作', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'AI 生成思维导图' }).click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await page.getByRole('button', { name: '预览发送范围' }).click();
+  await page.getByRole('button', { name: '确认发送并生成' }).click();
+  await expect(page.getByRole('button', { name: '节点 多态', exact: true })).toBeVisible();
+  await page.evaluate(() => { window.location.hash = '/notes/note_func_args'; });
+  await expect(page.getByLabel('笔记标题')).toHaveValue('函数与参数');
+  await page.evaluate(() => { window.location.hash = '/notes/note_variables'; });
+  await expect(page.getByLabel('笔记标题')).toHaveValue('变量与数据类型');
+  for (let index = 0; index < 3; index++) {
+    await page.evaluate(() => { window.location.hash = '/notes/note_func_args'; });
+    await expect(page.getByLabel('笔记标题')).toHaveValue('函数与参数');
+    await page.evaluate(() => { window.location.hash = '/notes/note_variables'; });
+    await expect(page.getByLabel('笔记标题')).toHaveValue('变量与数据类型');
+  }
+  expect(errors).toEqual([]);
+});
+
 const node = (id: string, parentId: string | null, title: string, description = '') => ({ id, parentId, title, description, kind: 'concept', sourceRefs: [], isSupplement: false, codeExamples: [] });
 const graph = { title: 'Java 面向对象', rootId: 'root', nodes: [node('root', null, 'Java 面向对象'), node('classes', 'root', '类与对象', '类定义结构，对象表示实例'), node('inheritance', 'root', '继承', '复用父类实现'), node('polymorphism', 'root', '多态', '父类引用指向子类对象'), { ...node('code', 'polymorphism', '代码示例'), kind: 'example', codeExamples: [{ language: 'java', code: 'Animal pet = new Cat();\npet.speak();' }] }, node('pitfalls', 'root', '常见易错点')], relations: [{ sourceId: 'inheritance', targetId: 'polymorphism', label: '前提' }] };
 const map = { ...graph, id: 'map_demo', sources: [], options: { depth: 'standard', organization: 'knowledge', includeCode: true, highlightPitfalls: true, allowSupplement: false }, revision: 1, createdAt: '2026-10-08T02:00:00Z', updatedAt: '2026-10-08T02:00:00Z' };

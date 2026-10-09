@@ -2,7 +2,7 @@
   "name": "maji",
   "productName": "码迹",
   "private": true,
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "码迹 — 面向编程初学者的本地学习笔记桌面应用",
   "main": "dist-electron/electron/main/index.js",
   "scripts": {

@@ -43,6 +43,12 @@ const EMPTY_STATS: NoteStats = { words: 0, codeBlocks: 0, minutes: 1 };
 /** 笔记编辑页：左侧课程导航（全局）+ 中间编辑区 + 右侧辅助栏 */
 export function NoteEditorPage(): ReactElement {
   const { noteId } = useParams<{ noteId: string }>();
+  // 编辑器及辅助面板状态属于单篇笔记，不能跨 id 保留已销毁的实例。
+  return <NoteEditorDocument key={noteId} />;
+}
+
+function NoteEditorDocument(): ReactElement {
+  const { noteId } = useParams<{ noteId: string }>();
   const draft = useNoteDraft(noteId);
   const { notes, courses, updateNote, deleteNote, createExercise } = useLibrary();
   const { asideAutoHidden } = useBreakpoints();
