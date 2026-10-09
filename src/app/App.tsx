@@ -10,6 +10,7 @@ import { HomePage } from '../features/home/HomePage';
 import { NoteEditorPage } from '../features/notes/NoteEditorPage';
 import { ReviewPage } from '../features/review/ReviewPage';
 import { MindMapPage } from '../features/mindmap/MindMapPage';
+import { MorningPage } from '../features/morning/MorningPage';
 import { SearchPage } from '../features/search/SearchPage';
 import { NotFoundPage } from '../features/home/NotFoundPage';
 import { ROUTES } from './routes';
@@ -53,6 +54,7 @@ export function App(): ReactElement {
         <Route path={ROUTES.courses} element={<CoursesPage />} />
         <Route path={ROUTES.search} element={<SearchPage />} />
         <Route path={ROUTES.review} element={<ReviewPage />} />
+        <Route path={ROUTES.morning} element={<MorningPage />} />
         <Route path={ROUTES.mindMaps} element={<MindMapPage />} />
         <Route path="/mindmaps/:mapId" element={<MindMapPage />} />
         <Route path={ROUTES.create} element={<CreatePage />} />

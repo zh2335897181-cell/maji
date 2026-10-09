@@ -46,6 +46,7 @@ export interface EditorToolbarProps {
   /** 新建代码块时的默认语言 */
   language: LanguageId;
   stats: NoteStats;
+  showAI?: boolean;
 }
 
 const CALLOUT_ICONS: Record<CalloutVariant, typeof Info> = {
@@ -62,6 +63,7 @@ export function EditorToolbar({
   onModeChange,
   language,
   stats,
+  showAI = true,
 }: EditorToolbarProps): ReactElement {
   const [linkDialog, setLinkDialog] = useState(false);
   const [imageDialog, setImageDialog] = useState(false);
@@ -336,7 +338,7 @@ export function EditorToolbar({
         {stats.codeBlocks > 0 ? ` · ${stats.codeBlocks} 段代码` : ''}
       </span>
 
-      <IconButton
+      {showAI && <IconButton
         icon={Sparkles}
         label="AI 续写"
         shortcut="Ctrl+Shift+Space"
@@ -346,7 +348,7 @@ export function EditorToolbar({
           editor?.commands.focus();
           window.dispatchEvent(new Event('maji:ai-complete'));
         }}
-      />
+      />}
 
       <span className={styles.toolbarShortcutHelp}>
         <IconButton

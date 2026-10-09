@@ -3,6 +3,14 @@ import { migrate, SCHEMA_VERSION } from './schema';
 import type { SqliteDatabase } from './connection';
 
 describe('database schema migration', () => {
+  it('adds independent morning records to v5 without modifying existing notes', () => {
+    const statements: string[] = [];
+    const db = { pragma: (s: string, o?: { simple?: boolean }) => o?.simple ? 5 : statements.push(s), exec: (s: string) => statements.push(s), transaction: (fn: () => void) => fn } as unknown as SqliteDatabase;
+    migrate(db);
+    expect(statements.some(s => s.includes('CREATE TABLE morning_notes'))).toBe(true);
+    expect(statements.some(s => /ALTER TABLE notes|DROP TABLE|CREATE TABLE mind_maps/.test(s))).toBe(false);
+    expect(statements).toContain(`user_version = ${SCHEMA_VERSION}`);
+  });
   it('adds mind maps to v4 while retaining existing tables', () => {
     const statements: string[] = [];
     const db = { pragma: (s: string, o?: { simple?: boolean }) => o?.simple ? 4 : statements.push(s), exec: (s: string) => statements.push(s), transaction: (fn: () => void) => fn } as unknown as SqliteDatabase;

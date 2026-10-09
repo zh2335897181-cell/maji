@@ -51,6 +51,7 @@ export class AIClient {
     const prompt = buildPrompt(action, context);
     const raw = await this.request(settings, key, 'chat/completions', 'POST', {
       model: settings.model,
+      ...finalAnswerOptions(settings.model),
       temperature: 0.3,
       max_tokens: action === 'continue' ? 1_200 : 6_000,
       messages: [
@@ -115,6 +116,7 @@ export class AIClient {
   ): Promise<string> {
     const raw = await this.request(settings, key, 'chat/completions', 'POST', {
       model: settings.model,
+      ...finalAnswerOptions(settings.model),
       temperature: 0.2,
       max_tokens: maxTokens,
       messages: [
@@ -258,6 +260,14 @@ function responseError(message: string): Error {
   return error;
 }
 
+function finalAnswerOptions(model: string): { thinking?: { type: 'disabled' } } {
+  // DeepSeek V4 defaults to thinking, which shares the small completion budget.
+  // Our features consume final answers only; keep proprietary options off other models.
+  const name = model.toLowerCase().split('/').at(-1)?.replace(/[-_]/g, '');
+  return ['deepseekv4flash', 'deepseekv4pro', 'deepseekflash', 'deepseekpro'].includes(name ?? '')
+    ? { thinking: { type: 'disabled' } } : {};
+}
+
 function completionContent(value: unknown): string {
   if (typeof value !== 'object' || value === null || !('choices' in value) || !Array.isArray(value.choices)) {
     throw new Error('AI 服务响应格式无效，请重试');
@@ -266,7 +276,18 @@ function completionContent(value: unknown): string {
   if (typeof first !== 'object' || first === null || !('message' in first)) {
     throw new Error('AI 服务响应格式无效，请重试');
   }
+  if ('finish_reason' in first && first.finish_reason === 'length') {
+    throw new Error('AI 输出达到上限，未生成完整答案。请缩小笔记范围或选择简洁模式后重试');
+  }
+  if ('finish_reason' in first && first.finish_reason === 'content_filter') {
+    throw new Error('AI 服务的内容过滤阻止了回答，请调整内容后重试');
+  }
   const message = first.message;
+  if (typeof message === 'object' && message !== null && 'reasoning_content' in message
+    && typeof message.reasoning_content === 'string' && message.reasoning_content.trim()
+    && (!('content' in message) || message.content === null || (typeof message.content === 'string' && !message.content.trim()))) {
+    throw new Error('AI 服务只返回了思考内容，没有最终答案。请检查服务是否支持关闭思考模式，或更换非思考模型后重试');
+  }
   if (typeof message !== 'object' || message === null || !('content' in message) || typeof message.content !== 'string') {
     throw new Error('AI 服务响应格式无效，请重试');
   }

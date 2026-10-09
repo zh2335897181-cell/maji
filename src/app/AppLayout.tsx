@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactElement } from 'react';
-import { Outlet, useNavigate } from 'react-router-dom';
+import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { AppSidebar } from '../components/layout/AppSidebar';
 import { SearchOverlay } from '../components/layout/SearchOverlay';
 import { TopBar, TopBarSlotProvider } from '../components/layout/TopBar';
@@ -56,6 +56,7 @@ export function AppLayout(): ReactElement {
   const { settings, updateSettings, loading } = useLibrary();
   const { sidebarRail, sidebarDrawer } = useBreakpoints();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -65,7 +66,7 @@ export function AppLayout(): ReactElement {
 
   useGlobalShortcuts({
     toggleSearch: () => setSearchOpen((open) => !open),
-    newNote: () => navigate(ROUTES.createWith('note')),
+    newNote: () => location.pathname === ROUTES.morning ? window.dispatchEvent(new Event('maji:morning-new')) : navigate(ROUTES.createWith('note')),
     toggleSidebar: () => void updateSettings({ sidebarCollapsed: !settings.sidebarCollapsed }),
   });
 

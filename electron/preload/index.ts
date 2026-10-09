@@ -47,6 +47,9 @@ import type {
 
 /** 通道名必须与 src/lib/ipc.ts 的 IPC 常量表逐字一致：键和值都由编译器核对 */
 const CHANNELS: { [K in keyof typeof IPC]: (typeof IPC)[K] } = {
+  morningNotesList: 'maji:morning-notes:list',
+  morningNotesCreate: 'maji:morning-notes:create',
+  morningNotesUpdate: 'maji:morning-notes:update',
   mindMapsList: 'maji:mindmaps:list',
   mindMapsSave: 'maji:mindmaps:save',
   mindMapsRemove: 'maji:mindmaps:remove',
@@ -104,7 +107,11 @@ const CHANNELS: { [K in keyof typeof IPC]: (typeof IPC)[K] } = {
 
 /** 通道名只能来自上面的常量表，调用方无法传入任意通道 */
 function invoke<T>(channel: string, ...args: unknown[]): Promise<T> {
-  return ipcRenderer.invoke(channel, ...args) as Promise<T>;
+  return (ipcRenderer.invoke(channel, ...args) as Promise<T>).catch((error: unknown) => {
+    if (!(error instanceof Error)) throw error;
+    const message = error.message.replace(/^Error invoking remote method '[^']+':\s*(?:Error:\s*)?/, '');
+    throw new Error(message || '操作失败，请重试');
+  });
 }
 
 const prepareCloseHandlers = new Set<() => Promise<void>>();
@@ -123,6 +130,11 @@ ipcRenderer.on(CHANNELS.appPrepareClose, () => {
 });
 
 const api: MajiApi = {
+  morningNotes: {
+    list: () => invoke(CHANNELS.morningNotesList),
+    create: input => invoke(CHANNELS.morningNotesCreate, input),
+    update: (id, input, revision) => invoke(CHANNELS.morningNotesUpdate, id, input, revision),
+  },
   mindMaps: {
     list: () => invoke(CHANNELS.mindMapsList),
     save: (draft, id, revision) => invoke(CHANNELS.mindMapsSave, draft, id, revision),

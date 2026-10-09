@@ -13,6 +13,7 @@ export interface NoteEditorProps {
   onChange(json: string, plainText: string): void;
   onReady(editor: Editor): void;
   onFocusChange?(focused: boolean): void;
+  label?: string;
 }
 
 /** TipTap 编辑器外壳：配置扩展、把实例交给上层（工具栏与大纲需要） */
@@ -22,6 +23,7 @@ export function NoteEditor({
   onChange,
   onReady,
   onFocusChange,
+  label = '笔记正文',
 }: NoteEditorProps): ReactElement {
   const editor = useEditor({
     editable,
@@ -31,7 +33,9 @@ export function NoteEditor({
       attributes: {
         class: 'maji-prose',
         spellcheck: 'false',
-        'aria-label': '笔记正文',
+        'aria-label': label,
+        role: 'textbox',
+        'aria-multiline': 'true',
       },
     },
     onUpdate: ({ editor: instance }) => {

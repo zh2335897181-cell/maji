@@ -15,6 +15,8 @@ import { toSafeFileName } from '../../../src/lib/text';
 import * as courses from '../db/courses';
 import * as library from '../db/library';
 import * as notes from '../db/notes';
+import * as morningNotes from '../db/morningNotes';
+import { validateMorningInput } from '../../../src/lib/morningNotes';
 import { databaseFile } from '../db/connection';
 import type { UpdateService } from '../updates';
 import type { AIService } from '../ai/service';
@@ -81,6 +83,9 @@ async function exportMarkdown(args: unknown[], event: IpcMainInvokeEvent): Promi
 }
 
 const handlers: Record<string, Handler> = {
+  [IPC.morningNotesList]: () => morningNotes.listMorningNotes(),
+  [IPC.morningNotesCreate]: args => morningNotes.createMorningNote(validateMorningInput(args[0])),
+  [IPC.morningNotesUpdate]: args => morningNotes.updateMorningNote(requireEntityId(args[0], '晨考 ID'), validateMorningInput(args[1]), args[2]),
   [IPC.appInfo]: () => appInfo(),
 
   [IPC.coursesList]: () => courses.listCourses(),

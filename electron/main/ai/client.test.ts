@@ -10,6 +10,45 @@ function completion(content: string, status = 200): Response {
 }
 
 describe('OpenAI-compatible client', () => {
+  it.each(['deepseek-v4-flash', 'deepseekv4flash', 'deepseek-flash', 'deepseek/deepseek-v4-flash'])('requests final answers without thinking for %s continuation', async (model) => {
+    const fetcher = vi.fn<typeof fetch>().mockImplementation(async (_url, init) => {
+      const body = JSON.parse(String(init?.body));
+      return new Response(JSON.stringify({ choices: [{ finish_reason: body.thinking?.type === 'disabled' ? 'stop' : 'length', message: {
+        content: body.thinking?.type === 'disabled' ? 'return name' : '', reasoning_content: 'internal reasoning',
+      } }] }));
+    });
+    await expect(new AIClient({ fetch: fetcher }).ask({ ...settings, model }, 'key', 'continue', {
+      selectedText: '', scope: 'completion', language: 'python', continuation: { before: 'def f(name):\n    ', after: '', code: true },
+    })).resolves.toEqual({ kind: 'text', text: 'return name' });
+    const body = JSON.parse(String(fetcher.mock.calls[0][1]?.body));
+    expect(body.max_tokens).toBe(1200);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not send DeepSeek-specific options to other models', async () => {
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(completion('回答'));
+    await new AIClient({ fetch: fetcher }).ask(settings, 'key', 'explain', context);
+    expect(JSON.parse(String(fetcher.mock.calls[0][1]?.body))).not.toHaveProperty('thinking');
+  });
+
+  it.each(['', 'partial result'])('reports output truncation instead of accepting %j', async (content) => {
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(new Response(JSON.stringify({ choices: [{ finish_reason: 'length', message: { content, reasoning_content: 'private reasoning' } }] })));
+    await expect(new AIClient({ fetch: fetcher }).ask(settings, 'key', 'explain', context)).rejects.toThrow('输出达到上限');
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not use reasoning text as the final answer and explains reasoning-only responses', async () => {
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(new Response(JSON.stringify({ choices: [{ finish_reason: 'stop', message: { content: '', reasoning_content: 'private reasoning' } }] })));
+    const error = await new AIClient({ fetch: fetcher }).ask(settings, 'key', 'explain', context).catch((e: Error) => e.message);
+    expect(error).toContain('只返回了思考内容');
+    expect(error).not.toContain('private reasoning');
+  });
+
+  it('distinguishes filtered responses from empty answers without exposing refusal text', async () => {
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(new Response(JSON.stringify({ choices: [{ finish_reason: 'content_filter', message: { content: null, refusal: 'private provider detail' } }] })));
+    await expect(new AIClient({ fetch: fetcher }).ask(settings, 'key', 'explain', context)).rejects.toThrow('内容过滤');
+  });
+
   it('sends selected-only explain requests to fixed chat endpoint with authorization', async () => {
     const fetcher = vi.fn<typeof fetch>().mockResolvedValue(completion('输出 2'));
     const client = new AIClient({ fetch: fetcher });
