@@ -1,6 +1,7 @@
 import clsx from 'clsx';
 import { Check, type LucideIcon } from 'lucide-react';
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import controls from './controls.module.css';
 import styles from './overlay.module.css';
 
@@ -39,12 +40,37 @@ export function Menu({ label, icon: Icon, text, items, align = 'end', disabled =
   const anchorRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const menuId = useId();
+  const [position, setPosition] = useState({ left: 0, top: 0 });
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    const place = () => {
+      const anchor = anchorRef.current?.getBoundingClientRect();
+      const menu = menuRef.current?.getBoundingClientRect();
+      if (!anchor || !menu) return;
+      const left = align === 'end' ? anchor.right - menu.width : anchor.left;
+      const below = anchor.bottom + 4;
+      const top = below + menu.height > window.innerHeight - 8
+        ? anchor.top - menu.height - 4 : below;
+      setPosition({
+        left: Math.max(8, Math.min(left, window.innerWidth - menu.width - 8)),
+        top: Math.max(8, Math.min(top, window.innerHeight - menu.height - 8)),
+      });
+    };
+    place();
+    window.addEventListener('resize', place);
+    window.addEventListener('scroll', place, true);
+    return () => {
+      window.removeEventListener('resize', place);
+      window.removeEventListener('scroll', place, true);
+    };
+  }, [open, align, items]);
 
   useEffect(() => {
     if (!open) return undefined;
 
     const onPointerDown = (event: MouseEvent): void => {
-      if (!anchorRef.current?.contains(event.target as Node)) setOpen(false);
+      if (!anchorRef.current?.contains(event.target as Node) && !menuRef.current?.contains(event.target as Node)) setOpen(false);
     };
     const onKeyDown = (event: KeyboardEvent): void => {
       if (event.key === 'Escape') {
@@ -108,9 +134,10 @@ export function Menu({ label, icon: Icon, text, items, align = 'end', disabled =
         <Icon size={text ? 14 : 16} aria-hidden />
         {text}
       </button>
-      {open ? (
+      {open ? createPortal(
         <div
-          className={clsx(styles.menu, align === 'end' ? styles.menuEnd : styles.menuStart)}
+          className={styles.menu}
+          style={{ position: 'fixed', left: position.left, top: position.top, maxWidth: 'calc(100vw - 16px)', maxHeight: 'calc(100vh - 16px)', overflowY: 'auto' }}
           role="menu"
           id={menuId}
           aria-label={label}
@@ -147,7 +174,7 @@ export function Menu({ label, icon: Icon, text, items, align = 'end', disabled =
               </button>
             ),
           )}
-        </div>
+        </div>, document.body,
       ) : null}
     </div>
   );
