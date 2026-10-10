@@ -12,6 +12,7 @@ import { Modal } from '../ui/Modal';
 import { SaveStatus } from './SaveStatus';
 import { UpdateSettings } from './UpdateSettings';
 import { AISettings } from '../../features/settings/AISettings';
+import { BackupSettings } from '../../features/settings/BackupSettings';
 import appPackage from '../../../package.json';
 import styles from './TopBar.module.css';
 
@@ -236,6 +237,7 @@ export function TopBar({
             hint="窗口变窄时应用也会自动收起。"
           />
           <UpdateSettings status={updateStatus} onCheck={checkForUpdates} onInstall={() => void installUpdate()} />
+          <BackupSettings />
           <AISettings onNotice={(message, tone) => toast.show({ message, tone })} />
         </div>
       </Modal>
