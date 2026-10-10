@@ -47,6 +47,7 @@ ON CONFLICT(key) DO UPDATE SET value = excluded.value`;
 
 /** 返回是否真的写入了示例数据 */
 export function seedIfEmpty(db: SqliteDatabase): boolean {
+  if (db.prepare('SELECT value FROM settings WHERE key=?').get('backup.initialized')) return false;
   const existing = selectOne<CountRow>(db, 'SELECT COUNT(*) AS count FROM courses');
   if ((existing?.count ?? 0) > 0) return false;
 
