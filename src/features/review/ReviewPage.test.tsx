@@ -80,6 +80,23 @@ afterEach(() => {
 });
 
 describe('AI review setup', () => {
+  it('saves a pending answer without invoking AI before backup', async () => {
+    const user = userEvent.setup();
+    mocks.library.saveReviewAnswer.mockResolvedValue({ ...session.questions[0], answer: '我的答案' });
+    render(<ReviewSessionRunner session={session as never} onBack={() => {}} />);
+    await user.type(screen.getByRole('textbox'), '我的答案');
+    const callback = vi.mocked(window.maji!.app.onPrepareClose).mock.calls.at(-1)![0];
+    await callback();
+    expect(mocks.library.saveReviewAnswer).toHaveBeenCalledWith(session.id, { questionId: session.questions[0].id, answer: '我的答案' });
+    expect(mocks.ai.review.grade).not.toHaveBeenCalled();
+  });
+  it('propagates pending review save failures to the backup coordinator', async () => {
+    render(<ReviewSessionRunner session={session as never} onBack={() => {}} />);
+    await waitFor(() => expect(window.maji!.app.onPrepareClose).toHaveBeenCalled());
+    mocks.library.updateReviewSession.mockRejectedValue(new Error('计时保存失败'));
+    const callback = vi.mocked(window.maji!.app.onPrepareClose).mock.calls.at(-1)![0];
+    await expect(callback()).rejects.toThrow('计时保存失败');
+  });
   it('shows the selected note before sending it and generates only after explicit confirmation', async () => {
     const user = userEvent.setup();
     renderPage();

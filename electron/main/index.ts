@@ -15,6 +15,8 @@ import * as path from 'node:path';
 import { IPC } from '../../src/lib/ipc';
 import { closeDatabase, openDatabase } from './db/connection';
 import { registerIpcHandlers } from './ipc/handlers';
+import { BackupService } from './backup/service';
+import { getDb } from './db/connection';
 import { armSmokeTest } from './smoke';
 import { createMainWindow } from './window';
 import { createUpdateService, type UpdateUpdater } from './updates';
@@ -170,7 +172,7 @@ ipcMain.on(IPC.appCloseReady, (event, result: unknown) => {
   });
 });
 
-function bootstrap(): void {
+async function bootstrap(): Promise<void> {
   try {
     openDatabase(databaseFile());
   } catch (error) {
@@ -197,7 +199,9 @@ function bootstrap(): void {
     filePath: path.join(app.getPath('userData'), 'ai-settings.json'),
     safeStorage,
   });
-  registerIpcHandlers(updates, new AIService(aiStore));
+  const backup = new BackupService(getDb(), app.getPath('userData'), app.getVersion());
+  await backup.autoBackup().catch(() => {});
+  registerIpcHandlers(updates, new AIService(aiStore), backup);
 
   const openWindow = (): BrowserWindow => {
     const win = createMainWindow();

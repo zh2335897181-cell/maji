@@ -22,6 +22,9 @@ import type { UpdateService } from '../updates';
 import type { AIService } from '../ai/service';
 import { createAIHandlers } from '../ai/ipc';
 import { createMindMapHandlers } from './mindMaps';
+import { createBackupHandlers } from './backup';
+import type { BackupService } from '../backup/service';
+import { assertWritable, isRestoring } from '../backup/writeGate';
 import {
   requireEntityId,
   requireNoteId,
@@ -140,11 +143,12 @@ const handlers: Record<string, Handler> = {
 };
 
 /** 注册全部白名单通道；重复调用会被 ipcMain.handle 拒绝，所以只调用一次 */
-export function registerIpcHandlers(updates: UpdateService, ai: AIService): void {
+export function registerIpcHandlers(updates: UpdateService, ai: AIService, backup: BackupService): void {
   const activeHandlers: Record<string, Handler> = {
     ...handlers,
     ...createAIHandlers(ai),
     ...createMindMapHandlers(ai),
+    ...createBackupHandlers(backup),
     [IPC.updatesCheck]: () => updates.checkForUpdates(),
     [IPC.updatesInstall]: () => updates.installDownloadedUpdate(),
     [IPC.updatesStatusGet]: () => updates.getStatus(),
@@ -152,6 +156,9 @@ export function registerIpcHandlers(updates: UpdateService, ai: AIService): void
   for (const [channel, handler] of Object.entries(activeHandlers)) {
     ipcMain.handle(channel, async (event, ...args: unknown[]) => {
       try {
+        if (channel === IPC.notesTouch && isRestoring()) return;
+        const readOnly = [IPC.coursesList, IPC.notesList, IPC.notesGet, IPC.notesSearch, IPC.tagsList, IPC.snippetsList, IPC.exercisesList, IPC.reviewList, IPC.reviewSessionsList, IPC.reviewSessionsGet, IPC.settingsGet, IPC.mindMapsList, IPC.mindMapsGetView, IPC.morningNotesList, IPC.aiSettingsGet] as string[];
+        if (!readOnly.includes(channel) && !channel.startsWith('maji:backup:') && !channel.startsWith('maji:app:') && !channel.startsWith('maji:updates:')) assertWritable();
         return await handler(args, event);
       } catch (error) {
         // 统一包装：渲染进程只会看到可读原因，不会拿到内部堆栈

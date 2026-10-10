@@ -47,6 +47,12 @@ import type {
 
 /** 通道名必须与 src/lib/ipc.ts 的 IPC 常量表逐字一致：键和值都由编译器核对 */
 const CHANNELS: { [K in keyof typeof IPC]: (typeof IPC)[K] } = {
+  backupStatus: 'maji:backup:status',
+  backupEnabled: 'maji:backup:enabled',
+  backupExport: 'maji:backup:export',
+  backupPreview: 'maji:backup:preview',
+  backupRestore: 'maji:backup:restore',
+  backupDirectory: 'maji:backup:directory',
   morningNotesList: 'maji:morning-notes:list',
   morningNotesCreate: 'maji:morning-notes:create',
   morningNotesUpdate: 'maji:morning-notes:update',
@@ -115,6 +121,30 @@ function invoke<T>(channel: string, ...args: unknown[]): Promise<T> {
 }
 
 const prepareCloseHandlers = new Set<() => Promise<void>>();
+let restored = false;
+async function saveForBackup<T>(operation: () => Promise<T>, restore = false): Promise<T> {
+  const previous = document.body.inert;
+  document.body.inert = true;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    await Promise.race([
+      Promise.all([...prepareCloseHandlers].map(handler => Promise.resolve().then(handler))),
+      new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('保存等待超时，请先手动保存后重试')), 30000); }),
+    ]);
+    if (localStorage.getItem('maji:mindmap-recovery:preview')) throw new Error('有尚未保存的思维导图预览，请先保存或放弃预览后重试');
+    const result = await operation();
+    if (restore) {
+      restored = true;
+      prepareCloseHandlers.clear();
+      try {
+        for (const key of Object.keys(localStorage)) {
+          if (/^maji:(morning-draft:|mindmap-recovery:|note-draft:)/.test(key) || key === 'maji:mindmap-review-preset') localStorage.removeItem(key);
+        }
+      } finally { window.location.reload(); }
+    }
+    return result;
+  } finally { clearTimeout(timer); if (!restored) document.body.inert = previous; }
+}
 
 // Always acknowledge a close request, even on pages with no editor mounted.
 ipcRenderer.on(CHANNELS.appPrepareClose, () => {
@@ -130,6 +160,14 @@ ipcRenderer.on(CHANNELS.appPrepareClose, () => {
 });
 
 const api: MajiApi = {
+  backup: {
+    status: () => invoke(CHANNELS.backupStatus),
+    setEnabled: value => invoke(CHANNELS.backupEnabled, value),
+    export: () => saveForBackup(() => invoke(CHANNELS.backupExport)),
+    preview: () => saveForBackup(() => invoke(CHANNELS.backupPreview)),
+    restore: token => saveForBackup(() => invoke(CHANNELS.backupRestore, token), true),
+    openDirectory: () => invoke(CHANNELS.backupDirectory),
+  },
   morningNotes: {
     list: () => invoke(CHANNELS.morningNotesList),
     create: input => invoke(CHANNELS.morningNotesCreate, input),

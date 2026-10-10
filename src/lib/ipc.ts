@@ -42,6 +42,12 @@ export type { ReviewGenerationInput, ReviewGradingInput, GeneratedReviewQuestion
 
 /** 通道名集中定义，避免字符串散落各处 */
 export const IPC = {
+  backupStatus: 'maji:backup:status',
+  backupEnabled: 'maji:backup:enabled',
+  backupExport: 'maji:backup:export',
+  backupPreview: 'maji:backup:preview',
+  backupRestore: 'maji:backup:restore',
+  backupDirectory: 'maji:backup:directory',
   morningNotesList: 'maji:morning-notes:list',
   morningNotesCreate: 'maji:morning-notes:create',
   morningNotesUpdate: 'maji:morning-notes:update',
@@ -154,6 +160,7 @@ export type UpdateStatus =
  * window.maji 的形状。所有方法都是 Promise，失败时 reject 一个可读的错误。
  */
 export interface MajiApi {
+  backup?: import('./backup').BackupApi;
   morningNotes?: import('./morningNotes').MorningApi;
   mindMaps?: import('./mindmap').MindMapApi;
   app: {

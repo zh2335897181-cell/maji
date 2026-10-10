@@ -100,9 +100,19 @@ export function ReviewSessionRunner({ session: initialSession, onBack }: { sessi
   }, [updateReviewSession]);
 
   useEffect(() => {
-    const unsubscribe = window.maji?.app?.onPrepareClose(() => pauseSession().then(() => undefined).catch(() => undefined));
+    const unsubscribe = window.maji?.app?.onPrepareClose(async () => {
+      if (busy || scheduleBusy || checkpointBusy.current) throw new Error('复习操作正在进行，请稍后重试');
+      if (selectedQuestion && answer.trim() !== (selectedQuestion.answer ?? '').trim()) {
+        if (!answer.trim()) throw new Error('请先完成当前复习答案，再进行备份或关闭');
+        const saved = await saveReviewAnswer(sessionRef.current.id, { questionId: selectedQuestion.id, answer: answer.trim() });
+        const current = sessionRef.current;
+        setCurrentSession({ ...current, questions: current.questions.map(q => q.id === saved.id ? saved : q) });
+        setGradeRetry(true);
+      }
+      await pauseSession();
+    });
     return () => { unsubscribe?.(); };
-  }, [pauseSession]);
+  }, [pauseSession, busy, scheduleBusy, selectedQuestion, answer, saveReviewAnswer]);
 
   useEffect(() => { setAnswer(selectedQuestion?.answer ?? ''); setGradeRetry(Boolean(selectedQuestion?.answer && !selectedQuestion.grade)); }, [selectedQuestion?.id]);
 
