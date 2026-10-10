@@ -5,6 +5,9 @@ import { migrate, SCHEMA_VERSION } from '../db/schema';
 import { validateDraft, validateView } from '../../../src/lib/mindmap';
 import { validateMorningInput } from '../../../src/lib/morningNotes';
 import { validateReviewGrade, validateReviewSessionInput, validateReviewSessionPatch } from '../ipc/validate';
+import { getSchema } from '@tiptap/core';
+import { buildContentExtensions } from '../../../src/lib/editorContent';
+const documentSchema = getSchema(buildContentExtensions());
 
 export const TABLES = ['courses', 'notes', 'snippets', 'exercises', 'review_items', 'review_sessions', 'review_questions', 'mind_maps', 'mind_map_views', 'morning_notes'] as const;
 export type Table = typeof TABLES[number];
@@ -53,12 +56,39 @@ export function insertSnapshot(db: SqliteDatabase, tables: BackupSnapshot): void
 }
 function checkDoc(value: unknown): void {
   if (!value || typeof value !== 'object' || (value as {type?:unknown}).type !== 'doc' || !Array.isArray((value as {content?:unknown}).content)) throw new Error('笔记正文结构无效');
+  checkAttributes(value as Record<string,unknown>, false);
   const stack: unknown[] = [(value as {content:unknown[]}).content]; let count = 0;
   while (stack.length) {
     const item = stack.pop(); if (++count > 100000) throw new Error('笔记正文过于复杂');
     if (Array.isArray(item)) stack.push(...item);
-    else if (item && typeof item === 'object') { const node = item as Record<string,unknown>; if (typeof node.type !== 'string') throw new Error('笔记节点无效'); if (node.content !== undefined) { if (!Array.isArray(node.content)) throw new Error('笔记节点内容无效'); stack.push(node.content); } }
+    else if (item && typeof item === 'object') {
+      const node = item as Record<string,unknown>;
+      if (typeof node.type !== 'string') throw new Error('笔记节点无效');
+      if (node.text !== undefined && node.type !== 'text' || node.type === 'text' && node.content !== undefined) throw new Error('笔记文本节点无效');
+      checkAttributes(node, false);
+      if (node.marks !== undefined) {
+        if (!Array.isArray(node.marks)) throw new Error('笔记标记无效');
+        for (const mark of node.marks) { if (!mark || typeof mark !== 'object') throw new Error('笔记标记无效'); checkAttributes(mark, true); }
+      }
+      if (node.content !== undefined) { if (!Array.isArray(node.content)) throw new Error('笔记节点内容无效'); stack.push(node.content); }
+    }
     else throw new Error('笔记节点无效');
+  }
+  documentSchema.nodeFromJSON(value).check();
+}
+function checkAttributes(node: Record<string,unknown>, mark: boolean): void {
+  const type = (mark ? documentSchema.marks : documentSchema.nodes)[String(node.type)];
+  if (!type) throw new Error('笔记包含不支持的节点或标记');
+  if (node.attrs === undefined) return;
+  if (!node.attrs || typeof node.attrs !== 'object' || Array.isArray(node.attrs)) throw new Error('笔记属性无效');
+  for (const [key,value] of Object.entries(node.attrs)) {
+    if (!Object.hasOwn(type.spec.attrs ?? {}, key)) throw new Error('笔记包含不支持的属性');
+    if (key === 'variant') { if (!['note','tip','warning','output'].includes(String(value))) throw new Error('说明块类型无效'); }
+    else if (key === 'checked') { if (typeof value !== 'boolean') throw new Error('任务状态无效'); }
+    else if (key === 'colwidth') { if (value !== null && (!Array.isArray(value) || value.some(v => typeof v !== 'number' || !Number.isFinite(v) || v < 0))) throw new Error('表格列宽无效'); }
+    else if (['level','start','colspan','rowspan'].includes(key)) { if (!Number.isSafeInteger(value) || Number(value) < (key === 'start' ? 0 : 1) || (key === 'level' && Number(value) > 6)) throw new Error('笔记数值属性无效'); }
+    else if (['width','height'].includes(key)) { if (value !== null && !(typeof value === 'number' && Number.isFinite(value) && value >= 0) && !(typeof value === 'string' && /^\d+(\.\d+)?(px|%)?$/.test(value))) throw new Error('图片尺寸无效'); }
+    else if (value !== null && typeof value !== 'string') throw new Error('笔记文本属性无效');
   }
 }
 export function decodeBackup(raw: string): Payload {

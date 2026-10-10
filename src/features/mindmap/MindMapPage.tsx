@@ -60,6 +60,14 @@ export function MindMapPage() {
     if (id) viewTimer.current = setTimeout(() => { void api.saveView(id, view).catch(() => setPageError('画布状态保存失败')); }, 700);
     return () => { clearTimeout(viewTimer.current); };
   }, [api, map?.id, view]);
+  useEffect(() => {
+    const unregister = window.maji?.app?.onPrepareClose(async () => {
+      clearTimeout(viewTimer.current);
+      const id = editor.current.current?.id;
+      if (id) await api.saveView(id, liveView.current);
+    });
+    return () => unregister?.();
+  }, [api]);
   useEffect(() => () => { if (request.current) void api.cancel(request.current).catch(() => {}); const id = editor.current.current?.id; if (id) void api.saveView(id, liveView.current).catch(() => {}); }, [api]);
   const onGenerated = async (draft: MindMapDraft) => {
     if (editor.current.current && !editor.current.current.id && !window.confirm('替换尚未保存的导图预览？请先保存或导出需要保留的内容。')) return false;

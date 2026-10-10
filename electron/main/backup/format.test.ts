@@ -19,6 +19,17 @@ it('rejects extra fields, duplicate IDs, invalid languages and malformed documen
     (value:typeof original)=>{value.notes[0]!.content_json='{"type":"wrong"}';},
   ]) {const value=structuredClone(original);change(value);expect(()=>decodeBackup(encodeBackup(value,'0.5.6'))).toThrow();}
 });
+it.each([
+  {type:'doc',content:[{type:'text'}]},
+  {type:'doc',content:[{type:'unknownNode'}]},
+  {type:'doc',content:[{type:'paragraph',content:[{type:'text',text:'text',marks:[{type:'unknownMark'}]}]}]},
+  {type:'doc',content:[{type:'paragraph',content:[{type:'paragraph'}]}]},
+  {type:'doc',content:[{type:'callout',attrs:{variant:'unknown'},content:[{type:'paragraph'}]}]},
+  {type:'doc',content:[{type:'paragraph',content:[{type:'text',text:'x',marks:[{type:'link',attrs:{href:{bad:true}}}]}]}]},
+])('rejects content the editor would otherwise replace with a blank document',doc=>{
+  const snapshot=readSnapshot(db);snapshot.notes[0]!.content_json=JSON.stringify(doc);
+  expect(()=>decodeBackup(encodeBackup(snapshot,'0.5.6'))).toThrow();
+});
 it('round trips all learning tables but excludes settings and credentials', () => {
   const snapshot = readSnapshot(db);
   const raw = encodeBackup(snapshot, '0.5.6');

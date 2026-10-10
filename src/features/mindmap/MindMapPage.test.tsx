@@ -8,7 +8,15 @@ const fixture = { ...graph, id: 'map_one', revision: 1, options: DEFAULT_MAP_OPT
 vi.mock('../../app/LibraryProvider', () => ({ useLibrary: () => ({ notes: [], courses: [], loadNote: vi.fn() }) }));
 const api = { list: vi.fn(), save: vi.fn(), getView: vi.fn(async () => null), saveView: vi.fn(async () => {}), remove: vi.fn(), preview: vi.fn(), generate: vi.fn(), cancel: vi.fn(), exportFile: vi.fn() };
 describe('mind map workbench', () => {
-  beforeEach(() => { vi.clearAllMocks(); api.list.mockResolvedValue([]); api.save.mockImplementation(async (draft) => ({ ...fixture, ...draft })); window.maji = { mindMaps: api } as never; });
+  beforeEach(() => { vi.clearAllMocks(); api.list.mockResolvedValue([]); api.saveView.mockResolvedValue(); api.save.mockImplementation(async (draft) => ({ ...fixture, ...draft })); window.maji = { mindMaps: api, app: {onPrepareClose:vi.fn(()=>vi.fn())} } as never; });
+  it('flushes viewport saves and propagates failures to backup coordination',async()=>{
+    api.list.mockResolvedValue([fixture]);
+    render(<MemoryRouter><MindMapPage /></MemoryRouter>);
+    await screen.findByRole('button',{name:'节点 参数'});
+    api.saveView.mockRejectedValueOnce(new Error('视图保存失败'));
+    const callbacks=vi.mocked(window.maji!.app.onPrepareClose).mock.calls.map(call=>call[0]);
+    await expect(Promise.all(callbacks.map(fn=>fn()))).rejects.toThrow('视图保存失败');
+  });
   it('shows the empty state and scrollable generation configuration', async () => {
     render(<MemoryRouter><MindMapPage /></MemoryRouter>);
     await screen.findByText('把零散笔记，整理成清晰的知识结构');

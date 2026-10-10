@@ -6,16 +6,11 @@
      · callout   —— 说明 / 容易混淆 / 常见报错 / 运行结果 四种语义块
    ============================================================================= */
 
-import { Extension, InputRule, Node, mergeAttributes, textblockTypeInputRule } from '@tiptap/core';
+import { Extension, InputRule, textblockTypeInputRule } from '@tiptap/core';
 import { CodeBlock } from '@tiptap/extension-code-block';
-import Highlight from '@tiptap/extension-highlight';
-import { Image } from '@tiptap/extension-image';
 import { Placeholder } from '@tiptap/extension-placeholder';
-import { TableKit } from '@tiptap/extension-table';
-import { TaskItem } from '@tiptap/extension-task-item';
-import { TaskList } from '@tiptap/extension-task-list';
 import { ReactNodeViewRenderer } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
+import { buildContentExtensions, CalloutContent } from '../../../lib/editorContent';
 import { normalizeLanguage } from '../../../lib/highlight';
 import type { CalloutVariant } from '../../../lib/noteDoc';
 import { CalloutView } from './CalloutView';
@@ -50,36 +45,7 @@ export const CodeBlockEnhanced = CodeBlock.extend({
   },
 });
 
-export const Callout = Node.create({
-  name: 'callout',
-  group: 'block',
-  content: 'block+',
-  defining: true,
-  selectable: true,
-
-  addAttributes() {
-    return {
-      variant: {
-        default: 'note',
-        parseHTML: (element) => element.getAttribute('data-variant') ?? 'note',
-        renderHTML: (attributes) => ({ 'data-variant': String(attributes['variant'] ?? 'note') }),
-      },
-      label: {
-        default: '',
-        parseHTML: (element) => element.getAttribute('data-label') ?? '',
-        renderHTML: (attributes) => ({ 'data-label': String(attributes['label'] ?? '') }),
-      },
-    };
-  },
-
-  parseHTML() {
-    return [{ tag: 'div[data-callout]' }];
-  },
-
-  renderHTML({ HTMLAttributes }) {
-    return ['div', mergeAttributes(HTMLAttributes, { 'data-callout': '' }), 0];
-  },
-
+export const Callout = CalloutContent.extend({
   addCommands() {
     return {
       setCallout:
@@ -151,27 +117,7 @@ const EditorShortcuts = Extension.create({
  */
 export function buildEditorExtensions() {
   return [
-    StarterKit.configure({
-      codeBlock: false,
-      heading: { levels: [1, 2, 3] },
-      link: {
-        openOnClick: false,
-        autolink: true,
-        HTMLAttributes: { rel: 'noopener noreferrer', target: '_blank' },
-      },
-    }),
-    CodeBlockEnhanced.configure({
-      defaultLanguage: 'text',
-      languageClassPrefix: 'language-',
-      enableTabIndentation: true,
-      tabSize: 4,
-    }),
-    Callout,
-    TaskList,
-    TaskItem.configure({ nested: true }),
-    TableKit.configure({ table: { resizable: false } }),
-    Highlight.configure({ multicolor: true }),
-    Image.configure({ inline: false, allowBase64: true }),
+    ...buildContentExtensions(CodeBlockEnhanced, Callout),
     EditorShortcuts,
     Placeholder.configure({
       placeholder: '继续记录… 输入 # 加空格插入小标题，输入 ```python 插入代码块',
