@@ -230,7 +230,7 @@ test.describe('复习', () => {
     await page.evaluate(() => {
       const question = {
         type: 'code-writing', difficulty: 'easy', title: '编写 greet', prompt: '写一个接收 name 参数并返回问候语的函数。',
-        hint: '使用函数参数。', referenceAnswer: 'def greet(name): return f"你好，{name}"', explanation: '参数让函数可处理不同输入。',
+        hint: '使用函数参数。', referenceAnswer: 'def greet(name): return f"你好，{name}"\n' + '使用 IO 读取类名，通过 Class.forName 加载类，检查 @MyBean 注解并存入 Map。'.repeat(20) + '\n' + 'LongUnbrokenIdentifier'.repeat(30), explanation: '参数让函数可处理不同输入。',
         language: 'python', sourceNoteId: 'note_func_args',
       };
       Object.defineProperty(window, 'maji', { configurable: true, value: {
@@ -268,6 +268,14 @@ test.describe('复习', () => {
     await page.getByRole('button', { name: '提交答案并查看解析' }).click();
     await expect(page.getByRole('heading', { name: '88 分' })).toBeVisible();
     await expect(page.getByText('补上返回值。')).toBeVisible();
+    await page.getByText('参考答案与解析', { exact: true }).click();
+    const reference = page.locator('details[open] pre');
+    await expect(reference).toBeVisible();
+    expect(await reference.evaluate(element => ({
+      wrapped: getComputedStyle(element).whiteSpace,
+      fits: element.scrollWidth <= element.clientWidth + 1,
+    }))).toEqual({ wrapped: 'pre-wrap', fits: true });
+    expect(await page.locator('[data-scroll-container]').evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
     await page.getByRole('button', { name: '完成本次练习' }).click();
     await expect(page.getByRole('heading', { name: '本次练习已完成' })).toBeVisible();
     await expect(page.getByRole('button', { name: '标记关联知识点为已掌握' })).toBeVisible();

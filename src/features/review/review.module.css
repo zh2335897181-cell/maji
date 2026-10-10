@@ -224,11 +224,12 @@
 .sessionSource pre { max-height: 280px; overflow: auto; margin: var(--space-3) 0 0; padding: var(--space-3); border-radius: var(--radius-sm); background: var(--bg-subtle); font: var(--font-size-xs)/1.6 var(--font-mono); }
 .runnerCard { gap: var(--space-4); }
 .runnerCard h2, .runnerCard h3 { margin: 0; color: var(--ink-900); }
-.runnerPrompt, .gradePanel { padding: var(--space-4); border-radius: var(--radius-md); background: var(--bg-subtle); line-height: var(--line-relaxed); white-space: pre-wrap; }
+.runnerPrompt, .gradePanel { min-width: 0; padding: var(--space-4); border-radius: var(--radius-md); background: var(--bg-subtle); line-height: var(--line-relaxed); white-space: pre-wrap; overflow-wrap: anywhere; }
 .questionCode { margin: 0; padding: var(--space-3); border-radius: var(--radius-md); background: var(--bg-sunken); font: var(--font-size-sm)/1.6 var(--font-mono); }
 .answerInput { min-height: 150px; resize: vertical; }
 .gradePanel { border-left: 3px solid var(--success-500); }
 .gradePanel p { margin: var(--space-2) 0; }
+.gradePanel pre { max-width: 100%; white-space: pre-wrap; overflow-wrap: anywhere; }
 .runnerProgress { height: 6px; overflow: hidden; border-radius: var(--radius-full); background: var(--bg-sunken); }
 .runnerProgress span { display: block; height: 100%; background: var(--accent); transition: width 180ms ease; }
 .historyDay h3 { margin: 0; }
