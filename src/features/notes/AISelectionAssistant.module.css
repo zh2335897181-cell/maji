@@ -14,7 +14,7 @@
 .panel {
   border: 1px solid var(--line-soft);
   border-radius: var(--radius-lg);
-  background: var(--surface-raised);
+  background: var(--bg-surface);
   box-shadow: var(--shadow-lg);
 }
 
