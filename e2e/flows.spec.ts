@@ -2,6 +2,32 @@ import { expect, test } from '@playwright/test';
 
 type MockAIContext = { scope: string; selectedText: string; noteText?: string };
 
+test('晨考代码块的十二行正文与行号对齐，预览没有重复正文', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('maji:morning-notes:v1', JSON.stringify([{
+      id: 'morning_code_alignment', revision: 1, date: '2026-10-12', title: '代码块对齐检查',
+      createdAt: '2026-10-12T00:00:00Z', updatedAt: '2026-10-12T00:00:00Z',
+      contentJson: JSON.stringify({ type: 'doc', content: [
+        { type: 'paragraph', content: [{ type: 'text', text: '概念与代码' }] },
+        { type: 'codeBlock', attrs: { language: 'text' }, content: [{ type: 'text', text: Array.from({ length: 12 }, (_, i) => String(i + 1)).join('\n') }] },
+      ] }),
+    }]));
+  });
+  await page.goto('/#/morning');
+  const block = page.locator('[data-language]').first();
+  await block.getByRole('button', { name: '显示行号' }).click();
+  for (const preview of [false, true]) {
+    if (preview) await page.getByRole('tab', { name: '预览' }).click();
+    const pre = block.locator('pre');
+    await expect(pre.locator('[data-node-view-content]')).toBeHidden();
+    const line = await pre.locator(':scope > span > span').first().boundingBox();
+    const code = await pre.locator(':scope > code').boundingBox();
+    expect(Math.abs(line!.y - code!.y)).toBeLessThan(2);
+    await expect(pre.locator(':scope > span > span')).toHaveCount(12);
+    await expect(pre.locator(':scope > code')).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+  }
+});
+
 /**
  * 核心交互流程。
  * 两种目标窗口尺寸都会跑一遍：1440×900（设计稿基准）与 1280×800（笔记本）。
@@ -55,6 +81,33 @@ test.describe('笔记编辑页', () => {
 
     await openAside(page);
     await expect(page.getByText('笔记大纲')).toBeVisible();
+  });
+
+  test('代码块行号与正文在阅读态和编辑态保持同一行', async ({ page }) => {
+    const block = page.locator('[data-language]').first();
+    await block.getByRole('button', { name: '显示行号' }).click();
+    const pre = block.locator('pre');
+    const reading = pre.locator(':scope > code');
+    await expect(reading).toBeVisible();
+    const assertAligned = async (content: import('@playwright/test').Locator) => {
+      const line = await pre.locator(':scope > span > span').first().boundingBox();
+      const text = await content.boundingBox();
+      expect(line).not.toBeNull(); expect(text).not.toBeNull();
+      expect(Math.abs(line!.y - text!.y)).toBeLessThan(2);
+      expect(text!.x).toBeGreaterThan(line!.x);
+    };
+    await assertAligned(reading);
+    await expect(pre.locator('[data-node-view-content]')).toBeHidden();
+    await expect(reading).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+    await reading.click();
+    await expect(block).toHaveAttribute('data-editing', 'true');
+    const editing = pre.locator('[data-node-view-content]');
+    await expect(editing).toBeVisible();
+    await assertAligned(editing);
+    await page.locator('[data-testid="note-editor"] h2').first().click();
+    await assertAligned(pre.locator(':scope > code'));
+    await page.getByRole('tab', { name: '预览' }).click();
+    await assertAligned(pre.locator(':scope > code'));
   });
 
   test('代码块可以复制，并给出「已复制」反馈', async ({ page }) => {
