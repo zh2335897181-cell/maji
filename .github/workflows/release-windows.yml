@@ -37,8 +37,36 @@ jobs:
           npm run typecheck
           npm test
 
-      - name: Build and publish GitHub Release
+      - name: Prepare single draft release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $version = $tag.Substring(1)
+          gh release view $tag --repo "${{ github.repository }}" *> $null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create $tag --verify-tag --draft --title "码迹 $version" --notes-file "docs/releases/$version.md" --repo "${{ github.repository }}"
+            if ($LASTEXITCODE -ne 0) { throw "Failed to prepare release draft" }
+          }
+
+      - name: Build and upload GitHub Release assets
         run: npm run package:release
         env:
           MAJI_GITHUB_REPOSITORY: ${{ github.repository }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify assets and publish release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $version = $tag.Substring(1)
+          $assets = gh release view $tag --repo "${{ github.repository }}" --json assets --jq '.assets[].name'
+          if ($LASTEXITCODE -ne 0) { throw "Failed to read release assets" }
+          foreach ($name in @("latest.yml", "maji-setup-$version-x64.exe", "maji-setup-$version-x64.exe.blockmap")) {
+            if ($assets -notcontains $name) { throw "Missing release asset: $name" }
+          }
+          gh release edit $tag --draft=false --latest --title "码迹 $version" --notes-file "docs/releases/$version.md" --repo "${{ github.repository }}"
+          if ($LASTEXITCODE -ne 0) { throw "Failed to publish release" }
