@@ -2,9 +2,25 @@ import Database from 'better-sqlite3';
 import { afterAll, expect, it } from 'vitest';
 import { migrate } from '../db/schema';
 import { seedIfEmpty } from '../db/seed';
+import { createHash } from 'node:crypto';
+import { newExam } from '../../../src/lib/exams';
 import { readSnapshot, encodeBackup, decodeBackup, contentDigest } from './format';
 const db = new Database(':memory:'); migrate(db); seedIfEmpty(db);
 afterAll(() => db.close());
+it('preserves project files and training records in exam backups',()=>{
+  const snapshot=readSnapshot(db),exam=newExam('项目考试');exam.revision=1;
+  exam.questions[0]!.files=[{id:'file_1',path:'service/Emp.java',role:'Service',language:'java',content:'class Emp {}'}];
+  snapshot.exam_records.push({id:exam.id,document:JSON.stringify(exam),revision:1,updated_at:exam.updatedAt});
+  expect(decodeBackup(encodeBackup(snapshot,'0.5.7')).tables.exam_records).toEqual(snapshot.exam_records);
+});
+it('restores schema 6 backups by adding an empty exam table after checksum verification',()=>{
+  const value=JSON.parse(encodeBackup(readSnapshot(db),'0.5.7'));value.schemaVersion=6;delete value.tables.exam_records;
+  const {checksum:_checksum,...payload}=value;
+  const canonical=(v:any):string=>Array.isArray(v)?`[${v.map(canonical).join(',')}]`:v&&typeof v==='object'?`{${Object.keys(v).sort().map(k=>`${JSON.stringify(k)}:${canonical(v[k])}`).join(',')}}`:JSON.stringify(v);
+  value.checksum=createHash('sha256').update(canonical(payload)).digest('hex');
+  expect(decodeBackup(JSON.stringify(value)).tables.exam_records).toEqual([]);
+  value.schemaVersion=5;expect(()=>decodeBackup(JSON.stringify(value))).toThrow('不兼容');
+});
 it('rejects dangerous keys inside nested document attributes', () => {
   const snapshot = readSnapshot(db);
   snapshot.notes[0]!.content_json = '{"type":"doc","content":[{"type":"paragraph","attrs":{"__proto__":{"polluted":true}}}]}';

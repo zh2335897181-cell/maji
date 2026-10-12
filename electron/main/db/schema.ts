@@ -8,7 +8,7 @@
 import type { SqliteDatabase } from './connection';
 
 /** 当前应用期望的数据库结构版本 */
-export const SCHEMA_VERSION = 6;
+export const SCHEMA_VERSION = 7;
 
 /* 说明：
    · 时间统一存 ISO 字符串（TEXT），布尔值存 INTEGER 0/1
@@ -182,6 +182,10 @@ export function migrate(db: SqliteDatabase): void {
     if (current < 6) db.exec(`
       CREATE TABLE morning_notes (id TEXT PRIMARY KEY, record_date TEXT NOT NULL, document TEXT NOT NULL, revision INTEGER NOT NULL, updated_at TEXT NOT NULL);
       CREATE INDEX idx_morning_notes_date ON morning_notes(record_date DESC, updated_at DESC);
+    `);
+    if (current < 7) db.exec(`
+      CREATE TABLE exam_records (id TEXT PRIMARY KEY, document TEXT NOT NULL, revision INTEGER NOT NULL, updated_at TEXT NOT NULL);
+      CREATE INDEX idx_exam_records_updated ON exam_records(updated_at DESC);
     `);
     db.pragma(`user_version = ${SCHEMA_VERSION}`);
   });

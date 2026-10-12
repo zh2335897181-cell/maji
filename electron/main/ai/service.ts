@@ -1,4 +1,5 @@
 import { AIClient } from './client';
+import { validateExamAIRequest, type ExamAIRequest, type ExamAnalysis, type ExamTraining } from '../../../src/lib/exams';
 import type { MindMapAIInput } from './client';
 import type { MindMapGraph } from '../../../src/lib/mindmap';
 import { validateAIAction, validateAIContext, validateAPIKey, validateProviderSettings } from './validation';
@@ -17,6 +18,7 @@ import type {
 } from './types';
 
 interface AIClientLike {
+  analyzeExam?(settings: AIProviderSettings, key: string, input: ExamAIRequest): Promise<ExamAnalysis | ExamTraining[]>;
   generateMindMap?(settings: AIProviderSettings, key: string, input: MindMapAIInput, signal?: AbortSignal): Promise<MindMapGraph>;
   testConnection(settings: AIProviderSettings, key: string): Promise<void>;
   ask(settings: AIProviderSettings, key: string, action: AIAction, context: AIContext): Promise<AIResult>;
@@ -25,6 +27,11 @@ interface AIClientLike {
 }
 
 export class AIService {
+  async analyzeExam(value: unknown): Promise<ExamAnalysis | ExamTraining[]> {
+    const input=validateExamAIRequest(value), credential=await this.requireCredential();
+    if(!this.client.analyzeExam)throw new Error('考试 AI 服务不可用，请重启新版应用');
+    return this.client.analyzeExam(credential.settings,credential.key,input);
+  }
   async generateMindMap(input: MindMapAIInput, signal?: AbortSignal): Promise<MindMapGraph> {
     const credential = await this.requireCredential();
     if (!this.client.generateMindMap) throw new Error('AI 导图服务不可用');

@@ -47,6 +47,9 @@ import type {
 
 /** 通道名必须与 src/lib/ipc.ts 的 IPC 常量表逐字一致：键和值都由编译器核对 */
 const CHANNELS: { [K in keyof typeof IPC]: (typeof IPC)[K] } = {
+  examsList: 'maji:exams:list',
+  examsSave: 'maji:exams:save',
+  examsAnalyze: 'maji:exams:analyze',
   backupStatus: 'maji:backup:status',
   backupEnabled: 'maji:backup:enabled',
   backupExport: 'maji:backup:export',
@@ -160,6 +163,11 @@ ipcRenderer.on(CHANNELS.appPrepareClose, () => {
 });
 
 const api: MajiApi = {
+  exams: {
+    list: () => invoke(CHANNELS.examsList),
+    save: exam => invoke(CHANNELS.examsSave,exam),
+    analyze: input => invoke(CHANNELS.examsAnalyze,input),
+  },
   backup: {
     status: () => invoke(CHANNELS.backupStatus),
     setEnabled: value => invoke(CHANNELS.backupEnabled, value),

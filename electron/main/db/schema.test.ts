@@ -3,6 +3,11 @@ import { migrate, SCHEMA_VERSION } from './schema';
 import type { SqliteDatabase } from './connection';
 
 describe('database schema migration', () => {
+  it('adds independent exams to v6 without rebuilding learning data',()=>{
+    const statements:string[]=[];
+    const db={pragma:(s:string,o?:{simple?:boolean})=>o?.simple?6:statements.push(s),exec:(s:string)=>statements.push(s),transaction:(fn:()=>void)=>fn} as unknown as SqliteDatabase;
+    migrate(db);expect(statements.some(s=>s.includes('CREATE TABLE exam_records'))).toBe(true);expect(statements.some(s=>/DROP TABLE|ALTER TABLE/.test(s))).toBe(false);
+  });
   it('adds independent morning records to v5 without modifying existing notes', () => {
     const statements: string[] = [];
     const db = { pragma: (s: string, o?: { simple?: boolean }) => o?.simple ? 5 : statements.push(s), exec: (s: string) => statements.push(s), transaction: (fn: () => void) => fn } as unknown as SqliteDatabase;

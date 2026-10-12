@@ -16,6 +16,7 @@ import * as courses from '../db/courses';
 import * as library from '../db/library';
 import * as notes from '../db/notes';
 import * as morningNotes from '../db/morningNotes';
+import * as exams from '../db/exams';
 import { validateMorningInput } from '../../../src/lib/morningNotes';
 import { databaseFile } from '../db/connection';
 import type { UpdateService } from '../updates';
@@ -86,6 +87,8 @@ async function exportMarkdown(args: unknown[], event: IpcMainInvokeEvent): Promi
 }
 
 const handlers: Record<string, Handler> = {
+  [IPC.examsList]: () => exams.listExams(),
+  [IPC.examsSave]: args => exams.saveExam(args[0]),
   [IPC.morningNotesList]: () => morningNotes.listMorningNotes(),
   [IPC.morningNotesCreate]: args => morningNotes.createMorningNote(validateMorningInput(args[0])),
   [IPC.morningNotesUpdate]: args => morningNotes.updateMorningNote(requireEntityId(args[0], '晨考 ID'), validateMorningInput(args[1]), args[2]),
@@ -146,6 +149,7 @@ const handlers: Record<string, Handler> = {
 export function registerIpcHandlers(updates: UpdateService, ai: AIService, backup: BackupService): void {
   const activeHandlers: Record<string, Handler> = {
     ...handlers,
+    [IPC.examsAnalyze]: args => ai.analyzeExam(args[0]),
     ...createAIHandlers(ai),
     ...createMindMapHandlers(ai),
     ...createBackupHandlers(backup),
@@ -157,7 +161,7 @@ export function registerIpcHandlers(updates: UpdateService, ai: AIService, backu
     ipcMain.handle(channel, async (event, ...args: unknown[]) => {
       try {
         if (channel === IPC.notesTouch && isRestoring()) return;
-        const readOnly = [IPC.coursesList, IPC.notesList, IPC.notesGet, IPC.notesSearch, IPC.tagsList, IPC.snippetsList, IPC.exercisesList, IPC.reviewList, IPC.reviewSessionsList, IPC.reviewSessionsGet, IPC.settingsGet, IPC.mindMapsList, IPC.mindMapsGetView, IPC.morningNotesList, IPC.aiSettingsGet] as string[];
+        const readOnly = [IPC.coursesList, IPC.notesList, IPC.notesGet, IPC.notesSearch, IPC.tagsList, IPC.snippetsList, IPC.exercisesList, IPC.reviewList, IPC.reviewSessionsList, IPC.reviewSessionsGet, IPC.settingsGet, IPC.mindMapsList, IPC.mindMapsGetView, IPC.morningNotesList, IPC.examsList, IPC.aiSettingsGet] as string[];
         if (!readOnly.includes(channel) && !channel.startsWith('maji:backup:') && !channel.startsWith('maji:app:') && !channel.startsWith('maji:updates:')) assertWritable();
         return await handler(args, event);
       } catch (error) {
