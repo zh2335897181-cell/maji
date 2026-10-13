@@ -4,15 +4,17 @@ export function AnalysisPanel({
   analysis,
   questions,
   onReference,
+  programmingOnly = false,
 }: {
   analysis: ExamAnalysis;
   questions: ExamQuestion[];
   onReference?: (questionId: string, path: string, line: number) => void;
+  programmingOnly?: boolean;
 }) {
   return (
     <div className={styles.analysis}>
       <p>{analysis.summary}</p>
-      {analysis.assessment !== 'unknown' && (
+      {!programmingOnly && analysis.assessment !== 'unknown' && (
         <p>
           AI 评阅：
           {{ correct: '正确', partial: '部分正确', wrong: '需要订正' }[analysis.assessment]}
@@ -31,7 +33,7 @@ export function AnalysisPanel({
       )}
       {analysis.answer && (
         <>
-          <h3>答案与订正建议</h3>
+          <h3>{programmingOnly ? '解题答案与说明' : '答案与订正建议'}</h3>
           <pre>{analysis.answer}</pre>
         </>
       )}
@@ -47,13 +49,15 @@ export function AnalysisPanel({
       )}
       {!!analysis.concepts.length && (
         <>
-          <h3>知识点与证据</h3>
+          <h3>{programmingOnly ? '涉及的知识点' : '知识点与证据'}</h3>
           {analysis.concepts.map((c, i) => (
             <article key={i}>
               <strong>{c.name}</strong>
-              <span className={styles.badge}>
-                {new Set(c.questionIds).size < 2 ? '疑似弱项' : '多题支持'}
-              </span>
+              {!programmingOnly && (
+                <span className={styles.badge}>
+                  {new Set(c.questionIds).size < 2 ? '疑似弱项' : '多题支持'}
+                </span>
+              )}
               <p>{c.evidence}</p>
               <small>
                 {c.questionIds

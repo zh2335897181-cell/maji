@@ -12,7 +12,7 @@ async function createExam(page: import('@playwright/test').Page) {
   await page.getByLabel('错题状态').selectOption('wrong');
 }
 test('考试支持多文件、原始与订正答案，刷新后保留', async ({ page }) => {
-  await page.goto('/#/exams');
+  await page.goto('/#/exams/history');
   await createExam(page);
   await page.locator('input[type=file]').setInputFiles([
     {
@@ -126,7 +126,8 @@ test('AI 解题、弱项、跨层训练、答案隐藏及提交评阅完整流�
       },
     });
   });
-  await page.getByRole('link', { name: '考试与错题', exact: true }).click();
+  await page.getByRole('link', { name: '编程题分析', exact: true }).click();
+  await page.getByRole('link', { name: '查看历史考试与训练' }).click();
   await createExam(page);
   await page.getByRole('button', { name: 'AI 分析解题步骤' }).click();
   await expect(page.getByRole('dialog', { name: '确认 AI 分析范围' })).toContainText(

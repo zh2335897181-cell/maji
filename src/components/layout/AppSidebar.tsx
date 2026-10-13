@@ -47,7 +47,7 @@ export function AppSidebar({
     { to: ROUTES.courses, icon: Library, label: '课程与笔记', badge: notes.length },
     { to: ROUTES.mindMaps, icon: GitBranch, label: '思维导图' },
     { to: ROUTES.morning, icon: CalendarDays, label: '晨考' },
-    { to: ROUTES.exams, icon: ClipboardCheck, label: '考试与错题' },
+    { to: ROUTES.exams, icon: ClipboardCheck, label: '编程题分析' },
     { to: ROUTES.review, icon: RotateCcw, label: '复习', badge: dueCount, accent: true },
     { to: ROUTES.search, icon: Search, label: '搜索', hint: 'Ctrl K' },
   ];

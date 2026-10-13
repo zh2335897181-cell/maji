@@ -84,6 +84,138 @@
   color: var(--ink-900);
   background: var(--bg-surface);
 }
+.dialogForm select,
+.moduleHeader input,
+.importCategory select {
+  min-width: 0;
+  width: 100%;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--ink-900);
+  background: var(--bg-surface);
+}
+.programmingLayout {
+  display: grid;
+  grid-template-columns: 205px minmax(0, 1fr);
+  align-items: start;
+  gap: 20px;
+}
+.moduleMain {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 18px;
+}
+.moduleHeader {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: space-between;
+  align-items: end;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+}
+.moduleHeader label {
+  flex: 1;
+  min-width: 180px;
+}
+.moduleNotice {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 0 0 18px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+.moduleNotice a {
+  color: var(--accent-700);
+  text-decoration: underline;
+}
+.programming .questionFields h2,
+.moduleMain h2 {
+  font-size: 17px;
+  font-weight: 600;
+}
+.muted {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+.programming .fileLayout {
+  grid-template-columns: 210px minmax(0, 1fr);
+}
+.programming .fileLayout nav {
+  max-height: 480px;
+  overflow: auto;
+  padding-right: 8px;
+}
+.fileGroup {
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line-soft);
+}
+.fileGroup h4 {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--accent-700);
+}
+.fileGroup button {
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+.fileGroup .fileToggle {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  padding: 5px 2px;
+}
+.fileToggle input {
+  flex: 0 0 14px;
+}
+.importCategory {
+  max-width: 300px;
+  margin-top: 12px;
+}
+.optionalAnswers label {
+  margin-top: 12px;
+}
+.optionalAnswers textarea {
+  min-width: 0;
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--bg-surface);
+  color: var(--ink-900);
+}
+.optionalAnswers summary {
+  font-size: 13px;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+@media (max-width: 1000px) {
+  .programmingLayout {
+    grid-template-columns: 170px minmax(0, 1fr);
+  }
+  .programming .fileLayout {
+    grid-template-columns: 165px minmax(0, 1fr);
+  }
+}
+@media (max-width: 760px) {
+  .programmingLayout,
+  .programming .fileLayout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
 .page input[type='checkbox'] {
   width: auto;
 }

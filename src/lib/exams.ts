@@ -53,6 +53,7 @@ export interface ExamQuestion {
   correction: string;
   status: ExamStatus;
   files: ProjectFile[];
+  categories?: string[];
   analysis: ExamAnalysis | null;
   analyzedAt: string | null;
   analysisSource: string | null;
@@ -74,6 +75,7 @@ export interface ExamTraining {
   createdAt: string;
 }
 export interface ExamRecord {
+  kind?: 'programming';
   id: string;
   title: string;
   date: string;
@@ -173,6 +175,11 @@ function stamp(value: unknown): string {
 function nullable<T>(value: unknown, fn: (v: unknown) => T): T | null {
   return value === null ? null : fn(value);
 }
+export function categoryName(value: unknown): string {
+  const name = text(value, 60).trim();
+  if (!name || /[\x00-\x1f]/.test(name)) throw new Error('分类名称需填写，最多 60 字');
+  return name;
+}
 export function validateProjectFile(value: unknown): ProjectFile {
   const f = object(value),
     path = text(f.path, 240).replace(/\\/g, '/');
@@ -188,7 +195,7 @@ export function validateProjectFile(value: unknown): ProjectFile {
   return {
     id: id(f.id),
     path,
-    role: choice(f.role, FILE_ROLES),
+    role: categoryName(f.role),
     language: text(f.language, 30),
     content: text(f.content),
     ...(f.includeInAI !== undefined ? { includeInAI: f.includeInAI as boolean } : {}),
@@ -240,6 +247,11 @@ export function validateQuestion(value: unknown): ExamQuestion {
     new Set(files.map((f) => f.id)).size !== files.length
   )
     throw new Error('项目文件路径或 ID 重复');
+  if (q.categories !== undefined) {
+    const categories = list(q.categories, 30, categoryName);
+    if (new Set(categories.map((c) => c.toLowerCase())).size !== categories.length)
+      throw new Error('文件分类名称重复');
+  }
   return {
     id: id(q.id),
     title: text(q.title, 200),
@@ -252,6 +264,7 @@ export function validateQuestion(value: unknown): ExamQuestion {
     correction: text(q.correction),
     status: choice(q.status, ['unmarked', 'wrong', 'partial', 'uncertain', 'correct']),
     files,
+    ...(q.categories !== undefined ? { categories: list(q.categories, 30, categoryName) } : {}),
     analysis: nullable(q.analysis, validateAnalysis),
     analyzedAt: nullable(q.analyzedAt, stamp),
     analysisSource: nullable(q.analysisSource, (v) => text(v, 120000)),
@@ -303,7 +316,9 @@ export function validateExam(value: unknown): ExamRecord {
       state: choice(item.state, ['待补强', '训练中', '基本掌握', '待复查']),
     };
   });
+  if (e.kind !== undefined && e.kind !== 'programming') throw new Error('记录类型无效');
   return {
+    ...(e.kind === 'programming' ? { kind: 'programming' as const } : {}),
     id: id(e.id),
     title,
     date,

@@ -4,7 +4,7 @@ const path = require('node:path');
 const { chromium } = require('playwright');
 
 const root = path.resolve(__dirname, '..');
-const svg = fs.readFileSync(path.join(root, 'public', 'favicon.svg'), 'utf8');
+const source = fs.readFileSync(path.join(root, 'public', 'app-icon.png')).toString('base64');
 const sizes = [16, 24, 32, 48, 64, 128, 256];
 
 function makeIco(images) {
@@ -42,8 +42,7 @@ async function main() {
     .find((candidate) => fs.existsSync(candidate));
   const packagedChrome = chromium.executablePath();
   const executablePath = process.env.CHROME_PATH || (fs.existsSync(packagedChrome) ? packagedChrome : fallbackChrome);
-  if (!executablePath) throw new Error('未找到 Chromium；请运行 npx playwright install chromium。');
-  const browser = await chromium.launch({ headless: true, executablePath });
+  const browser = await chromium.launch({ headless: true, ...(executablePath ? { executablePath } : { channel: 'chrome' }) });
   const images = [];
 
   try {
@@ -52,8 +51,8 @@ async function main() {
         viewport: { width: size, height: size },
         deviceScaleFactor: 1,
       });
-      const sizedSvg = svg.replace('<svg ', '<svg width="100%" height="100%" ');
-      await page.setContent(`<html><body style="margin:0;width:100vw;height:100vh">${sizedSvg}</body></html>`);
+      await page.setContent(`<html><body style="margin:0;width:100vw;height:100vh"><img src="data:image/png;base64,${source}" style="width:100%;height:100%;object-fit:contain"></body></html>`);
+      await page.locator('img').evaluate(img => img.decode());
       const png = await page.screenshot({ type: 'png', omitBackground: true });
       images.push({ size, png });
       if (size === 256) fs.writeFileSync(path.join(buildDir, 'icon-preview.png'), png);

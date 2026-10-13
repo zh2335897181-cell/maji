@@ -7,6 +7,7 @@ export const ROUTES = {
   notes: '/notes',
   morning: '/morning',
   exams: '/exams',
+  examsHistory: '/exams/history',
   note: (noteId: string) => `/notes/${noteId}`,
   courses: '/courses',
   coursesWith: (params: { courseId?: string; tag?: string; noteId?: string }) => {

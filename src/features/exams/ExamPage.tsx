@@ -68,8 +68,9 @@ export function ExamPage() {
       .list()
       .then(async (rows) => {
         if (!alive) return;
-        setRecords(rows);
-        if (rows[0]) await state.open(rows[0]);
+        setRecords(rows.filter((r) => r.kind !== 'programming'));
+        const first = rows.find((r) => r.kind !== 'programming');
+        if (first) await state.open(first);
       })
       .catch((cause) => setError(String(cause instanceof Error ? cause.message : cause)))
       .finally(() => {
@@ -83,7 +84,7 @@ export function ExamPage() {
     if (!exam?.revision) return;
     void api
       .list()
-      .then(setRecords)
+      .then((rows) => setRecords(rows.filter((r) => r.kind !== 'programming')))
       .catch(() => {});
   }, [api, exam?.revision]);
   const changeQuestion = useCallback(
@@ -118,7 +119,7 @@ export function ExamPage() {
     try {
       const saved = await api.save(newExam(title.trim() || '新考试'));
       await state.open(saved);
-      setRecords((previous) => [saved, ...previous]);
+      setRecords((previous) => [saved, ...previous.filter((row) => row.id !== saved.id)]);
       setQuestionId(saved.questions[0]?.id ?? '');
       setNewOpen(false);
       setTitle('');
@@ -620,6 +621,8 @@ export function ExamPage() {
                 <ProjectFiles
                   key={question.id}
                   files={question.files}
+                  categories={question.categories ?? []}
+                  onCategoriesChange={(categories, files) => changeQuestion({ categories, files })}
                   selected={fileId}
                   line={line}
                   disabled={busy}
