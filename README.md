@@ -8,7 +8,7 @@
 
 [下载安装](https://github.com/zh2335897181-cell/maji/releases/latest) · [最新开发代码](https://github.com/zh2335897181-cell/maji/tree/ai-learning-assistant) · [问题反馈](https://github.com/zh2335897181-cell/maji/issues)
 
-> 当前正式版本为 **0.6.1**，新增考试与错题整理、AI 弱项分析及多层项目强化训练。下载版本与安装包以 [Releases](https://github.com/zh2335897181-cell/maji/releases) 中的正式发布说明为准。
+> 当前正式版本为 **0.6.1**，优化考试代码部分，更换桌面app图标。下载版本与安装包以 [Releases](https://github.com/zh2335897181-cell/maji/releases) 中的正式发布说明为准。
 
 > 「考试与错题」支持多层项目文件、AI 解题与弱项分析、三级强化训练、掌握状态和训练记录，从 0.6.0 起提供，详见 [使用说明](https://github.com/zh2335897181-cell/maji/blob/ai-learning-assistant/docs/exams.md)。
 
