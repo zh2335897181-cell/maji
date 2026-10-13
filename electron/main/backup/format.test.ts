@@ -7,6 +7,19 @@ import { newExam } from '../../../src/lib/exams';
 import { readSnapshot, encodeBackup, decodeBackup, contentDigest } from './format';
 const db = new Database(':memory:'); migrate(db); seedIfEmpty(db);
 afterAll(() => db.close());
+it('recovers legacy null ordered-list starts without losing list content', () => {
+  const snapshot = readSnapshot(db);
+  const doc = {type:'doc',content:[{type:'orderedList',attrs:{start:null},content:[{type:'listItem',content:[{type:'paragraph',content:[{type:'text',text:'保留题目内容'}]}]}]}]};
+  snapshot.notes[0]!.content_json=JSON.stringify(doc);
+  const restored=decodeBackup(encodeBackup(snapshot,'0.6.1'));
+  expect(JSON.parse(String(restored.tables.notes[0]!.content_json)).content[0].attrs.start).toBe(1);
+  expect(restored.tables.notes[0]!.content_json).toContain('保留题目内容');
+});
+it.each([-1,1.5,'bad'])('still rejects invalid list starts %s', start => {
+  const snapshot=readSnapshot(db);
+  snapshot.notes[0]!.content_json=JSON.stringify({type:'doc',content:[{type:'orderedList',attrs:{start},content:[{type:'listItem',content:[{type:'paragraph'}]}]}]});
+  expect(()=>decodeBackup(encodeBackup(snapshot,'0.6.1'))).toThrow('数值属性');
+});
 it('preserves project files and training records in exam backups',()=>{
   const snapshot=readSnapshot(db),exam=newExam('项目考试');exam.revision=1;
   exam.questions[0]!.files=[{id:'file_1',path:'service/Emp.java',role:'Service',language:'java',content:'class Emp {}'}];

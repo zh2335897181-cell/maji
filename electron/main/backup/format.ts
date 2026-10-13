@@ -82,6 +82,8 @@ function checkAttributes(node: Record<string,unknown>, mark: boolean): void {
   if (!type) throw new Error('笔记包含不支持的节点或标记');
   if (node.attrs === undefined) return;
   if (!node.attrs || typeof node.attrs !== 'object' || Array.isArray(node.attrs)) throw new Error('笔记属性无效');
+  // Older pasted <ol start=""> values serialized NaN as null. Recover only this known case.
+  if (!mark && node.type === 'orderedList' && (node.attrs as Record<string,unknown>).start === null) (node.attrs as Record<string,unknown>).start = 1;
   for (const [key,value] of Object.entries(node.attrs)) {
     if (!Object.hasOwn(type.spec.attrs ?? {}, key)) throw new Error('笔记包含不支持的属性');
     if (key === 'variant') { if (!['note','tip','warning','output'].includes(String(value))) throw new Error('说明块类型无效'); }
@@ -125,7 +127,7 @@ export function decodeBackup(raw: string): Payload {
         }
         if (row.language && !['python','javascript','typescript','html','css','java','c','text'].includes(String(row.language))) throw new Error('备份语言无效');
         if (row.difficulty && !['easy','medium','hard'].includes(String(row.difficulty))) throw new Error('备份难度无效');
-        if (table === 'notes') { checkDoc(parseJson(row.content_json)); const tags = parseJson(row.tags); if (!Array.isArray(tags) || tags.some(t => typeof t !== 'string')) throw new Error('笔记标签无效'); }
+        if (table === 'notes') { const doc=parseJson(row.content_json); checkDoc(doc); row.content_json=JSON.stringify(doc); const tags = parseJson(row.tags); if (!Array.isArray(tags) || tags.some(t => typeof t !== 'string')) throw new Error('笔记标签无效'); }
         if (table === 'review_items' && !['due','scheduled','mastered','archived'].includes(String(row.state))) throw new Error('复习状态无效');
         if (table === 'review_sessions') {
           if (!['due','course','notes'].includes(String(row.scope)) || !['in-progress','completed'].includes(String(row.status)) || !['quick','standard','deep'].includes(String(row.depth))) throw new Error('练习记录状态无效');
@@ -136,8 +138,8 @@ export function decodeBackup(raw: string): Payload {
         if (table === 'review_questions' && row.grade) validateReviewGrade(parseJson(row.grade));
         if (table === 'mind_maps') { const doc = parseJson(row.document); validateDraft(doc); if (doc.id !== row.id || doc.revision !== row.revision) throw new Error('导图记录不一致'); }
         if (table === 'mind_map_views') validateView(parseJson(row.state));
-        if (table === 'morning_notes') { const doc = parseJson(row.document); validateMorningInput(doc); checkDoc(parseJson(doc.contentJson)); if (doc.id !== row.id || doc.revision !== row.revision || doc.date !== row.record_date) throw new Error('晨考记录不一致'); }
-        if (table === 'exam_records') { const doc=validateExam(parseJson(row.document)); for(const q of doc.questions)checkDoc(parseJson(q.promptDoc)); if(doc.id!==row.id||doc.revision!==row.revision||doc.updatedAt!==row.updated_at)throw new Error('考试记录不一致'); }
+        if (table === 'morning_notes') { const doc = parseJson(row.document); validateMorningInput(doc); const content=parseJson(doc.contentJson);checkDoc(content);doc.contentJson=JSON.stringify(content);row.document=JSON.stringify(doc); if (doc.id !== row.id || doc.revision !== row.revision || doc.date !== row.record_date) throw new Error('晨考记录不一致'); }
+        if (table === 'exam_records') { const doc=parseJson(row.document);validateExam(doc); for(const q of doc.questions){const content=parseJson(q.promptDoc);checkDoc(content);q.promptDoc=JSON.stringify(content);}row.document=JSON.stringify(doc); if(doc.id!==row.id||doc.revision!==row.revision||doc.updatedAt!==row.updated_at)throw new Error('考试记录不一致'); }
       }
     }
     insertSnapshot(db, tables);

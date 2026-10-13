@@ -7,6 +7,17 @@ import { Image } from '@tiptap/extension-image';
 import { TableKit } from '@tiptap/extension-table';
 import { TaskItem } from '@tiptap/extension-task-item';
 import { TaskList } from '@tiptap/extension-task-list';
+import { OrderedList } from '@tiptap/extension-list';
+
+// Invalid pasted HTML must not turn the list start into NaN (JSON null).
+export const SafeOrderedList = OrderedList.extend({
+  addAttributes() {
+    return { ...this.parent?.(), start: { default: 1, parseHTML: element => {
+      const value = Number.parseInt(element.getAttribute('start') ?? '1', 10);
+      return Number.isSafeInteger(value) && value >= 0 ? value : 1;
+    } } };
+  },
+});
 
 export const CalloutContent = Node.create({
   name: 'callout', group: 'block', content: 'block+', defining: true, selectable: true,
@@ -20,7 +31,7 @@ export const CalloutContent = Node.create({
 
 export function buildContentExtensions(codeBlock: AnyExtension = CodeBlock, callout: AnyExtension = CalloutContent) {
   return [
-    StarterKit.configure({codeBlock:false,heading:{levels:[1,2,3]},link:{openOnClick:false,autolink:true,HTMLAttributes:{rel:'noopener noreferrer',target:'_blank'}}}),
+    StarterKit.configure({codeBlock:false,orderedList:false,heading:{levels:[1,2,3]},link:{openOnClick:false,autolink:true,HTMLAttributes:{rel:'noopener noreferrer',target:'_blank'}}}), SafeOrderedList,
     codeBlock.configure({defaultLanguage:'text',languageClassPrefix:'language-',enableTabIndentation:true,tabSize:4}),
     callout, TaskList, TaskItem.configure({nested:true}),
     TableKit.configure({table:{resizable:false}}), Highlight.configure({multicolor:true}),
