@@ -19,6 +19,9 @@ interface AIClientOptions {
 }
 
 export class AIClient {
+  async summarizeClassroomFinal(settings:AIProviderSettings,key:string,system:string,text:string):Promise<string>{
+    return (await this.complete(settings,key,{system,user:text},4000,6500)).trim();
+  }
   async summarizeClassroom(settings: AIProviderSettings,key:string,system:string,text:string):Promise<string> {
     return (await this.complete(settings,key,{system,user:text},650,1500)).trim();
   }

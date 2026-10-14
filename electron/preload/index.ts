@@ -171,6 +171,18 @@ const api: MajiApi = {
     start: (title,source,aiEnabled) => invoke(CHANNELS.classroom,'start',{title,source,aiEnabled}),
     importAudio: (title,aiEnabled) => invoke(CHANNELS.classroom,'import',{title,aiEnabled}),
     stop: () => invoke(CHANNELS.classroom,'stop'),
+    pause: () => invoke(CHANNELS.classroom,'pause'),
+    resume: () => invoke(CHANNELS.classroom,'resume'),
+    finalize: id => invoke(CHANNELS.classroom,'finalize',{id}),
+    update: (id,patch,updatedAt) => invoke(CHANNELS.classroom,'update',{id,patch,updatedAt}),
+    remove: id => invoke(CHANNELS.classroom,'remove',{id}),
+    floating: () => invoke(CHANNELS.classroom,'floating'),
+    restoreMain: () => invoke(CHANNELS.classroom,'restoreMain'),
+    hideFloating: () => invoke(CHANNELS.classroom,'hideFloating'),
+    onNoteCreated: handler => {
+      const listener=()=>handler();ipcRenderer.on('maji:classroom:note-created',listener);
+      return ()=>ipcRenderer.removeListener('maji:classroom:note-created',listener);
+    },
     retry: (id,index) => invoke(CHANNELS.classroom,'retry',{id,index}),
   },
   exams: {

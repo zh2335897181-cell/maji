@@ -1,5 +1,5 @@
 import { AIClient } from './client';
-import { CLASSROOM_SYSTEM_PROMPT } from '../../../src/lib/classroom';
+import { CLASSROOM_SYSTEM_PROMPT, CLASSROOM_FINAL_PROMPT } from '../../../src/lib/classroom';
 import { validateExamAIRequest, type ExamAIRequest, type ExamAnalysis, type ExamTraining } from '../../../src/lib/exams';
 import type { MindMapAIInput } from './client';
 import type { MindMapGraph } from '../../../src/lib/mindmap';
@@ -19,6 +19,7 @@ import type {
 } from './types';
 
 interface AIClientLike {
+  summarizeClassroomFinal?(settings:AIProviderSettings,key:string,system:string,text:string):Promise<string>;
   summarizeClassroom?(settings:AIProviderSettings,key:string,system:string,text:string):Promise<string>;
   analyzeExam?(settings: AIProviderSettings, key: string, input: ExamAIRequest): Promise<ExamAnalysis | ExamTraining[]>;
   generateMindMap?(settings: AIProviderSettings, key: string, input: MindMapAIInput, signal?: AbortSignal): Promise<MindMapGraph>;
@@ -29,6 +30,24 @@ interface AIClientLike {
 }
 
 export class AIService {
+  async summarizeClassroomFinal(text:string):Promise<string>{
+    if(typeof text!=='string'||!text.trim())throw Error('没有可总结的课堂原文');
+    const credential=await this.requireCredential();
+    if(!this.client.summarizeClassroomFinal)throw Error('课堂总结 AI 不可用');
+    const ask=async(data:string,partial:boolean)=>{
+      const result=await this.client.summarizeClassroomFinal!(credential.settings,credential.key,CLASSROOM_FINAL_PROMPT+(partial?' 本批整理最多5000字符。':''),JSON.stringify({stage:partial?'分批整理：完整保留本批知识点，供整堂课合并':'整堂课最终总结',SOURCE_DATA:data}));
+      if(!result.trim()||result.length>(partial?5000:6000))throw Error('课堂总结为空或过长，请重试');
+      return result.trim();
+    };
+    // Read every batch of the original transcript; do not rely on the short 120s summaries.
+    let source=text;
+    while(source.length>12000){
+      const parts:string[]=[];
+      for(let offset=0;offset<source.length;offset+=12000)parts.push(await ask(source.slice(offset,offset+12000),true));
+      source=parts.join('\n\n');
+    }
+    return ask(source,false);
+  }
   async summarizeClassroom(text:string,previous:string):Promise<string> {
     if(typeof text!=='string'||text.length>20000)throw new Error('课堂转写过长');
     const credential=await this.requireCredential();

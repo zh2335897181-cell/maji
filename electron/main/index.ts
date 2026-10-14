@@ -201,10 +201,11 @@ async function bootstrap(): Promise<void> {
   });
   const backup = new BackupService(getDb(), app.getPath('userData'), app.getVersion());
   await backup.autoBackup().catch(() => {});
-  registerIpcHandlers(updates, new AIService(aiStore), backup);
+  const classroom=registerIpcHandlers(updates, new AIService(aiStore), backup);
 
   const openWindow = (): BrowserWindow => {
     const win = createMainWindow();
+    classroom.attachWindow(win);
     guardWindowClose(win);
     if (SMOKE_TEST) armSmokeTest(win);
     win.webContents.once('did-finish-load', () => {

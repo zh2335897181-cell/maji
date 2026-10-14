@@ -1,6 +1,7 @@
 import { useEffect, type ReactElement } from 'react';
 import { Navigate, Route, Routes, useParams } from 'react-router-dom';
 import { useLibrary } from './LibraryProvider';
+import {ClassroomFloating} from '../features/classroom/ClassroomFloating';
 import { AppLayout } from './AppLayout';
 import { CoursesPage } from '../features/courses/CoursesPage';
 import { CreatePage } from '../features/create/CreatePage';
@@ -42,6 +43,7 @@ function ScrollReset(): null {
 export function App(): ReactElement {
   return (
     <Routes>
+      <Route path="/classroom-floating" element={<ClassroomFloating/>}/>
       <Route element={<AppLayout />}>
         <Route path={ROUTES.home} element={<HomePage />} />
         <Route path={ROUTES.notes} element={<NotesRedirect />} />

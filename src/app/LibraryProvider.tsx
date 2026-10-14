@@ -159,6 +159,7 @@ export function LibraryProvider({ children }: { children: ReactNode }): ReactNod
   useEffect(() => {
     void refresh();
   }, [refresh]);
+  useEffect(()=>window.maji?.classroom?.onNoteCreated?.(()=>void refresh()),[refresh]);
 
   const setSaveState = useCallback((patch: Partial<SaveState>) => {
     setSaveStateInternal((current) => ({ ...current, ...patch }));

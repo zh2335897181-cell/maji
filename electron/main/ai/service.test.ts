@@ -6,6 +6,17 @@ const status = { baseUrl: 'https://provider.example/v1', model: 'demo', configur
 const context: AIContext = { selectedText: 'print(1)', scope: 'selection', language: 'python' };
 
 describe('AI service orchestration', () => {
+  it('reads every long classroom batch and combines the results without dropping the tail',async()=>{
+    const store={getStatus:vi.fn(),getCredential:vi.fn().mockResolvedValue({settings:{baseUrl:status.baseUrl,model:status.model},key:'secret'}),save:vi.fn(),clearKey:vi.fn()};
+    const summarizeClassroomFinal=vi.fn().mockResolvedValue('# 知识点\n- 完整整理');
+    const client={testConnection:vi.fn(),ask:vi.fn(),generateReview:vi.fn(),gradeReviewAnswer:vi.fn(),summarizeClassroomFinal};
+    const service=new AIService(store,client),text='开头知识点'+ '甲'.repeat(25000)+'末尾知识点';
+    await expect(service.summarizeClassroomFinal(text)).resolves.toContain('完整整理');
+    expect(summarizeClassroomFinal).toHaveBeenCalledTimes(4);
+    const inputs=summarizeClassroomFinal.mock.calls.map(c=>JSON.parse(String(c[3])).SOURCE_DATA);
+    expect(inputs.slice(0,3).join('')).toBe(text);
+    expect(inputs[2]).toContain('末尾知识点');
+  });
   it('does not call the provider until an explicit action and sends validated context', async () => {
     const store = {
       getStatus: vi.fn().mockResolvedValue(status),

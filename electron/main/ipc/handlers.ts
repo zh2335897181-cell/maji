@@ -148,7 +148,7 @@ const handlers: Record<string, Handler> = {
 };
 
 /** 注册全部白名单通道；重复调用会被 ipcMain.handle 拒绝，所以只调用一次 */
-export function registerIpcHandlers(updates: UpdateService, ai: AIService, backup: BackupService): void {
+export function registerIpcHandlers(updates: UpdateService, ai: AIService, backup: BackupService): ClassroomService {
   const classroom=new ClassroomService(ai);
   const localModels=new LocalModelService(()=>classroom.status().state==='idle');
   const activeHandlers: Record<string, Handler> = {
@@ -176,4 +176,5 @@ export function registerIpcHandlers(updates: UpdateService, ai: AIService, backu
       }
     });
   }
+  return classroom;
 }

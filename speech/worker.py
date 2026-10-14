@@ -5,8 +5,10 @@ import numpy as np
 import sherpa_onnx
 import soundfile as sf
 
+output_lock=threading.Lock()
 def emit(kind, **data):
-    print(json.dumps(dict(type=kind, **data), ensure_ascii=False), flush=True)
+    with output_lock:
+        print(json.dumps(dict(type=kind, **data), ensure_ascii=False), flush=True)
 
 def main():
     parser=argparse.ArgumentParser()
@@ -16,9 +18,13 @@ def main():
     parser.add_argument('--self-test',action='store_true')
     args=parser.parse_args()
     stop=threading.Event()
+    paused=threading.Event()
     def read_control():
         for line in sys.stdin:
-            if line.strip()=='stop':stop.set();return
+            command=line.strip()
+            if command=='stop':stop.set();return
+            if command=='pause':paused.set();emit('paused')
+            if command=='resume':paused.clear();emit('resumed')
         # EOF is allowed for one-shot file transcription.
         if args.source!='file':stop.set()
     threading.Thread(target=read_control,daemon=True).start()
@@ -37,6 +43,7 @@ def main():
         with sf.SoundFile(args.file) as audio:
             emit('ready',device=Path(args.file).name)
             while True:
+                while paused.is_set() and not stop.is_set():stop.wait(0.1)
                 if stop.is_set():break
                 start=audio.tell()/audio.samplerate
                 samples=audio.read(audio.samplerate*20,dtype='float32',always_2d=True)
@@ -53,7 +60,8 @@ def main():
         def callback(data,count,time_info,status):
             nonlocal frames,block,cursor
             if status:fatal.append('音频缓冲异常，请关闭其他高负载程序后重试');stop.set()
-            if data:block.append(data);frames+=count
+            # Discard paused audio, keeping the captured-audio timeline contiguous.
+            if data and not paused.is_set():block.append(data);frames+=count
             if frames>=rate*20 or stop.is_set():
                 if frames:
                     try:pending.put_nowait((b''.join(block),cursor))
