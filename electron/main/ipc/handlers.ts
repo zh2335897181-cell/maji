@@ -21,6 +21,8 @@ import { validateMorningInput } from '../../../src/lib/morningNotes';
 import { databaseFile } from '../db/connection';
 import type { UpdateService } from '../updates';
 import type { AIService } from '../ai/service';
+import { ClassroomService } from '../classroom';
+import { LocalModelService } from '../ai/localModels';
 import { createAIHandlers } from '../ai/ipc';
 import { createMindMapHandlers } from './mindMaps';
 import { createBackupHandlers } from './backup';
@@ -147,8 +149,12 @@ const handlers: Record<string, Handler> = {
 
 /** 注册全部白名单通道；重复调用会被 ipcMain.handle 拒绝，所以只调用一次 */
 export function registerIpcHandlers(updates: UpdateService, ai: AIService, backup: BackupService): void {
+  const classroom=new ClassroomService(ai);
+  const localModels=new LocalModelService(()=>classroom.status().state==='idle');
   const activeHandlers: Record<string, Handler> = {
     ...handlers,
+    [IPC.aiLocal]: args => localModels.control(args[0],args[1]),
+    [IPC.classroom]: args => classroom.control(args[0],args[1]),
     [IPC.examsAnalyze]: args => ai.analyzeExam(args[0]),
     ...createAIHandlers(ai),
     ...createMindMapHandlers(ai),

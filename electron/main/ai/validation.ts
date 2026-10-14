@@ -42,9 +42,14 @@ export function validateProviderUrl(value: unknown): string {
 
 export function validateProviderSettings(value: unknown): AIProviderSettings {
   const input = record(value, 'AI 服务设置格式无效');
+  if(input.provider!==undefined&&!['api','local'].includes(String(input.provider)))throw new Error('AI 来源无效');
+  const baseUrl=validateProviderUrl(input.baseUrl),model=nonEmptyString(input.model, MAX_MODEL_UNITS, '模型名称').trim();
+  if(input.provider==='local'){
+    if(!['localhost','127.0.0.1','[::1]'].includes(new URL(baseUrl).hostname))throw new Error('本地模型只允许本机回环地址');
+    if(/(?:^|[:/-])cloud(?:$|[:/-])/i.test(model))throw new Error('本地模式不允许云端模型');
+  }
   return {
-    baseUrl: validateProviderUrl(input.baseUrl),
-    model: nonEmptyString(input.model, MAX_MODEL_UNITS, '模型名称').trim(),
+    baseUrl, model, ...(input.provider?{provider:input.provider as 'api'|'local'}:{}),
   };
 }
 

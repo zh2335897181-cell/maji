@@ -5,12 +5,13 @@ import { migrate, SCHEMA_VERSION } from '../db/schema';
 import { validateDraft, validateView } from '../../../src/lib/mindmap';
 import { validateMorningInput } from '../../../src/lib/morningNotes';
 import { validateExam } from '../../../src/lib/exams';
+import { validateClassroom } from '../../../src/lib/classroom';
 import { validateReviewGrade, validateReviewSessionInput, validateReviewSessionPatch } from '../ipc/validate';
 import { getSchema } from '@tiptap/core';
 import { buildContentExtensions } from '../../../src/lib/editorContent';
 const documentSchema = getSchema(buildContentExtensions());
 
-export const TABLES = ['courses', 'notes', 'snippets', 'exercises', 'review_items', 'review_sessions', 'review_questions', 'mind_maps', 'mind_map_views', 'morning_notes', 'exam_records'] as const;
+export const TABLES = ['courses', 'notes', 'snippets', 'exercises', 'review_items', 'review_sessions', 'review_questions', 'mind_maps', 'mind_map_views', 'morning_notes', 'exam_records', 'classroom_records'] as const;
 export type Table = typeof TABLES[number];
 export type Row = Record<string, string | number | null>;
 export type BackupSnapshot = Record<Table, Row[]>;
@@ -101,13 +102,14 @@ export function decodeBackup(raw: string): Payload {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('备份格式无效');
   safeJson(value);
   const { checksum, ...payload } = value;
-  if (Object.keys(value).sort().join(',') !== 'appVersion,checksum,createdAt,format,formatVersion,schemaVersion,tables' || value.format !== 'maji-backup' || value.formatVersion !== 1 || ![6,SCHEMA_VERSION].includes(value.schemaVersion as number)) throw new Error('备份版本不兼容，请使用对应版本的码迹');
+  if (Object.keys(value).sort().join(',') !== 'appVersion,checksum,createdAt,format,formatVersion,schemaVersion,tables' || value.format !== 'maji-backup' || value.formatVersion !== 1 || ![6,7,SCHEMA_VERSION].includes(value.schemaVersion as number)) throw new Error('备份版本不兼容，请使用对应版本的码迹');
   if (typeof value.createdAt !== 'string' || !Number.isFinite(Date.parse(value.createdAt)) || typeof value.appVersion !== 'string') throw new Error('备份信息无效');
   if (checksum !== hash(payload)) throw new Error('备份校验失败，文件可能已损坏');
   const tables = value.tables as BackupSnapshot;
-  const expected=value.schemaVersion===6?TABLES.filter(t=>t!=='exam_records'):TABLES;
+  const expected=TABLES.filter(t=>!(value.schemaVersion===6&&t==='exam_records')&&!(Number(value.schemaVersion)<8&&t==='classroom_records'));
   if (!tables || Object.keys(tables).sort().join(',') !== [...expected].sort().join(',')) throw new Error('备份数据表不完整');
   if(value.schemaVersion===6)tables.exam_records=[];
+  if(Number(value.schemaVersion)<8)tables.classroom_records=[];
   const db = new Database(':memory:');
   try {
     migrate(db); db.pragma('foreign_keys = ON');
@@ -127,6 +129,7 @@ export function decodeBackup(raw: string): Payload {
         }
         if (row.language && !['python','javascript','typescript','html','css','java','c','text'].includes(String(row.language))) throw new Error('备份语言无效');
         if (row.difficulty && !['easy','medium','hard'].includes(String(row.difficulty))) throw new Error('备份难度无效');
+        if(table==='classroom_records'){const doc=validateClassroom(parseJson(row.document));if(doc.id!==row.id||doc.updatedAt!==row.updated_at)throw new Error('课堂记录不一致');}
         if (table === 'notes') { const doc=parseJson(row.content_json); checkDoc(doc); row.content_json=JSON.stringify(doc); const tags = parseJson(row.tags); if (!Array.isArray(tags) || tags.some(t => typeof t !== 'string')) throw new Error('笔记标签无效'); }
         if (table === 'review_items' && !['due','scheduled','mastered','archived'].includes(String(row.state))) throw new Error('复习状态无效');
         if (table === 'review_sessions') {

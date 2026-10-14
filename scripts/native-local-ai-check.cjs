@@ -1,0 +1,31 @@
+// Uses the real installed Ollama models with synthetic prompts and an isolated app profile.
+const {_electron,expect}=require('@playwright/test');
+const fs=require('node:fs'),path=require('node:path'),os=require('node:os'),assert=require('node:assert/strict');
+const root=path.resolve(__dirname,'..'),profile=fs.mkdtempSync(path.join(os.tmpdir(),'maji-local-ai-qa-')),runtime=path.join(process.env.APPDATA,'码迹','speech-runtime');
+const wrapper=path.join(profile,'wrapper.cjs');fs.writeFileSync(wrapper,`const {app}=require('electron');app.setPath('userData',${JSON.stringify(profile)});app.setAppPath(${JSON.stringify(root)});require(${JSON.stringify(path.join(root,'dist-electron/electron/main/index.js'))});`);
+let application;
+let importedModel;
+(async()=>{try{
+ application=await _electron.launch({executablePath:path.join(root,'node_modules/electron/dist/electron.exe'),args:[wrapper],env:{...process.env,ELECTRON_RUN_AS_NODE:undefined,MAJI_SPEECH_RUNTIME:runtime}});
+ const page=await application.firstWindow();await page.waitForFunction(()=>!!window.maji?.ai.local);
+ const report=await page.evaluate(()=>window.maji.ai.local.inspect());assert(report.running);assert(report.models.some(m=>m.name==='qwen3.5:4b'));assert(report.speechReady);console.log(JSON.stringify({cpu:report.hardware.cpu,ram:report.hardware.ramGB,vram:report.hardware.vramGB,models:report.models.length}));
+ const probe=await page.evaluate(()=>window.maji.ai.local.probe('qwen3.5:4b'));assert(probe.ok);assert(probe.jsonOK);console.log('PASS: real local Chinese generation and JSON selfcheck, '+probe.latencyMs+'ms');
+ const speechCheck=await page.evaluate(()=>window.maji.ai.local.probeSpeech());assert(speechCheck.includes('通过'));console.log('PASS: local speech selfcheck actually loads and decodes');
+ const configFile=path.join(profile,'api-import.json');fs.writeFileSync(configFile,JSON.stringify({baseUrl:'https://api.example.com/v1',model:'imported-api',apiKey:'imported-qa-key'}));
+ await application.evaluate(({dialog},file)=>{dialog.showOpenDialog=async()=>({canceled:false,filePaths:[file]});},configFile);
+ const importedAPI=await page.evaluate(()=>window.maji.ai.local.importAPI());assert.equal(importedAPI.settings.model,'imported-api');assert.equal(importedAPI.apiKey,'imported-qa-key');
+ const cli=require('node:child_process'),modelFile=cli.execFileSync('ollama',['show','qwen2.5:1.5b','--modelfile'],{encoding:'utf8',env:{...process.env,OLLAMA_HOST:'127.0.0.1:11434'}});
+ const blob=modelFile.split(/\r?\n/).find(l=>l.startsWith('FROM ')).slice(5).replace(/^"|"$/g,'');
+ await application.evaluate(({dialog},file)=>{dialog.showOpenDialog=async()=>({canceled:false,filePaths:[file]});},blob);
+ await page.evaluate(()=>window.maji.ai.local.importGGUF());await expect.poll(()=>page.evaluate(()=>window.maji.ai.local.job().then(s=>s.state)),{timeout:90000}).toBe('done');
+ const importedReport=await page.evaluate(()=>window.maji.ai.local.inspect());importedModel=importedReport.models.find(m=>m.name.startsWith('maji-import-')&&!report.models.some(old=>old.name===m.name))?.name;assert(importedModel);console.log('PASS: API configuration import and actual GGUF import to local Ollama');
+ await page.evaluate(()=>window.maji.ai.saveSettings({provider:'api',baseUrl:'https://api.example.com/v1',model:'preserved-online'},'qa-secret'));
+ await page.evaluate(()=>window.maji.ai.saveSettings({provider:'local',baseUrl:'http://127.0.0.1:11434/v1',model:'qwen3.5:4b'}));
+ const status=await page.evaluate(()=>window.maji.ai.getSettings());assert.equal(status.provider,'local');assert.equal(status.keyPresent,false);assert.equal(status.savedApi.model,'preserved-online');
+ const result=await page.evaluate(()=>window.maji.ai.ask('explain',{scope:'selection',selectedText:'Java 中的 int 表示什么？请用一句话解释。',language:'java'}));assert.equal(result.kind,'text');assert(result.text.trim());console.log('PASS: global local settings route real note AI through Ollama without API key');
+ await page.getByRole('button',{name:'小林（用户菜单）'}).click();await page.getByRole('menuitem',{name:'AI 服务',exact:true}).click();await expect(page.getByRole('tab',{name:'本地文字模型',exact:true})).toBeVisible();
+ await page.getByRole('tab',{name:'语音转写',exact:true}).click();await expect(page.getByRole('button',{name:'转写模型自检'})).toBeEnabled();
+ await page.screenshot({path:path.join(root,'build','local-ai-preview.png')});
+ await page.evaluate(()=>window.maji.ai.saveSettings({provider:'api',baseUrl:'https://api.example.com/v1',model:'preserved-online'}));assert((await page.evaluate(()=>window.maji.ai.getSettings())).keyPresent);
+ console.log('PASS: local/online switching preserves encrypted key; local text and speech settings UI');
+}finally{if(importedModel&&importedModel.startsWith('maji-import-'))require('node:child_process').execFileSync('ollama',['rm',importedModel],{env:{...process.env,OLLAMA_HOST:'127.0.0.1:11434'},stdio:'ignore'});if(application){await application.evaluate(({app})=>app.exit(0)).catch(()=>{});await application.close().catch(()=>{});}if(profile.startsWith(path.join(os.tmpdir(),'maji-local-ai-qa-')))fs.rmSync(profile,{recursive:true,force:true});}})().catch(e=>{console.error(e.message);process.exitCode=1;});

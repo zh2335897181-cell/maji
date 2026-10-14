@@ -3,7 +3,7 @@ import type { BackupPreview, BackupStatus } from '../../lib/backup';
 import { Button } from '../../components/ui/Button';
 import styles from './BackupSettings.module.css';
 
-const labels: Record<string, string> = { courses: '课程', notes: '笔记', snippets: '代码片段', exercises: '练习', review_items: '复习项目', review_sessions: '复习记录', review_questions: '复习题目', mind_maps: '思维导图', mind_map_views: '导图视图', morning_notes: '晨考', exam_records: '考试与错题' };
+const labels: Record<string, string> = { courses: '课程', notes: '笔记', snippets: '代码片段', exercises: '练习', review_items: '复习项目', review_sessions: '复习记录', review_questions: '复习题目', mind_maps: '思维导图', mind_map_views: '导图视图', morning_notes: '晨考', exam_records: '考试与错题',classroom_records:'课堂纪要' };
 const date = (value: string) => new Date(value).toLocaleString('zh-CN');
 
 export function BackupSettings() {
@@ -22,7 +22,7 @@ export function BackupSettings() {
   return <section className={styles.section} aria-label="数据与备份">
     <h3>数据与备份</h3>
     {!api ? <p>备份和恢复仅在桌面版中可用。</p> : <>
-      <p>备份包含课程、笔记、代码片段、练习、复习记录、思维导图、晨考以及考试与错题。不包含 API 密钥和设备设置。外部图片链接不会下载。</p>
+      <p>备份包含课程、笔记、代码片段、练习、复习记录、思维导图、晨考、考试题和课堂转写及纪要。不包含模型文件、API 密钥和设备设置。外部图片链接不会下载。</p>
       <fieldset disabled={busy} className={styles.controls}>
         <label><input type="checkbox" checked={status?.enabled ?? true} disabled={!status} onChange={e => { const enabled = e.target.checked; void run(async () => setStatus(await api.setEnabled(enabled))); }} /> 启动时自动备份（每天最多一次）</label>
         <p>{status?.lastSuccessAt ? `上次自动备份：${date(status.lastSuccessAt)}` : '尚无成功备份'}</p>

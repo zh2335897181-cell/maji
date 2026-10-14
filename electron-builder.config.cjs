@@ -5,6 +5,7 @@ const repository = resolveRepository();
 
 const config = {
   ...packageMetadata.build,
+  files: [...packageMetadata.build.files, 'speech/**/*'],
   extraMetadata: {
     ...(packageMetadata.build.extraMetadata || {}),
     majiUpdateRepository: repository ? `${repository.owner}/${repository.repo}` : null,

@@ -6,6 +6,7 @@ export const ROUTES = {
   home: '/',
   notes: '/notes',
   morning: '/morning',
+  classroom: '/classroom',
   exams: '/exams',
   examsHistory: '/exams/history',
   note: (noteId: string) => `/notes/${noteId}`,

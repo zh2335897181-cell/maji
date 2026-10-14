@@ -27,7 +27,7 @@ it('preserves project files and training records in exam backups',()=>{
   expect(decodeBackup(encodeBackup(snapshot,'0.5.7')).tables.exam_records).toEqual(snapshot.exam_records);
 });
 it('restores schema 6 backups by adding an empty exam table after checksum verification',()=>{
-  const value=JSON.parse(encodeBackup(readSnapshot(db),'0.5.7'));value.schemaVersion=6;delete value.tables.exam_records;
+  const value=JSON.parse(encodeBackup(readSnapshot(db),'0.5.7'));value.schemaVersion=6;delete value.tables.exam_records;delete value.tables.classroom_records;
   const {checksum:_checksum,...payload}=value;
   const canonical=(v:any):string=>Array.isArray(v)?`[${v.map(canonical).join(',')}]`:v&&typeof v==='object'?`{${Object.keys(v).sort().map(k=>`${JSON.stringify(k)}:${canonical(v[k])}`).join(',')}}`:JSON.stringify(v);
   value.checksum=createHash('sha256').update(canonical(payload)).digest('hex');

@@ -42,6 +42,8 @@ export type { ReviewGenerationInput, ReviewGradingInput, GeneratedReviewQuestion
 
 /** 通道名集中定义，避免字符串散落各处 */
 export const IPC = {
+  aiLocal: 'maji:ai:local',
+  classroom: 'maji:classroom:control',
   examsList: 'maji:exams:list',
   examsSave: 'maji:exams:save',
   examsAnalyze: 'maji:exams:analyze',
@@ -127,10 +129,13 @@ export interface ExportResult {
 export interface AIProviderSettings {
   baseUrl: string;
   model: string;
+  provider?: 'api'|'local';
 }
 export interface AISettingsStatus extends AIProviderSettings {
   configured: boolean;
   keyPresent: boolean;
+  savedApi?: AIProviderSettings;
+  savedLocal?: AIProviderSettings;
 }
 export type AIAction = 'explain' | 'organize' | 'exercise' | 'continue';
 export interface AIContinuationContext {
@@ -163,6 +168,7 @@ export type UpdateStatus =
  * window.maji 的形状。所有方法都是 Promise，失败时 reject 一个可读的错误。
  */
 export interface MajiApi {
+  classroom?: import('./classroom').ClassroomApi;
   exams?: import('./exams').ExamApi;
   backup?: import('./backup').BackupApi;
   morningNotes?: import('./morningNotes').MorningApi;
@@ -230,6 +236,7 @@ export interface MajiApi {
     open(url: string): Promise<void>;
   };
   ai: {
+    local?: import('./localAI').LocalAIApi;
     getSettings(): Promise<AISettingsStatus>;
     saveSettings(settings: AIProviderSettings, apiKey?: string): Promise<AISettingsStatus>;
     clearKey(): Promise<AISettingsStatus>;

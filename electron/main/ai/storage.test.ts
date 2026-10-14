@@ -39,6 +39,14 @@ describe('AI config storage', () => {
     await store.save({ baseUrl: 'https://api.deepseek.com/v1', model: 'deepseek-reasoner' });
     await expect(store.getCredential()).resolves.toMatchObject({ key: 'sk-original' });
   });
+  it('switches to a keyless local model and preserves the encrypted online profile',async()=>{
+    await store.save({baseUrl:'https://api.deepseek.com/v1',model:'deepseek-chat'},'sk-original');
+    await store.save({baseUrl:'http://127.0.0.1:11434/v1',model:'qwen3.5:4b',provider:'local'});
+    await expect(store.getCredential()).resolves.toMatchObject({key:'maji-local',settings:{provider:'local'}});
+    expect((await store.getStatus()).configured).toBe(true);expect((await readFile(filePath,'utf8'))).not.toContain('sk-original');
+    await store.save({baseUrl:'https://api.deepseek.com/v1',model:'deepseek-chat',provider:'api'});
+    await expect(store.getCredential()).resolves.toMatchObject({key:'sk-original'});
+  });
 
   it('replaces and clears the encrypted key explicitly', async () => {
     await store.save({ baseUrl: 'https://api.deepseek.com/v1', model: 'deepseek-chat' }, 'sk-old');

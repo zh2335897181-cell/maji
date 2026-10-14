@@ -47,6 +47,8 @@ import type {
 
 /** 通道名必须与 src/lib/ipc.ts 的 IPC 常量表逐字一致：键和值都由编译器核对 */
 const CHANNELS: { [K in keyof typeof IPC]: (typeof IPC)[K] } = {
+  aiLocal: 'maji:ai:local',
+  classroom: 'maji:classroom:control',
   examsList: 'maji:exams:list',
   examsSave: 'maji:exams:save',
   examsAnalyze: 'maji:exams:analyze',
@@ -163,6 +165,14 @@ ipcRenderer.on(CHANNELS.appPrepareClose, () => {
 });
 
 const api: MajiApi = {
+  classroom: {
+    status: () => invoke(CHANNELS.classroom,'status'),
+    list: () => invoke(CHANNELS.classroom,'list'),
+    start: (title,source,aiEnabled) => invoke(CHANNELS.classroom,'start',{title,source,aiEnabled}),
+    importAudio: (title,aiEnabled) => invoke(CHANNELS.classroom,'import',{title,aiEnabled}),
+    stop: () => invoke(CHANNELS.classroom,'stop'),
+    retry: (id,index) => invoke(CHANNELS.classroom,'retry',{id,index}),
+  },
   exams: {
     list: () => invoke(CHANNELS.examsList),
     save: exam => invoke(CHANNELS.examsSave,exam),
@@ -279,6 +289,19 @@ const api: MajiApi = {
     open: (url: string) => invoke<void>(CHANNELS.openExternal, url),
   },
   ai: {
+    local: {
+      inspect: () => invoke(CHANNELS.aiLocal,'inspect'),
+      start: () => invoke(CHANNELS.aiLocal,'start'),
+      pull: model => invoke(CHANNELS.aiLocal,'pull',model),
+      cancel: () => invoke(CHANNELS.aiLocal,'cancel'),
+      job: () => invoke(CHANNELS.aiLocal,'job'),
+      importGGUF: () => invoke(CHANNELS.aiLocal,'importGGUF'),
+      importAPI: () => invoke(CHANNELS.aiLocal,'importAPI'),
+      probe: model => invoke(CHANNELS.aiLocal,'probe',model),
+      installSpeech: () => invoke(CHANNELS.aiLocal,'installSpeech'),
+      importSpeech: () => invoke(CHANNELS.aiLocal,'importSpeech'),
+      probeSpeech: () => invoke(CHANNELS.aiLocal,'probeSpeech'),
+    },
     getSettings: () => invoke<AISettingsStatus>(CHANNELS.aiSettingsGet),
     saveSettings: (settings: AIProviderSettings, apiKey?: string) =>
       invoke<AISettingsStatus>(CHANNELS.aiSettingsSave, settings, apiKey),

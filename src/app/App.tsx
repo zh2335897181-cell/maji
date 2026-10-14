@@ -13,6 +13,7 @@ import { MindMapPage } from '../features/mindmap/MindMapPage';
 import { MorningPage } from '../features/morning/MorningPage';
 import { ExamPage } from '../features/exams/ExamPage';
 import { ProgrammingPage } from '../features/exams/ProgrammingPage';
+import { ClassroomPage } from '../features/classroom/ClassroomPage';
 import { SearchPage } from '../features/search/SearchPage';
 import { NotFoundPage } from '../features/home/NotFoundPage';
 import { ROUTES } from './routes';
@@ -57,6 +58,7 @@ export function App(): ReactElement {
         <Route path={ROUTES.search} element={<SearchPage />} />
         <Route path={ROUTES.review} element={<ReviewPage />} />
         <Route path={ROUTES.morning} element={<MorningPage />} />
+        <Route path={ROUTES.classroom} element={<ClassroomPage />} />
         <Route path={ROUTES.exams} element={<ProgrammingPage />} />
         <Route path={ROUTES.examsHistory} element={<ExamPage />} />
         <Route path={ROUTES.mindMaps} element={<MindMapPage />} />
