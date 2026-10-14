@@ -588,6 +588,8 @@ export function toSettings(rows: SettingRow[]): UserSettings {
   const settings: UserSettings = { ...DEFAULT_SETTINGS };
   const theme = raw.get('theme');
   if (isOneOf(theme, THEME_MODES)) settings.theme = theme;
+    const opacity=raw.get('floatingOpacity');
+    if(typeof opacity==='number'&&Number.isInteger(opacity)&&opacity>=10&&opacity<=100)settings.floatingOpacity=opacity;
   const fontFamily = raw.get('editorFontFamily');
   if (isOneOf(fontFamily, EDITOR_FONT_FAMILIES)) settings.editorFontFamily = fontFamily;
   const fontSize = raw.get('editorFontSize');

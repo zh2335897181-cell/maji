@@ -407,6 +407,7 @@ export function updateSettings(patch: Partial<UserSettings>): UserSettings {
   const current = loadSettings(db);
   const next: UserSettings = {
     theme: patch.theme ?? current.theme,
+    floatingOpacity: patch.floatingOpacity ?? current.floatingOpacity,
     editorFontSize: patch.editorFontSize ?? current.editorFontSize,
     editorFontFamily: patch.editorFontFamily ?? current.editorFontFamily,
     autoSaveDelayMs: patch.autoSaveDelayMs ?? current.autoSaveDelayMs,

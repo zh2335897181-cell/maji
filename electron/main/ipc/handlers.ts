@@ -153,6 +153,7 @@ export function registerIpcHandlers(updates: UpdateService, ai: AIService, backu
   const localModels=new LocalModelService(()=>classroom.status().state==='idle');
   const activeHandlers: Record<string, Handler> = {
     ...handlers,
+    [IPC.settingsUpdate]: args=>{const settings=library.updateSettings(validateSettingsPatch(args[0]));classroom.applyFloatingOpacity();return settings;},
     [IPC.aiLocal]: args => localModels.control(args[0],args[1]),
     [IPC.classroom]: args => classroom.control(args[0],args[1]),
     [IPC.examsAnalyze]: args => ai.analyzeExam(args[0]),

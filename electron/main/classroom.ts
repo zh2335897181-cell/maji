@@ -13,6 +13,7 @@ import {createCourse,listCourses} from './db/courses';
 import {createNote,getNote} from './db/notes';
 import {doc,heading,paragraph,codeBlock} from '../../src/lib/noteDoc';
 import {ClassroomFloatingWindow} from './classroomFloating';
+import {loadSettings} from './db/library';
 import type {ClassroomEdit,ClassroomFloatingSnapshot} from '../../src/lib/classroom';
 
 export class ClassroomService {
@@ -23,7 +24,8 @@ export class ClassroomService {
   private runningState:'recording'|'importing'='recording';
   private lastRecordId='';
   private floatingWindow:ClassroomFloatingWindow|null=null;
-  attachWindow(win:BrowserWindow){if(!this.floatingWindow)this.floatingWindow=new ClassroomFloatingWindow(()=>!!this.current?.aiEnabled||!!this.floating().summary);this.floatingWindow.attach(win);}
+  attachWindow(win:BrowserWindow){if(!this.floatingWindow)this.floatingWindow=new ClassroomFloatingWindow(()=>!!this.current?.aiEnabled||!!this.floating().summary,()=>loadSettings(getDb()).floatingOpacity/100);this.floatingWindow.attach(win);}
+  applyFloatingOpacity(){this.floatingWindow?.applyOpacity();}
   floating():ClassroomFloatingSnapshot{
     let record=this.current;
     if(!record){const row=(getDb().prepare('SELECT document FROM classroom_records WHERE id=?').get(this.lastRecordId)??getDb().prepare('SELECT document FROM classroom_records ORDER BY updated_at DESC LIMIT 1').get()) as {document:string}|undefined;record=row?validateClassroom(JSON.parse(row.document)):null;}

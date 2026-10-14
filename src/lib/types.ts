@@ -361,6 +361,7 @@ export type ThemeMode = 'light' | 'dark';
 
 export interface UserSettings {
   theme: ThemeMode;
+  floatingOpacity: number;
   /** 编辑器正文字号 */
   editorFontSize: number;
   editorFontFamily: 'sans' | 'mono';
@@ -378,6 +379,7 @@ export interface UserSettings {
 
 export const DEFAULT_SETTINGS: UserSettings = {
   theme: 'light',
+  floatingOpacity: 100,
   editorFontSize: 15,
   editorFontFamily: 'sans',
   autoSaveDelayMs: 700,

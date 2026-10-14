@@ -204,6 +204,10 @@ export function TopBar({
         icon={Settings}
       >
         <div className={styles.settingsGroup}>
+          <label>悬浮窗透明度 · {settings.floatingOpacity}% 不透明
+            <input aria-label="悬浮窗透明度" type="range" min={10} max={100} step={1} value={settings.floatingOpacity} onChange={event=>void updateSettings({floatingOpacity:Number(event.target.value)})} style={{width:'100%',accentColor:'var(--accent)'}}/>
+            <small>10% 更透明，100% 完全不透明；即时生效并自动保存。</small>
+          </label>
           <Switch
             checked={isDark}
             onChange={(checked) => void updateSettings({ theme: checked ? 'dark' : 'light' })}

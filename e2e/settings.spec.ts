@@ -1,4 +1,9 @@
 import { expect, test } from '@playwright/test';
+test('悬浮窗透明度滑块可调节且刷新后保留',async({page})=>{
+ await page.goto('/#/');await page.getByRole('button',{name:'小林（用户菜单）'}).click();await page.getByRole('menuitem',{name:'外观与编辑',exact:true}).click();
+ const slider=page.getByRole('slider',{name:'悬浮窗透明度',exact:true});await expect(slider).toHaveValue('100');await slider.focus();await slider.press('Home');await slider.press('ArrowRight');await expect(slider).toHaveValue('11');await expect(page.getByRole('dialog')).toContainText('11% 不透明');
+ await page.reload();await page.getByRole('button',{name:'小林（用户菜单）'}).click();await page.getByRole('menuitem',{name:'外观与编辑',exact:true}).click();await expect(page.getByRole('slider',{name:'悬浮窗透明度',exact:true})).toHaveValue('11');
+});
 test('主题即时切换且刷新后保留', async ({ page }) => {
   await page.goto('/#/');
   await page.getByRole('button',{name:'小林（用户菜单）'}).click();

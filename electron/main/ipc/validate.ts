@@ -364,6 +364,7 @@ export function validateSettingsPatch(value: unknown): Partial<UserSettings> {
   if (record.editorFontSize !== undefined) {
     patch.editorFontSize = requireInteger(record.editorFontSize, '编辑器字号', 12, 24);
   }
+  if(record.floatingOpacity!==undefined)patch.floatingOpacity=requireInteger(record.floatingOpacity,'悬浮窗不透明度',10,100);
   if (record.editorFontFamily !== undefined) {
     if (!isOneOf(record.editorFontFamily, EDITOR_FONT_FAMILIES)) {
       throw new Error('编辑器字体只能是 sans 或 mono');
