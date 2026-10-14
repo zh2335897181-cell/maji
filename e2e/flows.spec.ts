@@ -398,18 +398,18 @@ test.describe('新建内容流程', () => {
 });
 
 test.describe('AI 学习助手', () => {
-  test('偏好设置内容超出窗口时可在弹窗内上下滚动', async ({ page }) => {
-    await page.setViewportSize({ width: 1024, height: 620 });
+  test('AI 服务内容超出窗口时可在弹窗内上下滚动', async ({ page }) => {
+    await page.setViewportSize({ width: 1024, height: 400 });
     await page.goto('/#/');
     await attachMockAI(page, []);
     await page.getByRole('button', { name: '用户菜单' }).click();
-    await page.getByRole('menuitem', { name: '偏好设置' }).click();
+    await page.getByRole('menuitem', { name: 'AI 服务', exact: true }).click();
 
-    const dialog = page.getByRole('dialog', { name: '偏好设置' });
+    const dialog = page.getByRole('dialog', { name: 'AI 服务' });
     const bounds = await dialog.boundingBox();
     expect(bounds).not.toBeNull();
     expect(bounds!.y).toBeGreaterThanOrEqual(0);
-    expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(620);
+    expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(400);
 
     const body = dialog.locator(':scope > div').nth(1);
     const before = await body.evaluate((element) => ({
@@ -477,7 +477,7 @@ test.describe('AI 学习助手', () => {
     await attachMockAI(page, requests);
 
     await page.getByRole('button', { name: '用户菜单' }).click();
-    await page.getByRole('menuitem', { name: '偏好设置' }).click();
+    await page.getByRole('menuitem', { name: 'AI 服务', exact: true }).click();
     const settings = page.getByRole('region', { name: 'AI 服务' });
     await settings.getByLabel('接口地址').fill('https://api.deepseek.com/v1');
     await settings.getByLabel('模型名称').fill('deepseek-chat');
@@ -496,7 +496,7 @@ test.describe('AI 学习助手', () => {
     await expect(page.getByText(/选中内容会发送到你配置的 AI 服务/)).toBeVisible();
     expect(requests).toHaveLength(0);
     await page.getByRole('button', { name: '打开 AI 设置' }).click();
-    await expect(page.getByRole('dialog', { name: '偏好设置' }).getByRole('region', { name: 'AI 服务' })).toBeVisible();
+    await expect(page.getByRole('dialog', { name: 'AI 服务' }).getByRole('region', { name: 'AI 服务' })).toBeVisible();
     await page.keyboard.press('Escape');
     await page.getByRole('button', { name: '我已了解，继续' }).click();
     await expect(page.getByText('这是 AI 生成的解释')).toBeVisible();

@@ -87,7 +87,7 @@ export function TopBar({
 }: TopBarProps): ReactElement {
   const { settings, updateSettings, source, notes } = useLibrary();
   const toast = useToast();
-  const [dialog, setDialog] = useState<'settings' | 'shortcuts' | 'about' | null>(null);
+  const [dialog, setDialog] = useState<'appearance' | 'ai' | 'backup' | 'updates' | 'shortcuts' | 'about' | null>(null);
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus>({ state: 'unsupported', currentVersion: '—', message: '自动更新仅在桌面应用中可用。' });
   const statusRef = useRef(updateStatus);
   const isDark = settings.theme === 'dark';
@@ -120,7 +120,7 @@ export function TopBar({
   }, [receiveUpdateStatus]);
 
   useEffect(() => {
-    const openAISettings = (): void => setDialog('settings');
+    const openAISettings = (): void => setDialog('ai');
     const openShortcuts = (): void => setDialog('shortcuts');
     const onKeyDown = (event: KeyboardEvent): void => {
       if (event.key !== '/' || !event.ctrlKey || event.altKey || event.metaKey) return;
@@ -156,7 +156,10 @@ export function TopBar({
       icon: isDark ? Sun : Moon,
       onSelect: () => void updateSettings({ theme: isDark ? 'light' : 'dark' }),
     },
-    { id: 'settings', label: '偏好设置', icon: Settings, onSelect: () => setDialog('settings') },
+    { id: 'appearance', label: '外观与编辑', icon: Settings, onSelect: () => setDialog('appearance') },
+    { id: 'ai', label: 'AI 服务', icon: Settings, onSelect: () => setDialog('ai') },
+    { id: 'backup', label: '数据与备份', icon: Settings, onSelect: () => setDialog('backup') },
+    { id: 'updates', label: '应用更新', icon: Settings, onSelect: () => setDialog('updates') },
     {
       id: 'shortcuts',
       label: '键盘快捷键',
@@ -194,9 +197,9 @@ export function TopBar({
       </div>
 
       <Modal
-        open={dialog === 'settings'}
+        open={dialog === 'appearance'}
         onClose={() => setDialog(null)}
-        title="偏好设置"
+        title="外观与编辑"
         description="设置保存在本机，不会上传。"
         icon={Settings}
       >
@@ -236,10 +239,17 @@ export function TopBar({
             label="默认收起左侧课程导航"
             hint="窗口变窄时应用也会自动收起。"
           />
-          <UpdateSettings status={updateStatus} onCheck={checkForUpdates} onInstall={() => void installUpdate()} />
-          <BackupSettings />
-          <AISettings onNotice={(message, tone) => toast.show({ message, tone })} />
         </div>
+      </Modal>
+
+      <Modal open={dialog === 'ai'} onClose={() => setDialog(null)} title="AI 服务" icon={Settings}>
+        <div className={styles.settingsGroup}><AISettings onNotice={(message, tone) => toast.show({ message, tone })} /></div>
+      </Modal>
+      <Modal open={dialog === 'backup'} onClose={() => setDialog(null)} title="数据与备份" icon={Settings}>
+        <div className={styles.settingsGroup}><BackupSettings /></div>
+      </Modal>
+      <Modal open={dialog === 'updates'} onClose={() => setDialog(null)} title="应用更新" icon={Settings}>
+        <div className={styles.settingsGroup}><UpdateSettings status={updateStatus} onCheck={checkForUpdates} onInstall={() => void installUpdate()} /></div>
       </Modal>
 
       <Modal

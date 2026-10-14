@@ -114,6 +114,9 @@ export function LibraryProvider({ children }: { children: ReactNode }): ReactNod
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [snippets, setSnippets] = useState<CodeSnippet[]>([]);
   const [settings, setSettings] = useState<UserSettings>(DEFAULT_SETTINGS);
+  useEffect(() => {
+    document.documentElement.dataset.theme = settings.theme;
+  }, [settings.theme]);
   const [saveState, setSaveStateInternal] = useState<SaveState>(INITIAL_SAVE_STATE);
 
   const refresh = useCallback(async () => {
