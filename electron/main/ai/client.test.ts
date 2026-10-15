@@ -10,6 +10,22 @@ function completion(content: string, status = 200): Response {
 }
 
 describe('OpenAI-compatible client', () => {
+  it('uses the official DeepSeek maximum for final classroom summaries and accepts large answers', async () => {
+    const answer = '知识点'.repeat(140_000);
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(completion(answer));
+    await expect(new AIClient({ fetch: fetcher }).summarizeClassroomFinal({baseUrl:'https://api.deepseek.com/v1',model:'deepseek-flash'}, 'key', '整理', '原文')).resolves.toBe(answer);
+    expect(JSON.parse(String(fetcher.mock.calls[0][1]?.body)).max_tokens).toBe(393216);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps unknown providers and two-minute summaries at their existing token budgets', async () => {
+    const fetcher = vi.fn<typeof fetch>().mockImplementation(async()=>completion('知识点'));
+    const client = new AIClient({fetch:fetcher});
+    await client.summarizeClassroomFinal(settings,'key','整理','原文');
+    await client.summarizeClassroom({baseUrl:'https://api.deepseek.com/v1',model:'deepseek-flash'},'key','整理','原文');
+    expect(fetcher.mock.calls.map(call=>JSON.parse(String(call[1]?.body)).max_tokens)).toEqual([4000,650]);
+  });
+
   it.each(['deepseek-v4-flash', 'deepseekv4flash', 'deepseek-flash', 'deepseek/deepseek-v4-flash'])('requests final answers without thinking for %s continuation', async (model) => {
     const fetcher = vi.fn<typeof fetch>().mockImplementation(async (_url, init) => {
       const body = JSON.parse(String(init?.body));

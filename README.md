@@ -8,7 +8,7 @@
 
 [下载安装](https://github.com/zh2335897181-cell/maji/releases/latest) · [最新开发代码](https://github.com/zh2335897181-cell/maji/tree/ai-learning-assistant) · [问题反馈](https://github.com/zh2335897181-cell/maji/issues)
 
-> 当前版本为 **1.0.3**：修复课堂总结显示原始 Markdown 的问题，新笔记正常排版，旧总结提供格式修复；改进嵌套列表与表格的 Markdown 复制、导出。详见 [1.0.3 发布说明](docs/releases/1.0.3.md)，安装包以 [Releases](https://github.com/zh2335897181-cell/maji/releases) 为准。
+> 当前版本为 **1.0.4**：提高整堂课总结输出额度，官方 DeepSeek Flash / V4 Pro 接口使用最高 384K 输出 token，移除原有 6000 字符限制，同步扩展响应大小和等待时间。详见 [1.0.4 发布说明](docs/releases/1.0.4.md)，安装包以 [Releases](https://github.com/zh2335897181-cell/maji/releases) 为准。
 
 > 从 0.6.1 起，默认入口为「编程题分析」，支持独立命名、导入、分类与解析，详见 [模块使用说明](https://github.com/zh2335897181-cell/maji/blob/ai-learning-assistant/docs/programming-modules.md)。原有考试、错题和强化训练资料保留在历史入口。
 
@@ -323,6 +323,10 @@ npm run package
 
 ## 版本记录
 
+### 1.0.4 课堂总结输出额度
+
+整堂课总结连接官方 DeepSeek Flash / V4 Pro 接口时，请求最高 384K（393,216）输出 token；实际输出仍受模型上下文及服务限制。移除最终总结原有 6000 字符约束，应用接收和保存上限提高到 160 万字符，响应大小上限为 16 MiB，等待时间延长为 30 分钟。每两分钟的简短纪要保持不变，其他模型和第三方接口保留原有请求额度。本次未增加分段续写，输出被服务截断时仍提示重试。
+
 ### 1.0.3 课堂总结排版修复
 
 新课堂总结会显示为可编辑的标题、加粗、嵌套列表、表格和代码块，不再将整篇 Markdown 放进纯文本代码框。已有总结可在对应课堂点击「修复旧笔记格式」，无需重新调用 AI；手动改写过的正文不会被覆盖。课堂页保留原始 Markdown 复制入口，笔记工具栏的复制、导出同时修复嵌套列表遗漏和表格结构丢失。解析结果兼容编辑器及备份校验。
@@ -355,6 +359,7 @@ npm run package
 
 | 版本 | 日期 | 更新记录 |
 | --- | --- | --- |
+| [1.0.4](https://github.com/zh2335897181-cell/maji/tree/v1.0.4) | 2026-10-15 | 提高官方 DeepSeek 整堂课总结输出额度，放宽最终总结长度、响应大小及等待时间；保留两分钟简短纪要 |
 | [1.0.3](https://github.com/zh2335897181-cell/maji/tree/v1.0.3) | 2026-10-15 | 修复课堂总结排版，提供旧笔记格式修复；完善嵌套列表、独立段落和表格的 Markdown 导出 |
 | [1.0.2](https://github.com/zh2335897181-cell/maji/tree/v1.0.2) | 2026-10-14 | 新增悬浮窗透明度滑块，即时生效并保存本机设置 |
 | [1.0.1](https://github.com/zh2335897181-cell/maji/tree/v1.0.1) | 2026-10-14 | 课堂暂停／继续、自动 Markdown 总结笔记、编辑删除、知识点置顶悬浮窗，合并重复原文展示 |

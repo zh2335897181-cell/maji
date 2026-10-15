@@ -1,5 +1,5 @@
 import { AIClient } from './client';
-import { CLASSROOM_SYSTEM_PROMPT, CLASSROOM_FINAL_PROMPT } from '../../../src/lib/classroom';
+import { CLASSROOM_SYSTEM_PROMPT, CLASSROOM_FINAL_PROMPT, CLASSROOM_FINAL_MAX_CHARS } from '../../../src/lib/classroom';
 import { validateExamAIRequest, type ExamAIRequest, type ExamAnalysis, type ExamTraining } from '../../../src/lib/exams';
 import type { MindMapAIInput } from './client';
 import type { MindMapGraph } from '../../../src/lib/mindmap';
@@ -36,7 +36,7 @@ export class AIService {
     if(!this.client.summarizeClassroomFinal)throw Error('课堂总结 AI 不可用');
     const ask=async(data:string,partial:boolean)=>{
       const result=await this.client.summarizeClassroomFinal!(credential.settings,credential.key,CLASSROOM_FINAL_PROMPT+(partial?' 本批整理最多5000字符。':''),JSON.stringify({stage:partial?'分批整理：完整保留本批知识点，供整堂课合并':'整堂课最终总结',SOURCE_DATA:data}));
-      if(!result.trim()||result.length>(partial?5000:6000))throw Error('课堂总结为空或过长，请重试');
+      if(!result.trim()||result.length>(partial?5000:CLASSROOM_FINAL_MAX_CHARS))throw Error('课堂总结为空或过长，请重试');
       return result.trim();
     };
     // Read every batch of the original transcript; do not rely on the short 120s summaries.

@@ -1,5 +1,6 @@
 import type { AIAction, AIContext, AIProviderSettings, AIResult } from './types';
 import { createId } from '../../../src/lib/text';
+import { CLASSROOM_FINAL_MAX_CHARS } from '../../../src/lib/classroom';
 import { questionContext, validateExamAIRequest, validateExamAIResult, type ExamAIRequest, type ExamAnalysis, type ExamTraining } from '../../../src/lib/exams';
 import type { ReviewGenerationInput, ReviewGradingInput, GeneratedReviewQuestion, ReviewGrade } from './types';
 import { validateGeneratedReviewQuestions, validateReviewGenerationInput, validateReviewGrade, validateReviewGradingInput } from '../ipc/validate';
@@ -20,7 +21,12 @@ interface AIClientOptions {
 
 export class AIClient {
   async summarizeClassroomFinal(settings:AIProviderSettings,key:string,system:string,text:string):Promise<string>{
-    return (await this.complete(settings,key,{system,user:text},4000,6500)).trim();
+    // DeepSeek's official endpoint supports 384K output tokens. Do not assume
+    // third-party compatible endpoints or other models share that ceiling.
+    const officialDeepSeek = settings.provider !== 'local' && new URL(settings.baseUrl).origin === 'https://api.deepseek.com'
+      && /^deepseek-(?:flash|v4-pro)$/.test(settings.model);
+    return (await this.complete(settings,key,{system,user:text},officialDeepSeek?393216:4000,CLASSROOM_FINAL_MAX_CHARS,undefined,
+      {timeoutMs:30*60_000,maxResponseBytes:16*1024*1024})).trim();
   }
   async summarizeClassroom(settings: AIProviderSettings,key:string,system:string,text:string):Promise<string> {
     return (await this.complete(settings,key,{system,user:text},650,1500)).trim();
@@ -132,6 +138,7 @@ operation=train 时生成恰好 count 道训练题，围绕 topic 与错误原�
     maxTokens: number,
     outputLimit: number,
     signal?: AbortSignal,
+    limits?: {timeoutMs:number;maxResponseBytes:number},
   ): Promise<string> {
     const raw = await this.request(settings, key, 'chat/completions', 'POST', {
       model: settings.model,
@@ -142,7 +149,7 @@ operation=train 时生成恰好 count 道训练题，围绕 topic 与错误原�
         { role: 'system', content: prompt.system },
         { role: 'user', content: prompt.user },
       ],
-    }, signal);
+    }, signal, limits);
     let payload: unknown;
     try {
       payload = JSON.parse(raw);
@@ -162,6 +169,7 @@ operation=train 时生成恰好 count 道训练题，围绕 topic 与错误原�
     method: 'GET' | 'POST',
     body?: unknown,
     signal?: AbortSignal,
+    limits?: {timeoutMs:number;maxResponseBytes:number},
   ): Promise<string> {
     if (signal?.aborted) throw new Error('AI 请求已取消');
     const base = settings.baseUrl.endsWith('/') ? settings.baseUrl : `${settings.baseUrl}/`;
@@ -170,7 +178,8 @@ operation=train 时生成恰好 count 道训练题，围绕 topic 与错误原�
     const abort = () => controller.abort();
     signal?.addEventListener('abort', abort, { once: true });
     const local=settings.provider==='local';
-    const timer = setTimeout(() => controller.abort(), local?Math.max(this.timeoutMs,300_000):this.timeoutMs);
+    const timeoutMs = limits?.timeoutMs ?? this.timeoutMs;
+    const timer = setTimeout(() => controller.abort(), local?Math.max(timeoutMs,300_000):timeoutMs);
     try {
       if(local&&new URL(base).port==='11434'&&body){
         const check=await this.fetcher(new URL('/api/show',base),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:settings.model}),redirect:'error',signal:controller.signal});
@@ -187,7 +196,7 @@ operation=train 时生成恰好 count 道训练题，围绕 topic 与错误原�
       });
       if (!response.ok) throw providerStatusError(response.status);
       if (controller.signal.aborted) throw new Error('AI_ABORTED');
-      return await readBounded(response, this.maxResponseBytes, controller.signal);
+      return await readBounded(response, limits?.maxResponseBytes ?? this.maxResponseBytes, controller.signal);
     } catch (error) {
       if (signal?.aborted) throw new Error('AI 请求已取消');
       if (error instanceof Error && (error.name === 'AIProviderFailure' || error.name === 'AIResponseFailure')) throw error;

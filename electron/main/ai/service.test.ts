@@ -6,6 +6,15 @@ const status = { baseUrl: 'https://provider.example/v1', model: 'demo', configur
 const context: AIContext = { selectedText: 'print(1)', scope: 'selection', language: 'python' };
 
 describe('AI service orchestration', () => {
+  it('accepts a final classroom answer beyond the old 6000-character limit',async()=>{
+    const answer='# 总结\n'+'知识点\n'.repeat(10000);
+    const store={getStatus:vi.fn(),getCredential:vi.fn().mockResolvedValue({settings:{baseUrl:status.baseUrl,model:status.model},key:'secret'}),save:vi.fn(),clearKey:vi.fn()};
+    const summarizeClassroomFinal=vi.fn().mockResolvedValue(answer);
+    const client={testConnection:vi.fn(),ask:vi.fn(),generateReview:vi.fn(),gradeReviewAnswer:vi.fn(),summarizeClassroomFinal};
+    await expect(new AIService(store,client).summarizeClassroomFinal('课堂原文')).resolves.toBe(answer.trim());
+    expect(summarizeClassroomFinal).toHaveBeenCalledTimes(1);
+    expect(summarizeClassroomFinal.mock.calls[0][2]).not.toContain('最多6000字符');
+  });
   it('reads every long classroom batch and combines the results without dropping the tail',async()=>{
     const store={getStatus:vi.fn(),getCredential:vi.fn().mockResolvedValue({settings:{baseUrl:status.baseUrl,model:status.model},key:'secret'}),save:vi.fn(),clearKey:vi.fn()};
     const summarizeClassroomFinal=vi.fn().mockResolvedValue('# 知识点\n- 完整整理');
