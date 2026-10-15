@@ -375,7 +375,7 @@ export function docToMarkdown(value: Doc): string {
     switch (node.type) {
       case 'heading': {
         const level = headingLevel(node);
-        lines.push(`${'#'.repeat(level)} ${inlineToMarkdown(node)}`, '');
+        lines.push(`${indent}${'#'.repeat(level)} ${inlineToMarkdown(node)}`, '');
         return;
       }
       case 'paragraph': {
@@ -385,7 +385,8 @@ export function docToMarkdown(value: Doc): string {
       case 'codeBlock': {
         const language = String(node.attrs?.['language'] ?? '');
         const code = (node.content ?? []).map((child) => child.text ?? '').join('');
-        lines.push(`\`\`\`${language === 'text' ? '' : language}`, code, '```', '');
+        const fence='`'.repeat(Math.max(3,...(code.match(/`+/g)??[]).map(run=>run.length+1)));
+        lines.push(`${indent}${fence}${language === 'text' ? '' : language}`, ...code.split('\n').map(line=>indent+line), `${indent}${fence}`, '');
         return;
       }
       case 'callout': {
@@ -402,26 +403,28 @@ export function docToMarkdown(value: Doc): string {
           const marker = node.type === 'taskList' ? `- [${checked ? 'x' : ' '}]` : '-';
           const text = inlineToMarkdown((item.content ?? [])[0] ?? { type: 'paragraph' });
           lines.push(`${indent}${marker} ${text}`);
+          for(const child of (item.content??[]).slice(1)){if(child.type==='paragraph')lines.push('');write(child,indent+' '.repeat(marker.length+1));}
         }
         lines.push('');
         return;
       }
       case 'orderedList': {
-        let index = 1;
+        let index = Number.isSafeInteger(node.attrs?.start)&&Number(node.attrs?.start)>0?Number(node.attrs?.start):1;
         for (const item of node.content ?? []) {
           const text = inlineToMarkdown((item.content ?? [])[0] ?? { type: 'paragraph' });
           lines.push(`${indent}${index}. ${text}`);
+          for(const child of (item.content??[]).slice(1)){if(child.type==='paragraph')lines.push('');write(child,indent+' '.repeat(String(index).length+2));}
           index += 1;
         }
         lines.push('');
         return;
       }
       case 'blockquote': {
-        const text = (node.content ?? []).map(inlineToMarkdown).join('\n');
+        const text = docToMarkdown({type:'doc',content:node.content??[]}).trimEnd();
         lines.push(
           text
             .split('\n')
-            .map((line) => `> ${line}`)
+            .map((line) => `${indent}> ${line}`)
             .join('\n'),
           '',
         );
@@ -429,6 +432,11 @@ export function docToMarkdown(value: Doc): string {
       }
       case 'horizontalRule': {
         lines.push('---', '');
+        return;
+      }
+      case 'table': {
+        const rows=(node.content??[]).map(row=>(row.content??[]).map(cell=>(cell.content??[]).map(inlineToMarkdown).join(' ').replace(/\|/g,'\\|').replace(/\n/g,' ')));
+        if(rows.length){const width=Math.max(...rows.map(row=>row.length));const line=(cells:string[])=>`${indent}| ${Array.from({length:width},(_,i)=>cells[i]??'').join(' | ')} |`;lines.push(line(rows[0]!),line(Array(width).fill('---')),...rows.slice(1).map(line),'');}
         return;
       }
       case 'image': {

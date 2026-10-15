@@ -24,6 +24,7 @@ export interface ClassroomApi {
   stop():Promise<void>; retry(id:string,index:number):Promise<void>;
   pause():Promise<void>; resume():Promise<void>;
   finalize(id:string):Promise<void>;
+  repairNoteFormat(id:string):Promise<void>;
   onNoteCreated(handler:()=>void):()=>void;
   update(id:string,patch:ClassroomEdit,updatedAt:string):Promise<void>;
   remove(id:string):Promise<void>;

@@ -174,6 +174,7 @@ const api: MajiApi = {
     pause: () => invoke(CHANNELS.classroom,'pause'),
     resume: () => invoke(CHANNELS.classroom,'resume'),
     finalize: id => invoke(CHANNELS.classroom,'finalize',{id}),
+    repairNoteFormat: id => invoke(CHANNELS.classroom,'repairNoteFormat',{id}),
     update: (id,patch,updatedAt) => invoke(CHANNELS.classroom,'update',{id,patch,updatedAt}),
     remove: id => invoke(CHANNELS.classroom,'remove',{id}),
     floating: () => invoke(CHANNELS.classroom,'floating'),

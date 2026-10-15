@@ -10,8 +10,9 @@ import { summaryWindows, validateClassroom, type ClassroomRecord, type Classroom
 import type { AIService } from './ai/service';
 import {speechRuntime,speechModel} from './ai/speechRuntime';
 import {createCourse,listCourses} from './db/courses';
-import {createNote,getNote} from './db/notes';
-import {doc,heading,paragraph,codeBlock} from '../../src/lib/noteDoc';
+import {createNote,getNote,updateNote} from './db/notes';
+import {doc,heading,paragraph,type DocNode} from '../../src/lib/noteDoc';
+import {markdownToDoc} from '../../src/lib/markdownDoc';
 import {ClassroomFloatingWindow} from './classroomFloating';
 import {loadSettings} from './db/library';
 import type {ClassroomEdit,ClassroomFloatingSnapshot} from '../../src/lib/classroom';
@@ -87,11 +88,23 @@ export class ClassroomService {
       }
       getDb().transaction(()=>{
         const course=listCourses().find(c=>c.name==='课堂总结')??createCourse({name:'课堂总结',language:'text',track:'other',description:'课堂结束后生成的知识点 Markdown 笔记'});
-        const note=createNote({courseId:course.id,title:(record.title+' · 知识点总结').slice(0,200),language:'text',tags:['课堂总结'],contentJson:JSON.stringify(doc(heading(1,record.title+' · 知识点总结'),paragraph('以下为 AI 整理的课堂知识点，术语及代码请结合原文核对。代码框可一键复制完整 Markdown。'),codeBlock('text',record.finalSummary!.markdown)))});
+        const note=createNote({courseId:course.id,title:(record.title+' · 知识点总结').slice(0,200),language:'text',tags:['课堂总结'],contentJson:this.finalNoteDoc(record)});
         record.finalSummary!.noteId=note.id;this.save(record);
       })();
       for(const win of BrowserWindow.getAllWindows()){try{win.webContents.send('maji:classroom:note-created');}catch{/* The note is already saved even if a window closed. */}}
     }catch(e){delete record.finalSummary.noteId;record.finalSummary.error=(e instanceof Error?e.message:String(e)).slice(0,2000);this.save(record);}
+  }
+  private finalNoteDoc(record:ClassroomRecord){return JSON.stringify(doc(heading(1,record.title+' · 知识点总结'),paragraph('以下为 AI 整理的课堂知识点，术语及代码请结合原文核对。可从笔记工具栏复制或导出 Markdown。'),...markdownToDoc(record.finalSummary!.markdown).content));}
+  repairNoteFormat(id:unknown){
+    if(this.state!=='idle')throw Error('请先结束课堂并等待处理完成');
+    const record=this.list().find(r=>r.id===id),noteId=record?.finalSummary?.noteId;
+    if(!record||!noteId)throw Error('未找到课堂总结笔记');
+    const note=getNote(noteId);if(!note)throw Error('总结笔记不存在或已删除');
+    const content=(JSON.parse(note.contentJson) as {content?:DocNode[]}).content;
+    // Only convert the known legacy template; never overwrite a manually edited note.
+    if(content?.length!==3||content[0]?.type!=='heading'||content[1]?.type!=='paragraph'||content[1].content?.map(n=>n.text??'').join('')!=='以下为 AI 整理的课堂知识点，术语及代码请结合原文核对。代码框可一键复制完整 Markdown。'||content[2]?.type!=='codeBlock'||content[2].attrs?.language!=='text'||content[2].content?.map(n=>n.text??'').join('')!==record.finalSummary!.markdown)throw Error('笔记已编辑或已是排版格式，为保护内容未作修改');
+    updateNote(noteId,{contentJson:JSON.stringify(doc(content![0]!,paragraph('以下为 AI 整理的课堂知识点，术语及代码请结合原文核对。可从笔记工具栏复制或导出 Markdown。'),...markdownToDoc(record.finalSummary!.markdown).content))});
+    for(const win of BrowserWindow.getAllWindows()){try{win.webContents.send('maji:classroom:note-created');}catch{/* Saved independently of the window. */}}
   }
   async finalize(id:unknown){
     if(this.state!=='idle')throw Error('请先结束课堂并等待处理完成');
@@ -170,6 +183,7 @@ export class ClassroomService {
     if(command==='stop')return this.stop();if(command==='retry')return this.retry(v?.id,v?.index);
     if(command==='pause')return this.pause();if(command==='resume')return this.resume();
     if(command==='finalize')return this.finalize(v?.id);
+    if(command==='repairNoteFormat')return this.repairNoteFormat(v?.id);
     if(command==='update')return this.update(v?.id,v?.patch,v?.updatedAt);if(command==='remove')return this.remove(v?.id);
     if(command==='floating')return this.floating();if(command==='restoreMain')return this.floatingWindow?.restore();if(command==='hideFloating')return this.floatingWindow?.hide();
     throw Error('未知课堂操作');

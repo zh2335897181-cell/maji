@@ -4,6 +4,8 @@ import {migrate} from './db/schema';
 import {ClassroomService} from './classroom';
 import {beginRestore} from './backup/writeGate';
 import type {AIService} from './ai/service';
+import {doc,heading,paragraph,codeBlock} from '../../src/lib/noteDoc';
+import {updateNote,getNote} from './db/notes';
 vi.mock('electron',()=>({app:{on:vi.fn(),getPath:()=>'.'},dialog:{showOpenDialog:vi.fn()},BrowserWindow:{getAllWindows:()=>[]}}));
 vi.mock('./db/connection',()=>({getDb:()=>db}));
 const db=new Database(':memory:');migrate(db);
@@ -29,9 +31,21 @@ it('creates one Markdown note from the full transcript, not the brief summaries'
  expect(summarizeClassroomFinal.mock.calls[0]![0]).toContain('老师的知识点');
  const row=service.list()[0]!;expect(row.finalSummary?.noteId).toMatch(/^note_/);
  const note=db.prepare('SELECT content_json FROM notes WHERE id=?').get(row.finalSummary!.noteId) as {content_json:string};
- expect(JSON.parse(note.content_json).content.at(-1).content[0].text).toBe('# 课堂知识点\n\n- 构造器注入');
+ expect(JSON.parse(note.content_json).content.some((n:{type:string})=>n.type==='bulletList')).toBe(true);
+ expect(JSON.parse(note.content_json).content.some((n:{type:string})=>n.type==='codeBlock')).toBe(false);
  await service.finalize('class_test');expect(summarizeClassroomFinal).toHaveBeenCalledTimes(1);
  expect((db.prepare('SELECT count(*) AS n FROM notes').get() as {n:number}).n).toBe(1);
+});
+it('repairs the legacy raw Markdown note but refuses to overwrite changed content',async()=>{
+ insert();const markdown='## 模块化\n\n**重点**\n\n```javascript\nconsole.log(1);\n```';
+ const service=new ClassroomService({summarizeClassroomFinal:async()=>markdown} as unknown as AIService);await service.finalize('class_test');
+ const id=service.list()[0]!.finalSummary!.noteId!,note=getNote(id)!;
+ const legacy=doc(heading(1,note.title),paragraph('以下为 AI 整理的课堂知识点，术语及代码请结合原文核对。代码框可一键复制完整 Markdown。'),codeBlock('text',markdown));
+ updateNote(id,{contentJson:JSON.stringify(legacy)});service.repairNoteFormat('class_test');
+ const repaired=JSON.parse(getNote(id)!.contentJson);expect(repaired.content.some((n:{type:string;attrs?:{level?:number}})=>n.type==='heading'&&n.attrs?.level===2)).toBe(true);
+ expect(repaired.content.at(-1).attrs.language).toBe('javascript');expect(()=>service.repairNoteFormat('class_test')).toThrow('已编辑或已是');
+ legacy.content[2]=codeBlock('text',markdown+'\n用户的修改');updateNote(id,{contentJson:JSON.stringify(legacy)});
+ expect(()=>service.repairNoteFormat('class_test')).toThrow('保护内容');expect(getNote(id)!.contentText).toContain('用户的修改');
 });
 it('retains originals when final generation fails and allows retry',async()=>{
  insert();const summarizeClassroomFinal=vi.fn().mockRejectedValueOnce(Error('模型暂不可用')).mockResolvedValue('# 重试成功');
