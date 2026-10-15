@@ -131,7 +131,7 @@ export function CreatePage(): ReactElement {
           kind,
           title: created.title,
           meta: `${languageName(created.language)} · ${code.split('\n').length} 行代码`,
-          openTo: created.noteId ? ROUTES.note(created.noteId) : ROUTES.coursesWith({ courseId }),
+          openTo: created.noteId ? ROUTES.note(created.noteId) : ROUTES.snippets,
         });
       } else if (kind === 'exercise') {
         const created = await createExercise({

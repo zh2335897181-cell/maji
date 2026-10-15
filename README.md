@@ -8,7 +8,7 @@
 
 [下载安装](https://github.com/zh2335897181-cell/maji/releases/latest) · [最新开发代码](https://github.com/zh2335897181-cell/maji/tree/ai-learning-assistant) · [问题反馈](https://github.com/zh2335897181-cell/maji/issues)
 
-> 当前版本为 **1.0.4**：提高整堂课总结输出额度，官方 DeepSeek Flash / V4 Pro 接口使用最高 384K 输出 token，移除原有 6000 字符限制，同步扩展响应大小和等待时间。详见 [1.0.4 发布说明](docs/releases/1.0.4.md)，安装包以 [Releases](https://github.com/zh2335897181-cell/maji/releases) 为准。
+> 当前版本为 **1.0.5**：新增独立代码片段模块，创建后可集中查看、搜索和复制，不再混在课程笔记中。详见 [1.0.5 发布说明](docs/releases/1.0.5.md)，安装包以 [Releases](https://github.com/zh2335897181-cell/maji/releases) 为准。
 
 > 从 0.6.1 起，默认入口为「编程题分析」，支持独立命名、导入、分类与解析，详见 [模块使用说明](https://github.com/zh2335897181-cell/maji/blob/ai-learning-assistant/docs/programming-modules.md)。原有考试、错题和强化训练资料保留在历史入口。
 
@@ -323,6 +323,10 @@ npm run package
 
 ## 版本记录
 
+### 1.0.5 代码片段独立模块
+
+新增独立的「代码片段」模块，侧边栏可直接进入。代码片段创建完成后会自动打开该模块，即使没有关联课程或笔记也能在列表中找到；支持按名称、语言、说明和代码搜索，查看说明、运行结果并一键复制代码。原有课程笔记和关联笔记流程保持不变。
+
 ### 1.0.4 课堂总结输出额度
 
 整堂课总结连接官方 DeepSeek Flash / V4 Pro 接口时，请求最高 384K（393,216）输出 token；实际输出仍受模型上下文及服务限制。移除最终总结原有 6000 字符约束，应用接收和保存上限提高到 160 万字符，响应大小上限为 16 MiB，等待时间延长为 30 分钟。每两分钟的简短纪要保持不变，其他模型和第三方接口保留原有请求额度。本次未增加分段续写，输出被服务截断时仍提示重试。
@@ -359,6 +363,7 @@ npm run package
 
 | 版本 | 日期 | 更新记录 |
 | --- | --- | --- |
+| [1.0.5](https://github.com/zh2335897181-cell/maji/tree/v1.0.5) | 2026-10-15 | 新增独立代码片段模块，支持集中查看、搜索和复制；修复创建后无关联笔记时找不到片段的问题 |
 | [1.0.4](https://github.com/zh2335897181-cell/maji/tree/v1.0.4) | 2026-10-15 | 提高官方 DeepSeek 整堂课总结输出额度，放宽最终总结长度、响应大小及等待时间；保留两分钟简短纪要 |
 | [1.0.3](https://github.com/zh2335897181-cell/maji/tree/v1.0.3) | 2026-10-15 | 修复课堂总结排版，提供旧笔记格式修复；完善嵌套列表、独立段落和表格的 Markdown 导出 |
 | [1.0.2](https://github.com/zh2335897181-cell/maji/tree/v1.0.2) | 2026-10-14 | 新增悬浮窗透明度滑块，即时生效并保存本机设置 |

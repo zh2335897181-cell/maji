@@ -16,6 +16,7 @@ import { ExamPage } from '../features/exams/ExamPage';
 import { ProgrammingPage } from '../features/exams/ProgrammingPage';
 import { ClassroomPage } from '../features/classroom/ClassroomPage';
 import { SearchPage } from '../features/search/SearchPage';
+import { SnippetsPage } from '../features/snippets/SnippetsPage';
 import { NotFoundPage } from '../features/home/NotFoundPage';
 import { ROUTES } from './routes';
 
@@ -61,6 +62,7 @@ export function App(): ReactElement {
         <Route path={ROUTES.review} element={<ReviewPage />} />
         <Route path={ROUTES.morning} element={<MorningPage />} />
         <Route path={ROUTES.classroom} element={<ClassroomPage />} />
+        <Route path={ROUTES.snippets} element={<SnippetsPage />} />
         <Route path={ROUTES.exams} element={<ProgrammingPage />} />
         <Route path={ROUTES.examsHistory} element={<ExamPage />} />
         <Route path={ROUTES.mindMaps} element={<MindMapPage />} />
