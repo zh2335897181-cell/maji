@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { useLibrary } from '../../app/LibraryProvider';
 import { useToast } from '../../app/ToastProvider';
 import type { UpdateStatus } from '../../lib/ipc';
+import { THEME_MODES, type ThemeMode, type UserSettings } from '../../lib/types';
 import { Button, IconButton } from '../ui/Button';
 import { Kbd, SelectField, Switch } from '../ui/Fields';
 import { Menu, type MenuEntry } from '../ui/Menu';
@@ -34,6 +35,14 @@ export function TopBarActions({ children }: { children: ReactNode }): ReactEleme
   if (!slot) return null;
   return createPortal(children, slot);
 }
+
+const THEME_LABELS: Record<ThemeMode, string> = {
+  light: '清透浅色',
+  paper: '纸感米白',
+  mist: '静谧雾蓝',
+  forest: '松林绿',
+  dark: '墨夜深色',
+};
 
 type ShortcutDefinition = { label: string; keys: string[]; alternate?: string[] };
 
@@ -202,30 +211,61 @@ export function TopBar({
         title="外观与编辑"
         description="设置保存在本机，不会上传。"
         icon={Settings}
+        wide
       >
         <div className={styles.settingsGroup}>
+          <fieldset className={styles.themePicker}>
+            <legend>界面主题</legend>
+            <div className={styles.themeOptions}>
+              {THEME_MODES.map(theme => (
+                <label className={styles.themeOption} key={theme}>
+                  <input
+                    type="radio"
+                    name="appearance-theme"
+                    checked={settings.theme === theme}
+                    onChange={() => void updateSettings({ theme })}
+                  />
+                  <span className={styles.themeCard}>
+                    <span className={styles.themePreview} data-palette={theme} aria-hidden="true">
+                      <span />
+                    </span>
+                    <span>{THEME_LABELS[theme]}</span>
+                  </span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+          <div className={styles.fontOptions}>
+            <SelectField
+              label="编辑器正文字体"
+              value={settings.editorFontFamily}
+              options={[
+                { value: 'sans', label: '无衬线 · 默认' },
+                { value: 'serif', label: '宋体 · 阅读' },
+                { value: 'mono', label: '等宽 · 技术笔记' },
+              ]}
+              onChange={(event) => void updateSettings({
+                editorFontFamily: event.target.value as UserSettings['editorFontFamily'],
+              })}
+            />
+            <SelectField
+              label="编辑器正文字号"
+              value={String(settings.editorFontSize)}
+              options={Array.from({ length: 13 }, (_, index) => {
+                const size = String(index + 12);
+                return { value: size, label: size === '15' ? '15 px · 默认' : `${size} px` };
+              })}
+              onChange={(event) => void updateSettings({ editorFontSize: Number(event.target.value) })}
+            />
+          </div>
+          <div className={styles.fontPreview}>
+            <small>正文预览</small>
+            <p>每一次练习，都留下一点进步。</p>
+          </div>
           <label>悬浮窗透明度 · {settings.floatingOpacity}% 不透明
             <input aria-label="悬浮窗透明度" type="range" min={10} max={100} step={1} value={settings.floatingOpacity} onChange={event=>void updateSettings({floatingOpacity:Number(event.target.value)})} style={{width:'100%',accentColor:'var(--accent)'}}/>
             <small>10% 更透明，100% 完全不透明；即时生效并自动保存。</small>
           </label>
-          <Switch
-            checked={isDark}
-            onChange={(checked) => void updateSettings({ theme: checked ? 'dark' : 'light' })}
-            label="深色主题"
-            hint="浅色是默认方案；夜间长时间看代码时可以换成深色。"
-          />
-          <SelectField
-            label="编辑器正文字号"
-            hint="只影响笔记正文，不影响界面其他部分"
-            value={String(settings.editorFontSize)}
-            options={[
-              { value: '14', label: '14px · 紧凑' },
-              { value: '15', label: '15px · 默认' },
-              { value: '16', label: '16px · 舒适' },
-              { value: '17', label: '17px · 大字号' },
-            ]}
-            onChange={(event) => void updateSettings({ editorFontSize: Number(event.target.value) })}
-          />
           <SelectField
             label="自动保存延迟"
             hint="停止输入后多久写入本地数据库"

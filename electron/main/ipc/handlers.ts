@@ -71,9 +71,10 @@ function appInfo(): AppInfo {
 async function exportMarkdown(args: unknown[], event: IpcMainInvokeEvent): Promise<ExportResult> {
   const { suggestedName, content } = validateExportArgs(args);
   const base = suggestedName.replace(/\.(md|markdown)$/i, '');
+  const fileName = toSafeFileName(base, 'md');
   const options = {
     title: '导出为 Markdown',
-    defaultPath: toSafeFileName(base, 'md'),
+    defaultPath: args[2] === 'desktop' ? path.join(app.getPath('desktop'), fileName) : fileName,
     filters: [{ name: 'Markdown', extensions: ['md'] }],
   };
 

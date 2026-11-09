@@ -28,7 +28,7 @@ import type {
   ReviewState,
   UserSettings,
 } from '../../../src/lib/types';
-import { DEFAULT_SETTINGS } from '../../../src/lib/types';
+import { DEFAULT_SETTINGS, EDITOR_FONT_FAMILIES, THEME_MODES } from '../../../src/lib/types';
 import { isCourseTrackId, trackFromLanguage } from '../../../src/lib/courseTracks';
 import { extractCodeText, type Doc } from '../../../src/lib/noteDoc';
 import type { SearchDocument } from '../../../src/lib/search';
@@ -79,8 +79,6 @@ export const REVIEW_DEPTHS = ['quick', 'standard', 'deep'] as const;
 export const REVIEW_QUESTION_TYPES = ['concept', 'short-answer', 'code-reading', 'code-writing', 'code-fix'] as const;
 export const EXERCISE_DIFFICULTIES = ['easy', 'medium', 'hard'] as const;
 export const CONFIDENCE_LEVELS = ['low', 'medium', 'high'] as const;
-export const THEME_MODES = ['light', 'dark'] as const;
-export const EDITOR_FONT_FAMILIES = ['sans', 'mono'] as const;
 
 export function isOneOf<T extends string>(value: unknown, allowed: readonly T[]): value is T {
   return typeof value === 'string' && (allowed as readonly string[]).includes(value);

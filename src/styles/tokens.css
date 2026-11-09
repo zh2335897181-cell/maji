@@ -119,6 +119,9 @@
 
   /* 编辑器排版（字号可由用户设置覆盖） */
   --editor-font-size: var(--font-size-lg);
+  --editor-font-family: var(--font-sans);
+  --font-serif: "Songti SC", "SimSun", "Noto Serif CJK SC", "Source Han Serif SC", Georgia, serif;
+  --font-editor-mono: "Cascadia Mono", "JetBrains Mono", Consolas, "Microsoft YaHei UI", monospace;
   --editor-line-height: var(--line-relaxed);
   --editor-max-width: 720px;
   --editor-paragraph-gap: 14px;
@@ -292,4 +295,82 @@
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
   --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.45);
   --shadow-lg: 0 24px 48px -12px rgba(0, 0, 0, 0.6);
+}
+
+/* 外观预览和应用共用同一组背景、表面及强调色。 */
+[data-palette='light'] {
+  --palette-app: #f4f6f7;
+  --palette-surface: #ffffff;
+  --palette-accent: #1f6a80;
+}
+
+[data-palette='dark'] {
+  --palette-app: #14191e;
+  --palette-surface: #1a2026;
+  --palette-accent: #4e9cb2;
+}
+
+:root[data-theme='paper'],
+[data-palette='paper'] {
+  --palette-app: #f2ece1;
+  --palette-surface: #fffcf6;
+  --palette-accent: #8b522d;
+  --palette-soft: #f7ebdc;
+  --palette-border: #d9c2a8;
+}
+
+:root[data-theme='mist'],
+[data-palette='mist'] {
+  --palette-app: #eaf0fa;
+  --palette-surface: #fcfdff;
+  --palette-accent: #3b57a5;
+  --palette-soft: #e9eefc;
+  --palette-border: #bbc9e6;
+}
+
+:root[data-theme='forest'],
+[data-palette='forest'] {
+  --palette-app: #e7efe8;
+  --palette-surface: #fbfefb;
+  --palette-accent: #306449;
+  --palette-soft: #e6f2e8;
+  --palette-border: #b8cfbf;
+}
+
+:root:is([data-theme='paper'], [data-theme='mist'], [data-theme='forest']) {
+  --bg-app: var(--palette-app);
+  --bg-surface: var(--palette-surface);
+  --bg-subtle: color-mix(in srgb, var(--palette-surface) 66%, var(--palette-app));
+  --bg-sunken: var(--palette-app);
+  --bg-hover: color-mix(in srgb, var(--palette-surface) 40%, var(--palette-app));
+  --bg-active: var(--palette-soft);
+  --line-strong: var(--palette-border);
+  --line: color-mix(in srgb, var(--palette-border) 55%, var(--palette-surface));
+  --line-soft: color-mix(in srgb, var(--palette-border) 35%, var(--palette-surface));
+
+  --accent-50: var(--palette-soft);
+  --accent-100: color-mix(in srgb, var(--palette-soft) 72%, var(--palette-border));
+  --accent-200: var(--palette-border);
+  --accent-300: color-mix(in srgb, var(--palette-accent) 45%, var(--palette-border));
+  --accent-400: color-mix(in srgb, var(--palette-accent) 65%, var(--palette-border));
+  --accent-500: color-mix(in srgb, var(--palette-accent) 85%, var(--palette-border));
+  --accent-600: var(--palette-accent);
+  --accent-700: color-mix(in srgb, var(--palette-accent) 86%, #000);
+  --accent-800: color-mix(in srgb, var(--palette-accent) 72%, #000);
+
+  --code-bg: var(--bg-subtle);
+  --code-bg-header: var(--bg-hover);
+  --code-border: var(--line);
+  --note-bg: var(--accent-soft);
+  --note-border: var(--accent-border);
+  --note-text: var(--accent-active);
+  --note-label: var(--accent);
+}
+
+:root[data-editor-font='serif'] {
+  --editor-font-family: var(--font-serif);
+}
+
+:root[data-editor-font='mono'] {
+  --editor-font-family: var(--font-editor-mono);
 }

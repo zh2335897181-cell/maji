@@ -115,8 +115,11 @@ export function LibraryProvider({ children }: { children: ReactNode }): ReactNod
   const [snippets, setSnippets] = useState<CodeSnippet[]>([]);
   const [settings, setSettings] = useState<UserSettings>(DEFAULT_SETTINGS);
   useEffect(() => {
-    document.documentElement.dataset.theme = settings.theme;
-  }, [settings.theme]);
+    const root = document.documentElement;
+    root.dataset.theme = settings.theme;
+    root.dataset.editorFont = settings.editorFontFamily;
+    root.style.setProperty('--editor-font-size', `${settings.editorFontSize}px`);
+  }, [settings.theme, settings.editorFontFamily, settings.editorFontSize]);
   const [saveState, setSaveStateInternal] = useState<SaveState>(INITIAL_SAVE_STATE);
 
   const refresh = useCallback(async () => {

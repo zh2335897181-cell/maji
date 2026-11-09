@@ -295,8 +295,8 @@ const api: MajiApi = {
       invoke<UserSettings>(CHANNELS.settingsUpdate, patch),
   },
   files: {
-    exportMarkdown: (suggestedName: string, content: string) =>
-      invoke<ExportResult>(CHANNELS.exportMarkdown, suggestedName, content),
+    exportMarkdown: (suggestedName: string, content: string, destination?: 'desktop') =>
+      invoke<ExportResult>(CHANNELS.exportMarkdown, suggestedName, content, destination),
   },
   external: {
     open: (url: string) => invoke<void>(CHANNELS.openExternal, url),

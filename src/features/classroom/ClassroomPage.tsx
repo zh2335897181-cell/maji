@@ -3,6 +3,8 @@ import { Mic, Plus, Square, Upload, Download, Sparkles, Pause, Play, Copy, Penci
 import {useNavigate} from 'react-router-dom';
 import {useLibrary} from '../../app/LibraryProvider';
 import {ROUTES} from '../../app/routes';
+import { useToast } from '../../app/ToastProvider';
+import { exportNoteAsMarkdown } from '../notes/exportNote';
 import { Button } from '../../components/ui/Button';
 import { Modal } from '../../components/ui/Modal';
 import type { ClassroomRecord, ClassroomStatus,ClassroomEdit } from '../../lib/classroom';
@@ -12,7 +14,8 @@ const time=(s:number)=>`${Math.floor(s/60).toString().padStart(2,'0')}:${Math.fl
 const names={idle:'未在录音',starting:'正在加载模型',recording:'正在录音与转写',importing:'正在导入转写',pausing:'正在暂停',paused:'已暂停',resuming:'正在继续',stopping:'正在结束并整理课堂笔记'};
 export function ClassroomPage(){
  const api=window.maji?.classroom;
- const navigate=useNavigate(),{refresh}=useLibrary();
+ const navigate=useNavigate(),{refresh,loadNote}=useLibrary();
+ const toast = useToast();
  const [copied,setCopied]=useState('');
  const [editing,setEditing]=useState<ClassroomRecord|null>(null),[edit,setEdit]=useState<ClassroomEdit>({title:'',chunkTexts:[],summaryTexts:[]}),[deleting,setDeleting]=useState<ClassroomRecord|null>(null);
  const [rows,setRows]=useState<ClassroomRecord[]>([]),[status,setStatus]=useState<ClassroomStatus>({installed:false,state:'idle',activeId:null,error:'',device:''});
@@ -27,6 +30,17 @@ export function ClassroomPage(){
  },[api]);
  async function run(action:()=>Promise<unknown>){if(locked.current)return;locked.current=true;setBusy(true);setError('');try{await action();}catch(e){setError(e instanceof Error?e.message:String(e));}finally{locked.current=false;if(live.current)setBusy(false);}}
  async function start(){if(!api)return;await run(async()=>{const id=importing?await api.importAudio(title,ai):await api.start(title,source,ai);if(id){setSelected(id);setOpen(false);setStatus(s=>({...s,state:'starting',activeId:id}));}});}
+ async function exportForXmind(noteId: string) {
+   await run(async () => {
+     const note = await loadNote(noteId);
+     if (!note) throw new Error('找不到总结笔记，可能已被删除');
+     const result = await exportNoteAsMarkdown(note.title, note.contentJson, 'xmind');
+     toast.show({
+       message: result.saved ? `${result.message}。在 Xmind 中选择「文件 → 导入 → Markdown」。` : result.message,
+       tone: result.saved ? 'success' : 'info',
+     });
+   });
+ }
  function download(){if(!record)return;const text=`# ${record.title}\n\n${record.summaries.map(s=>`## ${time(s.start)}–${time(s.end)}\n${s.error?'生成失败：'+s.error:s.text||'等待生成'}`).join('\n\n')}\n\n# 转写原文\n\n${record.chunks.filter(c=>c.text).map(c=>`[${time(c.start)}–${time(c.end)}] ${c.text}`).join('\n\n')}`;const url=URL.createObjectURL(new Blob([text],{type:'text/markdown;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download=record.title.replace(/[<>:"/\\|?*]/g,'_')+'.md';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
  return <section className={styles.page} data-scroll-container>
   <header className={styles.header}><div><h1><Mic size={24}/>课堂纪要</h1><p>听课时记录原文，每两分钟只整理关键知识点。</p></div><div className={styles.actions}><Button icon={Upload} variant="secondary" disabled={!api||!status.installed||active||busy} onClick={()=>{setTitle('课堂录音 '+new Date().toLocaleDateString());setImporting(true);setOpen(true);}}>导入录音</Button><Button icon={Plus} disabled={!api||!status.installed||active||busy} onClick={()=>{setTitle('课堂纪要 '+new Date().toLocaleDateString());setImporting(false);setOpen(true);}}>开始课堂</Button></div></header>
@@ -37,7 +51,12 @@ export function ClassroomPage(){
   <div className={styles.layout}><aside className={styles.list} aria-label="课堂记录">{rows.map(r=><button key={r.id} aria-pressed={record?.id===r.id} onClick={()=>setSelected(r.id)}><strong>{r.title}</strong><small>{new Date(r.createdAt).toLocaleString()} · {r.summaries.length} 段纪要</small>{status.activeId===r.id&&<span>正在记录</span>}</button>)}{!rows.length&&<p>每次课堂独立保存，结束后可随时回来查看。</p>}</aside>
    <main className={styles.main}>{record?<><div className={styles.recordHeader}><div><h2>{record.title}</h2><small>{record.chunks.length} 段转写 · {record.aiEnabled?'自动 AI 纪要已开启':'仅本地转写'}</small></div><div className={styles.actions}><Button icon={Pencil} variant="secondary" disabled={!api||active||busy} onClick={()=>{setError('');setEditing(record);setEdit({title:record.title,chunkTexts:record.chunks.map(c=>c.text),summaryTexts:record.summaries.map(s=>s.text)});}}>编辑课堂</Button><Button icon={Trash2} variant="secondary" disabled={!api||active||busy} onClick={()=>{setError('');setDeleting(record);}}>删除课堂</Button><Button icon={Download} variant="secondary" onClick={download}>导出 Markdown</Button></div></div>
    {record.finalSummary?.outdated&&<p className={styles.notice}>本课堂内容已编辑，之前生成的总结笔记保留原样，请按需在笔记中修改。</p>}
-   {record.finalSummary&&<article className={styles.card} aria-label="整堂课知识点总结"><h3>整堂课知识点总结</h3>{record.finalSummary.error&&<p className={styles.error} role="alert">{record.finalSummary.error}</p>}{!record.finalSummary.markdown&&!record.finalSummary.error&&<p>正在汇总全部原文并保存笔记…</p>}{record.finalSummary.markdown&&<><p>已整理为 Markdown，可复制或打开笔记查看。</p><pre className={styles.finalMarkdown}>{record.finalSummary.markdown}</pre><Button icon={Copy} variant="secondary" onClick={()=>void run(async()=>{await navigator.clipboard.writeText(record.finalSummary!.markdown);setCopied(record.id);})}>{copied===record.id?'已复制 Markdown':'复制 Markdown'}</Button></>}{record.finalSummary.noteId&&<Button variant="secondary" onClick={()=>void run(async()=>{await refresh();navigate(ROUTES.note(record.finalSummary!.noteId!));})}>打开总结笔记</Button>}{record.finalSummary.error&&<Button disabled={busy||active} onClick={()=>void run(()=>api!.finalize(record.id))}>重试生成总结笔记</Button>}</article>}
+   {record.finalSummary&&<article className={styles.card} aria-label="整堂课知识点总结"><h3>整堂课知识点总结</h3>{record.finalSummary.error&&<p className={styles.error} role="alert">{record.finalSummary.error}</p>}{!record.finalSummary.markdown&&!record.finalSummary.error&&<p>正在汇总全部原文并保存笔记…</p>}{record.finalSummary.markdown&&<><p>已整理为 Markdown，可复制或打开笔记查看。</p><pre className={styles.finalMarkdown}>{record.finalSummary.markdown}</pre><Button icon={Copy} variant="secondary" onClick={()=>void run(async()=>{await navigator.clipboard.writeText(record.finalSummary!.markdown);setCopied(record.id);})}>{copied===record.id?'已复制 Markdown':'复制 Markdown'}</Button></>}{record.finalSummary.noteId&&<Button variant="secondary" onClick={()=>void run(async()=>{await refresh();navigate(ROUTES.note(record.finalSummary!.noteId!));})}>打开总结笔记</Button>}
+   {api && record.finalSummary.noteId && (
+     <Button icon={Download} variant="secondary" disabled={busy} onClick={() => void exportForXmind(record.finalSummary!.noteId!)}>
+       导出 Xmind 用 Markdown
+     </Button>
+   )}{record.finalSummary.error&&<Button disabled={busy||active} onClick={()=>void run(()=>api!.finalize(record.id))}>重试生成总结笔记</Button>}</article>}
    {record.finalSummary?.noteId&&<Button variant="secondary" disabled={busy||active} onClick={()=>void run(async()=>{await api!.repairNoteFormat(record.id);await refresh();navigate(ROUTES.note(record.finalSummary!.noteId!));})}>修复旧笔记格式</Button>}
    {!record.finalSummary&&record.aiEnabled&&!active&&record.chunks.some(c=>c.text.trim())&&<Button disabled={busy} variant="secondary" onClick={()=>void run(()=>api!.finalize(record.id))}>生成整堂课总结笔记</Button>}
    {starts.length===0&&<div className={styles.empty}><Sparkles/><h3>{record.aiEnabled?'等待下一段关键知识点':'原文仅在本机转写和保存'}</h3><p>{record.aiEnabled?'累计两分钟后生成 80～150 字摘要；结束课堂会处理不足两分钟的尾段。':'本课堂未开启 AI 纪要，不会向 AI 服务发送文字。'}</p></div>}

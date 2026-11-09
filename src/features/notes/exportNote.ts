@@ -13,10 +13,14 @@ export interface ExportOutcome {
   message: string;
 }
 
-export async function exportNoteAsMarkdown(title: string, contentJson: string): Promise<ExportOutcome> {
+export async function exportNoteAsMarkdown(title: string, contentJson: string, format?: 'xmind'): Promise<ExportOutcome> {
   let markdown: string;
   try {
     markdown = docToMarkdown(JSON.parse(contentJson) as Doc);
+    if (format === 'xmind' && !/^# +\S/.test(markdown)) {
+      const topic = title.replace(/\s+/g, ' ').trim();
+      markdown = `# ${topic}\n\n${markdown}`;
+    }
   } catch {
     return { saved: false, message: '笔记内容无法解析，导出已取消' };
   }
@@ -25,7 +29,9 @@ export async function exportNoteAsMarkdown(title: string, contentJson: string): 
 
   if (window.maji) {
     try {
-      const result = await window.maji.files.exportMarkdown(fileName, markdown);
+      const result = format === 'xmind'
+        ? await window.maji.files.exportMarkdown(fileName, markdown, 'desktop')
+        : await window.maji.files.exportMarkdown(fileName, markdown);
       return result.saved
         ? { saved: true, message: `已导出到 ${result.path ?? fileName}` }
         : { saved: false, message: '已取消导出' };

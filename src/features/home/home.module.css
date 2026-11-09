@@ -21,7 +21,8 @@
   border: 1px solid var(--accent-200);
   border-left: 3px solid var(--accent-500);
   border-radius: var(--radius-lg);
-  background: var(--bg-surface);
+  background: linear-gradient(125deg, var(--bg-surface) 62%, var(--accent-soft));
+  background-color: var(--bg-surface);
   box-shadow: var(--shadow-xs);
 }
 

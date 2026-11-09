@@ -30,3 +30,26 @@ test('设置分开显示，AI 设置事件直接定位服务', async ({ page }) 
   await page.evaluate(()=>window.dispatchEvent(new Event('maji:open-ai-settings')));
   await expect(page.getByRole('dialog',{name:'AI 服务',exact:true})).toBeVisible();
 });
+
+test('主题色板和正文排版即时生效并在刷新后保留', async ({ page }) => {
+  await page.goto('/#/');
+  const openAppearance = async () => {
+    await page.getByRole('button', { name: '小林（用户菜单）' }).click();
+    await page.getByRole('menuitem', { name: '外观与编辑', exact: true }).click();
+  };
+  await openAppearance();
+  const html = page.locator('html');
+  const appearance = page.getByRole('dialog', { name: '外观与编辑' });
+  const originalBackground = await page.locator('body').evaluate(node => getComputedStyle(node).backgroundColor);
+  await appearance.getByRole('radio', { name: '纸感米白' }).check();
+  await expect(html).toHaveAttribute('data-theme', 'paper');
+  expect(await page.locator('body').evaluate(node => getComputedStyle(node).backgroundColor)).not.toBe(originalBackground);
+  await appearance.getByLabel('编辑器正文字体').selectOption('serif');
+  await appearance.getByLabel('编辑器正文字号').selectOption('18');
+  await expect(html).toHaveAttribute('data-editor-font', 'serif');
+  await expect(html).toHaveCSS('--editor-font-size', '18px');
+  await page.reload();
+  await expect(html).toHaveAttribute('data-theme', 'paper');
+  await expect(html).toHaveAttribute('data-editor-font', 'serif');
+  await expect(html).toHaveCSS('--editor-font-size', '18px');
+});

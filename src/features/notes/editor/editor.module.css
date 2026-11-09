@@ -6,7 +6,7 @@
 /* ------------------------------------------------------------------ 正文 */
 
 .content {
-  font-family: var(--font-sans);
+  font-family: var(--editor-font-family);
   font-size: var(--editor-font-size);
   line-height: var(--editor-line-height);
   color: var(--text-primary);

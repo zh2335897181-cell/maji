@@ -229,7 +229,7 @@ export interface MajiApi {
     update(patch: Partial<UserSettings>): Promise<UserSettings>;
   };
   files: {
-    exportMarkdown(suggestedName: string, content: string): Promise<ExportResult>;
+    exportMarkdown(suggestedName: string, content: string, destination?: 'desktop'): Promise<ExportResult>;
   };
   external: {
     /** 仅允许 https / http，由主进程再次校验 */

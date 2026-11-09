@@ -66,3 +66,39 @@ test('独立课堂入口、简短纪要及原文展开',async({page})=>{
  await expect(page.getByRole('dialog')).toContainText('80～150');await expect(page.getByRole('dialog')).toContainText('不上传音频');
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
 });
+
+test('Xmind export reads the current summary note and asks to save on the desktop', async ({ page }) => {
+  await page.goto('/#/');
+  await expect(page.getByRole('button', { name: '继续编辑' })).toBeVisible();
+  await page.evaluate(() => {
+    Object.defineProperty(window, 'maji', {
+      configurable: true,
+      value: {
+        classroom: {
+          status: async () => ({ installed: true, state: 'idle', activeId: null, error: '', device: '' }),
+          list: async () => [{
+            id: 'class_xmind', title: '课堂', createdAt: new Date().toISOString(), aiEnabled: true,
+            chunks: [], summaries: [],
+            finalSummary: { noteId: 'note_func_args', markdown: '# 旧课堂摘要' },
+          }],
+        },
+        files: {
+          exportMarkdown: async (name: string, markdown: string, destination: string) => {
+            document.body.dataset.xmindExport = JSON.stringify({ name, markdown, destination });
+            return { saved: true, path: name };
+          },
+        },
+      },
+    });
+  });
+
+  await page.getByRole('link', { name: '课堂纪要', exact: true }).click();
+  await expect(page.locator('body')).not.toHaveAttribute('data-xmind-export');
+  await page.getByRole('button', { name: '导出 Xmind 用 Markdown' }).click();
+  await expect(page.getByText(/在 Xmind 中选择/)).toBeVisible();
+  const result = JSON.parse((await page.locator('body').getAttribute('data-xmind-export'))!);
+  expect(result).toMatchObject({ name: '函数与参数.md', destination: 'desktop' });
+  expect(result.markdown).toMatch(/^# 函数与参数/);
+  expect(result.markdown).toContain('为什么需要函数');
+  expect(result.markdown).not.toContain('旧课堂摘要');
+});

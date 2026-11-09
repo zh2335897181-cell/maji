@@ -33,16 +33,15 @@ import type {
   SearchQuery,
   UserSettings,
 } from '../../../src/lib/types';
+import { EDITOR_FONT_FAMILIES, THEME_MODES } from '../../../src/lib/types';
 import {
   COURSE_COLOR_KEYS,
   COURSE_ICON_KEYS,
   COURSE_TRACK_IDS,
-  EDITOR_FONT_FAMILIES,
   EXERCISE_DIFFICULTIES,
   LANGUAGE_IDS,
   REVIEW_ACTIONS,
   REVIEW_STATES,
-  THEME_MODES,
   isOneOf,
 } from '../db/mappers';
 
@@ -358,7 +357,7 @@ export function validateSettingsPatch(value: unknown): Partial<UserSettings> {
   const record = asRecord(value, '设置参数');
   const patch: Partial<UserSettings> = {};
   if (record.theme !== undefined) {
-    if (!isOneOf(record.theme, THEME_MODES)) throw new Error('主题只能是 light 或 dark');
+    if (!isOneOf(record.theme, THEME_MODES)) throw new Error('不支持此界面主题');
     patch.theme = record.theme;
   }
   if (record.editorFontSize !== undefined) {

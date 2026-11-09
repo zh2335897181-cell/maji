@@ -357,14 +357,17 @@ export interface SearchQuery {
   limit?: number;
 }
 
-export type ThemeMode = 'light' | 'dark';
+export const THEME_MODES = ['light', 'paper', 'mist', 'forest', 'dark'] as const;
+export type ThemeMode = (typeof THEME_MODES)[number];
+
+export const EDITOR_FONT_FAMILIES = ['sans', 'serif', 'mono'] as const;
 
 export interface UserSettings {
   theme: ThemeMode;
   floatingOpacity: number;
   /** 编辑器正文字号 */
   editorFontSize: number;
-  editorFontFamily: 'sans' | 'mono';
+  editorFontFamily: (typeof EDITOR_FONT_FAMILIES)[number];
   /** 自动保存延迟（毫秒） */
   autoSaveDelayMs: number;
   /** 侧栏是否折叠为图标栏 */
