@@ -7,6 +7,7 @@ import { randomUUID } from 'node:crypto';
 import { getDb } from './db/connection';
 import { assertWritable, holdBackgroundWrites } from './backup/writeGate';
 import { summaryWindows, validateClassroom, type ClassroomRecord, type ClassroomStatus } from '../../src/lib/classroom';
+import type { ClassroomProjectContext } from '../../src/lib/projectAttachments';
 import type { AIService } from './ai/service';
 import {speechRuntime,speechModel} from './ai/speechRuntime';
 import {createCourse,listCourses} from './db/courses';
@@ -77,14 +78,15 @@ export class ClassroomService {
       if(window.text.trim())this.queue=this.queue.then(()=>this.summarize(record,index)).catch(e=>{this.error=String(e);});
     }
   }
-  private async createFinalNote(record:ClassroomRecord){
+  private async createFinalNote(record:ClassroomRecord, project?: ClassroomProjectContext){
     if(!record.aiEnabled||!record.chunks.some(c=>c.text.trim()))return;
     if(record.finalSummary?.noteId&&getNote(record.finalSummary.noteId))return;
-    record.finalSummary={markdown:record.finalSummary?.markdown??''};this.save(record);
+    delete record.awaitingFinalSummary;
+    record.finalSummary={markdown:project ? '' : record.finalSummary?.markdown??''};this.save(record);
     try{
       if(!record.finalSummary.markdown){
         const source=record.chunks.filter(c=>c.text.trim()).map(c=>`[${c.start.toFixed(1)}–${c.end.toFixed(1)}秒] ${c.text}`).join('\n\n');
-        record.finalSummary.markdown=await this.ai.summarizeClassroomFinal(source);this.save(record);
+        record.finalSummary.markdown=await this.ai.summarizeClassroomFinal(source, project);this.save(record);
       }
       getDb().transaction(()=>{
         const course=listCourses().find(c=>c.name==='课堂总结')??createCourse({name:'课堂总结',language:'text',track:'other',description:'课堂结束后生成的知识点 Markdown 笔记'});
@@ -106,12 +108,12 @@ export class ClassroomService {
     updateNote(noteId,{contentJson:JSON.stringify(doc(content![0]!,paragraph('以下为 AI 整理的课堂知识点，术语及代码请结合原文核对。可从笔记工具栏复制或导出 Markdown。'),...markdownToDoc(record.finalSummary!.markdown).content))});
     for(const win of BrowserWindow.getAllWindows()){try{win.webContents.send('maji:classroom:note-created');}catch{/* Saved independently of the window. */}}
   }
-  async finalize(id:unknown){
+  async finalize(id:unknown, project?: ClassroomProjectContext){
     if(this.state!=='idle')throw Error('请先结束课堂并等待处理完成');
     if(typeof id!=='string')throw Error('课堂参数无效');
     const record=this.list().find(r=>r.id===id);if(!record||!record.aiEnabled)throw Error('本课堂未开启 AI 纪要');
     const release=holdBackgroundWrites();this.state='stopping';this.drain=new Promise(resolve=>{this.resolveDrain=resolve;});
-    try{await this.createFinalNote(record);}finally{release();this.state='idle';this.resolveDrain();}
+    try{await this.createFinalNote(record, project);}finally{release();this.state='idle';this.resolveDrain();}
   }
   async retry(id:unknown,index:unknown){
     if(this.state!=='idle')throw Error('请先结束课堂并等待处理完成');
@@ -153,7 +155,7 @@ export class ClassroomService {
       const finish=async(code:number|null)=>{
         if(this.finishing)return;this.finishing=true;this.state='stopping';
         if(code!==0&&!this.error)this.error=stderr||'本地转写进程退出，请检查音频设备';
-        try{this.schedule(record,true);await this.queue;if(code===0&&!this.error)await this.createFinalNote(record);this.save(record);}catch(e){this.error=String(e);}finally{release();lines.close();this.child=null;this.current=null;this.state='idle';this.resolveDrain();}
+        try{this.schedule(record,true);await this.queue;if(code===0&&!this.error&&record.aiEnabled&&record.chunks.some(chunk=>chunk.text.trim()))record.awaitingFinalSummary=true;this.save(record);}catch(e){this.error=String(e);}finally{release();lines.close();this.child=null;this.current=null;this.state='idle';this.resolveDrain();}
       };
       child.on('error',e=>{this.error=e.message;void finish(1);});child.on('close',code=>void finish(code));
       return record.id;
@@ -182,7 +184,6 @@ export class ClassroomService {
     if(command==='import')return this.importAudio(v?.title,v?.aiEnabled);
     if(command==='stop')return this.stop();if(command==='retry')return this.retry(v?.id,v?.index);
     if(command==='pause')return this.pause();if(command==='resume')return this.resume();
-    if(command==='finalize')return this.finalize(v?.id);
     if(command==='repairNoteFormat')return this.repairNoteFormat(v?.id);
     if(command==='update')return this.update(v?.id,v?.patch,v?.updatedAt);if(command==='remove')return this.remove(v?.id);
     if(command==='floating')return this.floating();if(command==='restoreMain')return this.floatingWindow?.restore();if(command==='hideFloating')return this.floatingWindow?.hide();

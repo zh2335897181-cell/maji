@@ -102,3 +102,37 @@ test('Xmind export reads the current summary note and asks to save on the deskto
   expect(result.markdown).toContain('为什么需要函数');
   expect(result.markdown).not.toContain('旧课堂摘要');
 });
+
+test('课堂转写完成后询问是否把项目代码一起用于总结', async ({ page }) => {
+  await page.goto('/#/');
+  await expect(page.getByRole('button', { name: '继续编辑' })).toBeVisible();
+  await page.evaluate(() => {
+    const file = { id: 'file', path: 'src/login.ts', size: 500000000 };
+    const now = new Date().toISOString();
+    let recording = true;
+    Object.defineProperty(window, 'maji', { value: {
+      classroom: {
+        status: async () => ({ installed: true, state: recording ? 'recording' : 'idle', activeId: recording ? 'class_project' : null, error: '', device: '' }),
+        list: async () => [{
+          id: 'class_project', title: '登录流程', createdAt: now, updatedAt: now,
+          aiEnabled: true, chunks: [{ start: 0, end: 10, text: '课堂原文' }],
+          summaries: [], awaitingFinalSummary: !recording && !document.body.dataset.finalize,
+        }],
+        stop: async () => { recording = false; },
+        finalize: async (id: string, fileIds: string[]) => { document.body.dataset.finalize = JSON.stringify({ id, fileIds }); },
+      },
+      projectAttachments: {
+        choose: async () => ({ name: '登录项目', files: [file], incomplete: false }),
+      },
+    } });
+  });
+  await page.getByRole('link', { name: '课堂纪要', exact: true }).click();
+  await page.getByRole('button', { name: '结束课堂' }).click();
+  const dialog = page.getByRole('dialog', { name: '生成课堂总结' });
+  await expect(dialog.getByRole('button', { name: '仅总结课堂' })).toBeEnabled();
+  await expect(page.locator('body')).not.toHaveAttribute('data-finalize');
+  await dialog.getByRole('button', { name: '选择项目目录' }).click();
+  await dialog.getByRole('checkbox', { name: 'src/login.ts' }).check();
+  await dialog.getByRole('button', { name: '结合项目总结' }).click();
+  await expect(page.locator('body')).toHaveAttribute('data-finalize', /class_project.*fileIds.*file/);
+});

@@ -14,6 +14,7 @@
    ============================================================================= */
 
 import { contextBridge, ipcRenderer } from 'electron';
+import type { ProjectAttachment } from '../../src/lib/projectAttachments';
 import { IPC } from '../../src/lib/ipc';
 import type { AIAction, AIContext, AIProviderSettings, AIResult, AISettingsStatus, AppInfo, ExportResult, MajiApi } from '../../src/lib/ipc';
 import type { UpdateStatus } from '../../src/lib/ipc';
@@ -49,6 +50,7 @@ import type {
 const CHANNELS: { [K in keyof typeof IPC]: (typeof IPC)[K] } = {
   aiLocal: 'maji:ai:local',
   classroom: 'maji:classroom:control',
+  projectAttachments: 'maji:project-attachments:control',
   examsList: 'maji:exams:list',
   examsSave: 'maji:exams:save',
   examsAnalyze: 'maji:exams:analyze',
@@ -165,6 +167,9 @@ ipcRenderer.on(CHANNELS.appPrepareClose, () => {
 });
 
 const api: MajiApi = {
+  projectAttachments: {
+    choose: kind => invoke<ProjectAttachment | null>(CHANNELS.projectAttachments, 'choose', kind),
+  },
   classroom: {
     status: () => invoke(CHANNELS.classroom,'status'),
     list: () => invoke(CHANNELS.classroom,'list'),
@@ -173,7 +178,7 @@ const api: MajiApi = {
     stop: () => invoke(CHANNELS.classroom,'stop'),
     pause: () => invoke(CHANNELS.classroom,'pause'),
     resume: () => invoke(CHANNELS.classroom,'resume'),
-    finalize: id => invoke(CHANNELS.classroom,'finalize',{id}),
+    finalize: (id, fileIds) => invoke(CHANNELS.classroom,'finalize',{id,fileIds}),
     repairNoteFormat: id => invoke(CHANNELS.classroom,'repairNoteFormat',{id}),
     update: (id,patch,updatedAt) => invoke(CHANNELS.classroom,'update',{id,patch,updatedAt}),
     remove: id => invoke(CHANNELS.classroom,'remove',{id}),

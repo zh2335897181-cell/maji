@@ -12,3 +12,19 @@
 .card details p{margin:16px 0;line-height:1.85}.card details time{display:block;margin-bottom:6px}
 @media(max-width:900px){.page{padding:20px}.layout{grid-template-columns:1fr}.list{max-height:200px;overflow:auto}.header{align-items:flex-start}}
 @media(max-width:600px){.transcriptList li{grid-template-columns:minmax(0,1fr);gap:6px}.transcriptScroll{padding-right:4px}}
+
+.attachmentFiles {
+  max-height: 14rem;
+  overflow: auto;
+  padding: var(--space-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+
+.attachmentFiles label {
+  display: flex;
+  flex-direction: row;
+  align-items: start;
+  gap: var(--space-2);
+  overflow-wrap: anywhere;
+}

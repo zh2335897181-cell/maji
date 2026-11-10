@@ -21,6 +21,7 @@ import { validateMorningInput } from '../../../src/lib/morningNotes';
 import { databaseFile } from '../db/connection';
 import type { UpdateService } from '../updates';
 import type { AIService } from '../ai/service';
+import { createClassroomAttachments } from '../projectAttachments';
 import { ClassroomService } from '../classroom';
 import { LocalModelService } from '../ai/localModels';
 import { createAIHandlers } from '../ai/ipc';
@@ -152,11 +153,18 @@ const handlers: Record<string, Handler> = {
 export function registerIpcHandlers(updates: UpdateService, ai: AIService, backup: BackupService): ClassroomService {
   const classroom=new ClassroomService(ai);
   const localModels=new LocalModelService(()=>classroom.status().state==='idle');
+  const attachments = createClassroomAttachments();
   const activeHandlers: Record<string, Handler> = {
     ...handlers,
+    [IPC.projectAttachments]: attachments.handle,
     [IPC.settingsUpdate]: args=>{const settings=library.updateSettings(validateSettingsPatch(args[0]));classroom.applyFloatingOpacity();return settings;},
     [IPC.aiLocal]: args => localModels.control(args[0],args[1]),
-    [IPC.classroom]: args => classroom.control(args[0],args[1]),
+    [IPC.classroom]: (args, event) => {
+      if (args[0] !== 'finalize') return classroom.control(args[0], args[1]);
+      if (event.senderFrame !== event.sender.mainFrame) throw new Error('无效的课堂窗口');
+      const input = args[1] as { id?: unknown; fileIds?: unknown } | undefined;
+      return classroom.finalize(input?.id, attachments.context(event.sender.id, input?.fileIds));
+    },
     [IPC.examsAnalyze]: args => ai.analyzeExam(args[0]),
     ...createAIHandlers(ai),
     ...createMindMapHandlers(ai),

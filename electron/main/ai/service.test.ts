@@ -68,3 +68,26 @@ describe('AI service orchestration', () => {
     expect(store.clearKey).toHaveBeenCalledOnce();
   });
 });
+
+it('sends the complete selected file beyond the fourth batch and merges its analysis', async () => {
+  const store = {
+    getStatus: vi.fn(),
+    getCredential: vi.fn().mockResolvedValue({ settings: { baseUrl: status.baseUrl, model: status.model }, key: 'secret' }),
+    save: vi.fn(), clearKey: vi.fn(),
+  };
+  const summarizeClassroomFinal = vi.fn().mockResolvedValue('关联知识点和实现');
+  const client = { testConnection: vi.fn(), ask: vi.fn(), generateReview: vi.fn(), gradeReviewAnswer: vi.fn(), summarizeClassroomFinal };
+  async function* files() {
+    for (let index = 0; index < 6; index++) {
+      yield { fileId: 'file', path: 'src/Login.ts', offset: index * 4096, nextOffset: null, text: '代码 ' + index };
+    }
+  }
+  await new AIService(store, client).summarizeClassroomFinal('课堂原文', {
+    tree: 'src/Login.ts', treeIncomplete: false, files: files(),
+  });
+  const payloads = summarizeClassroomFinal.mock.calls.map(call => JSON.parse(String(call[3])));
+  expect(payloads.slice(0, -1).map(payload => payload.file.code)).toEqual(
+    ['代码 0', '代码 1', '代码 2', '代码 3', '代码 4', '代码 5'],
+  );
+  expect(payloads.at(-1)).toMatchObject({ SOURCE_DATA: '课堂原文', PROJECT_CONTEXT: { notes: '关联知识点和实现' } });
+});

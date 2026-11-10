@@ -15,7 +15,7 @@ export function transcriptGroups(chunks: ClassroomChunk[]) {
   return [...groups.values()].sort((a,b)=>a.start-b.start);
 }
 export interface ClassroomSummary { start: number; end: number; text: string; error?: string;edited?:boolean }
-export interface ClassroomRecord { id: string; title: string; createdAt: string; updatedAt: string; chunks: ClassroomChunk[]; summaries: ClassroomSummary[]; aiEnabled: boolean; finalSummary?: {markdown:string;noteId?:string;error?:string;outdated?:boolean} }
+export interface ClassroomRecord { id: string; title: string; createdAt: string; updatedAt: string; chunks: ClassroomChunk[]; summaries: ClassroomSummary[]; aiEnabled: boolean; awaitingFinalSummary?: boolean; finalSummary?: {markdown:string;noteId?:string;error?:string;outdated?:boolean} }
 export interface ClassroomEdit {title:string;chunkTexts:string[];summaryTexts:string[]}
 export interface ClassroomFloatingSnapshot {title:string;state:ClassroomStatus['state'];summary?:ClassroomSummary}
 export interface ClassroomStatus { installed: boolean; state: 'idle'|'starting'|'recording'|'importing'|'pausing'|'paused'|'resuming'|'stopping'; activeId: string|null; error: string; device: string }
@@ -25,7 +25,7 @@ export interface ClassroomApi {
   importAudio(title:string,aiEnabled:boolean):Promise<string|null>;
   stop():Promise<void>; retry(id:string,index:number):Promise<void>;
   pause():Promise<void>; resume():Promise<void>;
-  finalize(id:string):Promise<void>;
+  finalize(id:string, fileIds?: string[]):Promise<void>;
   repairNoteFormat(id:string):Promise<void>;
   onNoteCreated(handler:()=>void):()=>void;
   update(id:string,patch:ClassroomEdit,updatedAt:string):Promise<void>;
@@ -39,6 +39,7 @@ export function validateClassroom(value: unknown): ClassroomRecord {
   if(!r||typeof r.id!=='string'||!/^class_[a-zA-Z0-9_-]{1,100}$/.test(r.id)||typeof r.title!=='string'||!r.title.trim()||r.title.length>200||typeof r.aiEnabled!=='boolean'||!Number.isFinite(Date.parse(r.createdAt))||!Number.isFinite(Date.parse(r.updatedAt))||!Array.isArray(r.chunks)||!Array.isArray(r.summaries)||r.chunks.length>10000||r.summaries.length>2000)throw Error('课堂记录无效');
   for(const row of [...r.chunks,...r.summaries])if(!row||!Number.isFinite(row.start)||!Number.isFinite(row.end)||row.start<0||row.end<row.start||typeof row.text!=='string'||row.text.length>20000||('error' in row&&typeof row.error!=='string'))throw Error('课堂分段无效');
   if(r.summaries.some(s=>s.edited!==undefined&&typeof s.edited!=='boolean'))throw Error('课堂编辑状态无效');
+  if(r.awaitingFinalSummary!==undefined&&typeof r.awaitingFinalSummary!=='boolean')throw Error('课堂总结状态无效');
   if(r.finalSummary!==undefined){const f=r.finalSummary;if(!f||typeof f.markdown!=='string'||f.markdown.length>CLASSROOM_FINAL_MAX_CHARS||(f.noteId!==undefined&&(typeof f.noteId!=='string'||!/^note_[a-zA-Z0-9_-]{1,100}$/.test(f.noteId)))||(f.error!==undefined&&(typeof f.error!=='string'||f.error.length>2000))||(f.outdated!==undefined&&typeof f.outdated!=='boolean'))throw Error('课堂总结无效');}
   return r;
 }

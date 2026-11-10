@@ -9,6 +9,7 @@ import { Button } from '../../components/ui/Button';
 import { Modal } from '../../components/ui/Modal';
 import type { ClassroomRecord, ClassroomStatus,ClassroomEdit } from '../../lib/classroom';
 import { transcriptGroups } from '../../lib/classroom';
+import { ClassroomSummaryDialog } from './ClassroomSummaryDialog';
 import styles from './classroom.module.css';
 const time=(s:number)=>`${Math.floor(s/60).toString().padStart(2,'0')}:${Math.floor(s%60).toString().padStart(2,'0')}`;
 const names={idle:'未在录音',starting:'正在加载模型',recording:'正在录音与转写',importing:'正在导入转写',pausing:'正在暂停',paused:'已暂停',resuming:'正在继续',stopping:'正在结束并整理课堂笔记'};
@@ -17,11 +18,19 @@ export function ClassroomPage(){
  const navigate=useNavigate(),{refresh,loadNote}=useLibrary();
  const toast = useToast();
  const [copied,setCopied]=useState('');
+ const [summaryId, setSummaryId] = useState<string | null>(null);
+ const dismissedSummaries = useRef(new Set<string>());
  const [editing,setEditing]=useState<ClassroomRecord|null>(null),[edit,setEdit]=useState<ClassroomEdit>({title:'',chunkTexts:[],summaryTexts:[]}),[deleting,setDeleting]=useState<ClassroomRecord|null>(null);
  const [rows,setRows]=useState<ClassroomRecord[]>([]),[status,setStatus]=useState<ClassroomStatus>({installed:false,state:'idle',activeId:null,error:'',device:''});
  const [selected,setSelected]=useState(''),[error,setError]=useState(''),[open,setOpen]=useState(false),[title,setTitle]=useState(''),[source,setSource]=useState<'system'|'microphone'>('system'),[ai,setAI]=useState(true),[importing,setImporting]=useState(false),[busy,setBusy]=useState(false);
  const live=useRef(true),polling=useRef(false),locked=useRef(false);
  const record=rows.find(r=>r.id===selected)??rows[0],active=status.state!=='idle';
+ const summaryRecord = rows.find(row => row.id === summaryId);
+ useEffect(() => {
+   if (active || summaryId || busy) return;
+   const pending = rows.find(row => row.awaitingFinalSummary && !dismissedSummaries.current.has(row.id));
+   if (pending) setSummaryId(pending.id);
+ }, [active, busy, rows, summaryId]);
  const groups=record?transcriptGroups(record.chunks):[];
  const starts=[...new Set([...groups.map(g=>g.start),...(record?.summaries.map(s=>s.start)??[])])].sort((a,b)=>a-b);
  useEffect(()=>{live.current=true;
@@ -56,12 +65,27 @@ export function ClassroomPage(){
      <Button icon={Download} variant="secondary" disabled={busy} onClick={() => void exportForXmind(record.finalSummary!.noteId!)}>
        导出 Xmind 用 Markdown
      </Button>
-   )}{record.finalSummary.error&&<Button disabled={busy||active} onClick={()=>void run(()=>api!.finalize(record.id))}>重试生成总结笔记</Button>}</article>}
+   )}{record.finalSummary.error&&<Button disabled={busy||active} onClick={() => setSummaryId(record.id)}>重试生成总结笔记</Button>}</article>}
    {record.finalSummary?.noteId&&<Button variant="secondary" disabled={busy||active} onClick={()=>void run(async()=>{await api!.repairNoteFormat(record.id);await refresh();navigate(ROUTES.note(record.finalSummary!.noteId!));})}>修复旧笔记格式</Button>}
-   {!record.finalSummary&&record.aiEnabled&&!active&&record.chunks.some(c=>c.text.trim())&&<Button disabled={busy} variant="secondary" onClick={()=>void run(()=>api!.finalize(record.id))}>生成整堂课总结笔记</Button>}
+   {!record.finalSummary&&record.aiEnabled&&!active&&record.chunks.some(c=>c.text.trim())&&<Button disabled={busy} variant="secondary" onClick={() => setSummaryId(record.id)}>生成整堂课总结笔记</Button>}
    {starts.length===0&&<div className={styles.empty}><Sparkles/><h3>{record.aiEnabled?'等待下一段关键知识点':'原文仅在本机转写和保存'}</h3><p>{record.aiEnabled?'累计两分钟后生成 80～150 字摘要；结束课堂会处理不足两分钟的尾段。':'本课堂未开启 AI 纪要，不会向 AI 服务发送文字。'}</p></div>}
    {starts.map(start=>{const group=groups.find(g=>g.start===start),i=record.summaries.findIndex(s=>s.start===start),s=record.summaries[i];return <article key={`${record.id}-${start}`} className={styles.card}><header><strong>{time(start)}–{time(s?.end??group!.end)}</strong><span>{record.aiEnabled?'关键知识点':'转写原文'}</span></header>{s?.error?<><p role="alert" className={styles.error}>{s.error}</p><Button disabled={busy||active} onClick={()=>void run(()=>api!.retry(record.id,i))}>重试本段纪要</Button></>:<p className={styles.summary}>{s?s.text||(s.edited?'本段知识点已清空。':'正在整理本段知识点…'):record.aiEnabled?'本段正在记录，满两分钟后整理知识点。':'本段仅在本机转写和保存。'}</p>}<details><summary>查看本段原文</summary>{group?.chunks.map(c=><p key={c.start}><time>{time(c.start-start)}</time>{c.text}</p>)}{!group&&<p>本段没有可识别的原文。</p>}</details></article>;})}
    </>:<div className={styles.empty}><Mic size={36}/><h2>把课堂重点留下来</h2><p>电脑声音、麦克风或录音文件 → 本地转写 → 两分钟精简纪要。</p><p>类名、注解和方法名仍需核对；不会自动补写老师未讲的代码。</p></div>}</main></div>
+  {summaryRecord && api && <ClassroomSummaryDialog
+    key={summaryRecord.id}
+    title={summaryRecord.title}
+    onClose={() => {
+      dismissedSummaries.current.add(summaryRecord.id);
+      setSummaryId(null);
+    }}
+    onFinalize={async fileIds => {
+      await api.finalize(summaryRecord.id, fileIds);
+      dismissedSummaries.current.add(summaryRecord.id);
+      setSelected(summaryRecord.id);
+      setSummaryId(null);
+      setRows(await api.list());
+    }}
+  />}
   <Modal open={open} title={importing?'导入课堂录音':'开始课堂纪要'} onClose={()=>{if(!busy)setOpen(false);}} footer={<><Button variant="secondary" disabled={busy} onClick={()=>setOpen(false)}>取消</Button><Button disabled={busy||!title.trim()} onClick={()=>void start()}>{busy?'正在准备…':importing?'选择录音':'开始录音'}</Button></>}>
    <div className={styles.form}><label>课堂名称<input aria-label="课堂名称" value={title} maxLength={200} onChange={e=>setTitle(e.target.value)}/></label>{!importing&&<label>录音来源<select aria-label="录音来源" value={source} onChange={e=>setSource(e.target.value as 'system'|'microphone')}><option value="system">电脑声音（腾讯会议、网课）</option><option value="microphone">默认麦克风</option></select></label>}
    <label className={styles.check}><input type="checkbox" checked={ai} onChange={e=>setAI(e.target.checked)}/>每两分钟生成 AI 纪要（80～150 字）</label><p>音频由本地模型识别，不上传音频。开启 AI 纪要后，本课堂转写文字与少量前文摘要会发送到你配置的 AI 服务；未开启则仅保存在本机。请确认你有权记录课堂内容。</p><p>默认不保存原始录音，保留带时间的转写与纪要。录音期间可切换页面，关闭应用会停止记录。</p>{error&&<p className={styles.error} role="alert">{error}</p>}</div>

@@ -64,3 +64,14 @@ it('edits text with conflict checks, keeps timing, and preserves the generated n
  const reloaded=new ClassroomService({} as AIService).list()[0]!;expect(reloaded.summaries.every(s=>s.edited&&!s.error&&s.text==='')).toBe(true);
  service.remove(record.id);expect(service.list()).toHaveLength(0);expect(db.prepare('SELECT id FROM notes WHERE id=?').get(record.finalSummary!.noteId)).toBeTruthy();
 });
+
+it('passes the transcript and selected project context to the same final summary', async () => {
+  insert();
+  const summarizeClassroomFinal = vi.fn().mockResolvedValue('# 课堂与项目');
+  const service = new ClassroomService({ summarizeClassroomFinal } as unknown as AIService);
+  const project = { tree: 'src/login.ts', treeIncomplete: false,
+    files: (async function* () { yield { fileId: 'login', path: 'src/login.ts', offset: 0, nextOffset: null, text: 'export function login() {}' }; })() };
+  await service.finalize('class_test', project);
+  expect(summarizeClassroomFinal).toHaveBeenCalledWith(expect.stringContaining('老师的知识点'), project);
+  expect(service.list()[0]!.finalSummary?.noteId).toBeTruthy();
+});

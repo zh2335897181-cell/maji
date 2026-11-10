@@ -6,6 +6,7 @@
    每个通道在主进程都会做参数校验（见 electron/main/ipc/validate.ts）。
    ============================================================================= */
 
+import type { ProjectAttachmentsApi } from './projectAttachments';
 import type {
   CodeSnippet,
   CodeSnippetInput,
@@ -44,6 +45,7 @@ export type { ReviewGenerationInput, ReviewGradingInput, GeneratedReviewQuestion
 export const IPC = {
   aiLocal: 'maji:ai:local',
   classroom: 'maji:classroom:control',
+  projectAttachments: 'maji:project-attachments:control',
   examsList: 'maji:exams:list',
   examsSave: 'maji:exams:save',
   examsAnalyze: 'maji:exams:analyze',
@@ -168,6 +170,7 @@ export type UpdateStatus =
  * window.maji 的形状。所有方法都是 Promise，失败时 reject 一个可读的错误。
  */
 export interface MajiApi {
+  projectAttachments: ProjectAttachmentsApi;
   classroom?: import('./classroom').ClassroomApi;
   exams?: import('./exams').ExamApi;
   backup?: import('./backup').BackupApi;
