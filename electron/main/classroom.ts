@@ -1,3 +1,5 @@
+import { ClassroomTasks } from './classroomTasks';
+import { projectContext } from './projectAttachments';
 import { app, dialog, BrowserWindow } from 'electron';
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
@@ -19,6 +21,7 @@ import {loadSettings} from './db/library';
 import type {ClassroomEdit,ClassroomFloatingSnapshot} from '../../src/lib/classroom';
 
 export class ClassroomService {
+  private tasks = new ClassroomTasks();
   private child:ChildProcessWithoutNullStreams|null=null;
   private current:ClassroomRecord|null=null;
   private queue:Promise<void>=Promise.resolve();
@@ -42,7 +45,7 @@ export class ClassroomService {
     const next={...record,title:patch.title.trim(),chunks:record.chunks.map((c,i)=>({...c,text:patch.chunkTexts[i]!})),summaries:record.summaries.map((s,i)=>{const row={...s,text:patch.summaryTexts[i]!,edited:true};delete row.error;return row;}),finalSummary:record.finalSummary?{...record.finalSummary,outdated:true}:undefined};
     validateClassroom(next);this.save(next);
   }
-  remove(id:unknown){if(this.state!=='idle')throw Error('请先结束课堂并等待处理完成后删除');if(typeof id!=='string')throw Error('课堂参数无效');getDb().prepare('DELETE FROM classroom_records WHERE id=?').run(id);}
+  async remove(id:unknown){if(this.state!=='idle')throw Error('请先结束课堂并等待处理完成后删除');if(typeof id!=='string')throw Error('课堂参数无效');getDb().prepare('DELETE FROM classroom_records WHERE id=?').run(id);await this.tasks.remove(id);}
   private error='';private device='';private finishing=false;
   private drain:Promise<void>=Promise.resolve();private resolveDrain=()=>{};private quitting=false;
   constructor(private ai:AIService){
@@ -53,7 +56,7 @@ export class ClassroomService {
       if(record.finalSummary&&!record.finalSummary.noteId&&!record.finalSummary.error){record.finalSummary.error='上次课堂总结中断，请重试生成笔记';changed=true;}
       if(changed)this.save(record);
     }
-    app.on('before-quit',event=>{if(this.state==='idle')return;event.preventDefault();if(this.quitting)return;this.quitting=true;void this.stop().finally(()=>{this.quitting=false;app.quit();});});
+    app.on('before-quit',event=>{if(this.state==='idle')return;event.preventDefault();if(this.quitting)return;this.quitting=true;this.tasks.cancelAll();void this.stop().finally(()=>{this.quitting=false;app.quit();});});
   }
   private runtime(){return speechRuntime();}
   status():ClassroomStatus {return {installed:speechReady(),modelLabel:speechConfig().engine==='qwen3-asr'?'Qwen3-ASR-0.6B':'SenseVoice INT8',state:this.state,activeId:this.current?.id??null,error:this.error,device:this.device};}
@@ -80,21 +83,34 @@ export class ClassroomService {
   }
   private async createFinalNote(record:ClassroomRecord, project?: ClassroomProjectContext){
     if(!record.aiEnabled||!record.chunks.some(c=>c.text.trim()))return;
-    if(record.finalSummary?.noteId&&getNote(record.finalSummary.noteId))return;
+    if(record.finalSummary?.noteId&&getNote(record.finalSummary.noteId)){await this.tasks.markDone(record.id);return;}
     delete record.awaitingFinalSummary;
     record.finalSummary={markdown:project ? '' : record.finalSummary?.markdown??''};this.save(record);
+    const source=record.chunks.filter(c=>c.text.trim()).map(c=>`[${c.start.toFixed(1)}–${c.end.toFixed(1)}秒] ${c.text}`).join('\n\n');
+    let task;
+    try{task=await this.tasks.begin(record.id,source,project?.manifest??null);}
+    catch(error){
+      record.finalSummary.error=error instanceof Error?error.message:String(error);
+      this.save(record);throw error;
+    }
     try{
       if(!record.finalSummary.markdown){
-        const source=record.chunks.filter(c=>c.text.trim()).map(c=>`[${c.start.toFixed(1)}–${c.end.toFixed(1)}秒] ${c.text}`).join('\n\n');
-        record.finalSummary.markdown=await this.ai.summarizeClassroomFinal(source, project);this.save(record);
+        record.finalSummary.markdown=await this.ai.summarizeClassroomFinal(source, project, task.options);this.save(record);
       }
+      task.options.signal?.throwIfAborted();
       getDb().transaction(()=>{
         const course=listCourses().find(c=>c.name==='课堂总结')??createCourse({name:'课堂总结',language:'text',track:'other',description:'课堂结束后生成的知识点 Markdown 笔记'});
         const note=createNote({courseId:course.id,title:(record.title+' · 知识点总结').slice(0,200),language:'text',tags:['课堂总结'],contentJson:this.finalNoteDoc(record)});
         record.finalSummary!.noteId=note.id;this.save(record);
       })();
       for(const win of BrowserWindow.getAllWindows()){try{win.webContents.send('maji:classroom:note-created');}catch{/* The note is already saved even if a window closed. */}}
-    }catch(e){delete record.finalSummary.noteId;record.finalSummary.error=(e instanceof Error?e.message:String(e)).slice(0,2000);this.save(record);}
+      await task.finish().catch(()=>{this.error='总结已保存，但任务状态写入失败，请检查磁盘空间';});
+    }catch(e){
+      delete record.finalSummary.noteId;
+      record.finalSummary.error=(e instanceof Error?e.message:String(e)).slice(0,2000);
+      this.save(record);
+      await task.finish(e);
+    }
   }
   private finalNoteDoc(record:ClassroomRecord){return JSON.stringify(doc(heading(1,record.title+' · 知识点总结'),paragraph('以下为 AI 整理的课堂知识点，术语及代码请结合原文核对。可从笔记工具栏复制或导出 Markdown。'),...markdownToDoc(record.finalSummary!.markdown).content));}
   repairNoteFormat(id:unknown){
@@ -114,6 +130,14 @@ export class ClassroomService {
     const record=this.list().find(r=>r.id===id);if(!record||!record.aiEnabled)throw Error('本课堂未开启 AI 纪要');
     const release=holdBackgroundWrites();this.state='stopping';this.drain=new Promise(resolve=>{this.resolveDrain=resolve;});
     try{await this.createFinalNote(record, project);}finally{release();this.state='idle';this.resolveDrain();}
+  }
+  async resumeFinal(id:unknown){
+    if(typeof id!=='string')throw Error('课堂参数无效');
+    const record=this.list().find(row=>row.id===id);
+    if(!record)throw Error('课堂不存在');
+    const source=record.chunks.filter(c=>c.text.trim()).map(c=>`[${c.start.toFixed(1)}–${c.end.toFixed(1)}秒] ${c.text}`).join('\n\n');
+    const manifest=await this.tasks.resumeManifest(id,source);
+    return this.finalize(id,manifest?projectContext(manifest):undefined);
   }
   async retry(id:unknown,index:unknown){
     if(this.state!=='idle')throw Error('请先结束课堂并等待处理完成');
@@ -185,6 +209,10 @@ export class ClassroomService {
     if(command==='status')return this.status();if(command==='list')return this.list();
     if(command==='start')return this.start(v?.title,v?.source,v?.aiEnabled);
     if(command==='import')return this.importAudio(v?.title,v?.aiEnabled);
+    if(command==='finalTask')return this.tasks.status(String(v?.id));
+    if(command==='cancelFinal')return this.tasks.cancel(String(v?.id));
+    if(command==='resumeFinal')return this.resumeFinal(v?.id);
+    if(command==='finalAnalysis')return this.tasks.analysis(String(v?.id),v?.path);
     if(command==='stop')return this.stop();if(command==='retry')return this.retry(v?.id,v?.index);
     if(command==='pause')return this.pause();if(command==='resume')return this.resume();
     if(command==='repairNoteFormat')return this.repairNoteFormat(v?.id);

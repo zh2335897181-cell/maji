@@ -53,3 +53,26 @@ test('主题色板和正文排版即时生效并在刷新后保留', async ({ pa
   await expect(html).toHaveAttribute('data-editor-font', 'serif');
   await expect(html).toHaveCSS('--editor-font-size', '18px');
 });
+
+test('更新错误显示阶段和代码，并可打开官方发布页', async ({ page }) => {
+  await page.goto('/#/');
+  await expect(page.getByRole('button', { name: '继续编辑' })).toBeVisible();
+  await page.evaluate(() => {
+    Object.defineProperty(window, 'maji', { configurable: true, value: {
+      updates: {
+        onStatus: () => () => {},
+        getStatus: async () => ({ state: 'error', currentVersion: '1.0.8', code: 'ETIMEDOUT', message: '下载安装包失败。连接超时，请稍后重试。' }),
+      },
+      external: { open: async (url: string) => { document.body.dataset.updateLink = url; } },
+    } });
+    location.hash = '/classroom-floating';
+  });
+  await expect(page.getByRole('button', { name: '恢复主窗口' })).toBeVisible();
+  await page.evaluate(() => { location.hash = '/'; });
+  await page.getByRole('button', { name: '小林（用户菜单）' }).click();
+  await page.getByRole('menuitem', { name: '应用更新', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: '应用更新', exact: true });
+  await expect(dialog).toContainText('ETIMEDOUT');
+  await dialog.getByRole('button', { name: '打开官方发布页下载' }).click();
+  await expect(page.locator('body')).toHaveAttribute('data-update-link', 'https://github.com/zh2335897181-cell/maji/releases/latest');
+});

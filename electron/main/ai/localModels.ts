@@ -8,6 +8,7 @@ import {join,dirname} from 'node:path';
 import {randomUUID} from 'node:crypto';
 import {localModelName,recommendModels,type LocalInspection,type LocalJob,type LocalModel,type LocalProbe,type Hardware,type SpeechEngine,type SpeechDevice} from '../../../src/lib/localAI';
 import {validateProviderSettings,validateAPIKey} from './validation';
+import {speechStorageInfo,relocateSpeech} from './speechStorage';
 import {speechRuntime,speechModel,speechConfig,speechPython,speechReady,beginSpeechMaintenance} from './speechRuntime';
 const exec=promisify(execFile),BASE='http://127.0.0.1:11434';
 async function ollamaPath(){
@@ -19,7 +20,7 @@ async function json(path:string,body?:unknown,timeout=10000,signal?:AbortSignal)
 }
 export class LocalModelService {
  private task:LocalJob={state:'idle',kind:'',message:'',progress:null};private controller:AbortController|null=null;private child:ChildProcess|null=null;
- constructor(private speechIdle:()=>boolean){app.on('before-quit',()=>{this.controller?.abort();this.child?.kill();});}
+ constructor(private speechIdle:()=>boolean){app.on('before-quit',()=>{void this.cancel();});}
  job(){return {...this.task};}
  async hardware():Promise<Hardware>{
   let gpu='未检测到独立显卡',vramGB=0;
@@ -38,7 +39,12 @@ export class LocalModelService {
   const best=available.find(m=>/qwen3.*4b/.test(m.name)&&hardware.ramGB>=12)??available.find(m=>/qwen2.5.*1.5b/.test(m.name))??available[0];if(best)best.recommended=true;
   let ready=false,qwenSpeechReady=false,speechEngine:SpeechEngine='sensevoice',speechDevice:SpeechDevice='auto';
   try{const config=speechConfig();speechEngine=config.engine;speechDevice=config.device;ready=speechReady();qwenSpeechReady=speechReady('qwen3-asr');}catch{/* Report invalid configuration as not ready */}
-  return {hardware,installed:!!(await ollamaPath()),running:!!version,version,models,recommendations:recommendModels(hardware),speechReady:ready,message,speechEngine,speechDevice,qwenSpeechReady,senseSpeechReady:speechReady('sensevoice')};
+  const storage=await speechStorageInfo();
+  const speechInstallPending:SpeechEngine[]=[];
+  for(const engine of ['sensevoice','qwen3-asr'] as const){
+    try{const task=JSON.parse(await readFile(join(speechRuntime(),'installation-'+engine+'.json'),'utf8'));if(task.state!=='done')speechInstallPending.push(engine);}catch{/* No prior installation */}
+  }
+  return {speechInstallPending,speechRuntimePath:storage.directory,speechUsedGB:storage.usedGB,speechFreeGB:storage.freeGB,hardware,installed:!!(await ollamaPath()),running:!!version,version,models,recommendations:recommendModels(hardware),speechReady:ready,message,speechEngine,speechDevice,qwenSpeechReady,senseSpeechReady:speechReady('sensevoice')};
  }
  async start(){
   try{await json('/api/version');return;}catch{/* Start only if absent */}
@@ -47,8 +53,15 @@ export class LocalModelService {
   for(let i=0;i<20;i++){await new Promise(r=>setTimeout(r,500));try{await json('/api/version');return;}catch{/* warming up */}}throw Error('Ollama 启动失败，请手动打开后重试');
  }
  private begin(kind:string){if(this.task.state==='running')throw Error('已有模型任务在进行，请等待或取消');this.task={kind,state:'running',message:'正在准备',progress:null};this.controller=new AbortController();}
- private run(kind:string,action:()=>Promise<unknown>){this.begin(kind);void action().then(()=>{this.task={...this.task,state:this.controller?.signal.aborted?'error':'done',progress:100,message:this.controller?.signal.aborted?'已取消；可稍后重试':'完成，请刷新模型列表或运行自检'};}).catch(e=>{this.task={...this.task,state:'error',message:this.controller?.signal.aborted?'已取消；可稍后重试':e instanceof Error?e.message:String(e)};}).finally(()=>{this.child=null;this.controller=null;});}
- async cancel(){this.controller?.abort();this.child?.kill();}
+ private run(kind:string,action:()=>Promise<unknown>,doneMessage?:()=>string){this.begin(kind);void action().then(()=>{this.task={...this.task,state:this.controller?.signal.aborted?'error':'done',progress:100,message:this.controller?.signal.aborted?'已取消；可稍后重试':doneMessage?.()??'完成，请刷新模型列表或运行自检'};}).catch(e=>{this.task={...this.task,state:'error',message:this.controller?.signal.aborted?'已取消；可稍后重试':e instanceof Error?e.message:String(e)};}).finally(()=>{this.child=null;this.controller=null;});}
+ async cancel(){
+  this.controller?.abort();
+  const child=this.child;
+  if(child?.pid&&process.platform==='win32'){
+    try{await exec('taskkill.exe',['/PID',String(child.pid),'/T','/F'],{windowsHide:true,timeout:8000,maxBuffer:10000});}
+    catch{child.kill();}
+  }else child?.kill();
+ }
  private async stream(path:string,body:unknown){
   const response=await fetch(BASE+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),redirect:'error',signal:this.controller!.signal});
   if(!response.ok||!response.body)throw Error('本地模型操作失败，请检查 Ollama 服务');
@@ -80,7 +93,16 @@ export class LocalModelService {
   }catch(e){this.task={...this.task,state:'error',message:String(e)};throw e;}finally{this.controller=null;}
  }
  private python(){const choices=[join(speechRuntime(),'venv','Scripts','python.exe'),join(process.env.LOCALAPPDATA??'','Programs','Python','Python311','python.exe')];return choices.find(existsSync);}
- private async process(file:string,args:string[]){this.controller?.signal.throwIfAborted();const output=await new Promise<string>((resolve,reject)=>{const child=spawn(file,args,{windowsHide:true,stdio:['ignore','pipe','pipe'],env:{...process.env,PYTHONUTF8:'1'}});this.child=child;let output='';const update=(b:Buffer)=>{this.task.message=String(b).trim().slice(-350);};child.stdout.on('data',b=>{output=(output+String(b)).slice(-64000);update(b);});child.stderr.on('data',update);child.on('error',reject);child.on('exit',code=>code===0?resolve(output):reject(Error('本地转写操作失败：'+this.task.message)));});this.controller?.signal.throwIfAborted();return output;}
+ private async process(file:string,args:string[]){this.controller?.signal.throwIfAborted();const output=await new Promise<string>((resolve,reject)=>{const child=spawn(file,args,{windowsHide:true,stdio:['ignore','pipe','pipe'],env:{...process.env,PYTHONUTF8:'1',PIP_CACHE_DIR:join(speechRuntime(),'cache','pip'),HF_HOME:join(speechRuntime(),'cache','huggingface')}});this.child=child;child.stdout.setEncoding('utf8');child.stderr.setEncoding('utf8');let output='',lines='';const update=(b:Buffer)=>{this.task.message=String(b).trim().slice(-350);};child.stdout.on('data',b=>{output=(output+String(b)).slice(-64000);update(b);
+lines+=String(b);let end;
+while((end=lines.indexOf('\n'))>=0){
+ const line=lines.slice(0,end).trim();lines=lines.slice(end+1);
+ try{const row=JSON.parse(line);if(row.type==='install-progress'&&typeof row.message==='string'){
+  this.task.message=row.message.slice(0,350);
+  this.task.progress=typeof row.percent==='number'&&Number.isFinite(row.percent)?Math.max(0,Math.min(100,row.percent)):null;
+ }}catch{/* Package manager output remains readable */}
+}
+if(lines.length>100000)lines=lines.slice(-1000);});child.stderr.on('data',update);child.on('error',reject);child.on('exit',code=>code===0?resolve(output):reject(Error('本地转写操作失败：'+this.task.message)));});this.controller?.signal.throwIfAborted();return output;}
 
  private speechEngine(value:unknown):SpeechEngine {
   if(value===undefined)return 'sensevoice';
@@ -91,11 +113,11 @@ export class LocalModelService {
   if(value!=='auto'&&value!=='cpu'&&value!=='cuda')throw Error('不支持此转写设备');
   return value;
  }
- private startSpeechTask(kind:string, action:()=>Promise<unknown>){
+ private startSpeechTask(kind:string, action:()=>Promise<unknown>,doneMessage?:()=>string){
   if(!this.speechIdle())throw Error('请先结束课堂录音');
   if(this.job().state==='running')throw Error('请先等待当前模型任务');
   const release=beginSpeechMaintenance();
-  try{this.run(kind,async()=>{try{return await action();}finally{release();}});}
+  try{this.run(kind,async()=>{try{return await action();}finally{release();}},doneMessage);}
   catch(error){release();throw error;}
  }
  async installSpeech(value?:unknown){
@@ -107,8 +129,27 @@ export class LocalModelService {
     const script=join(speechRuntime(),scriptName);
     await mkdir(speechRuntime(),{recursive:true});
     await writeFile(script,await readFile(join(app.getAppPath(),'speech',scriptName)));
-    return this.process(python,[script,'--runtime',speechRuntime()]);
+    const installation=join(speechRuntime(),'installation-'+engine+'.json');
+    await writeFile(installation,JSON.stringify({engine,state:'running',startedAt:new Date().toISOString()}));
+    try{
+      const result=await this.process(python,[script,'--runtime',speechRuntime()]);
+      await writeFile(installation,JSON.stringify({engine,state:'done'}));
+      return result;
+    }catch(error){
+      await writeFile(installation,JSON.stringify({engine,state:'interrupted'}));
+      throw error;
+    }
   });
+ }
+ async relocateSpeech(){
+  if(!this.speechIdle())throw Error('请先结束课堂录音');
+  if(this.job().state==='running')throw Error('请先等待当前模型任务');
+  const result=await dialog.showOpenDialog({title:'选择语音模型存储磁盘或文件夹',properties:['openDirectory','createDirectory']});
+  if(result.canceled||!result.filePaths[0])return;
+  let done='';
+  this.startSpeechTask('迁移语音模型与运行环境',async()=>{
+    await relocateSpeech(result.filePaths[0]!,this.controller!.signal,(message,percent)=>{this.task.message=message;this.task.progress=percent;done=message;});
+  },()=>done||'语音存储位置已更新');
  }
  private async checkSpeech(directory:string, engine:SpeechEngine='sensevoice', device:SpeechDevice='auto', audioFile?:string){
   const required=engine==='qwen3-asr'?['config.json','model.safetensors','.maji-ready']:['model.int8.onnx','tokens.txt'];
@@ -179,6 +220,6 @@ export class LocalModelService {
   finally{release();this.child=null;this.controller=null;}
  }
  async control(command:unknown,value:unknown){
-  switch(command){case 'inspect':return this.inspect();case 'start':return this.start();case 'pull':return this.pull(value);case 'cancel':return this.cancel();case 'job':return this.job();case 'importGGUF':return this.importGGUF();case 'importAPI':return this.importAPI();case 'probe':return this.probe(value);case 'installSpeech':return this.installSpeech(value);case 'selectSpeech':return this.selectSpeech(value);case 'importSpeech':return this.importSpeech();case 'probeSpeech':return this.probeSpeech(value);default:throw Error('未知本地模型操作');}
+  switch(command){case 'inspect':return this.inspect();case 'relocateSpeech':return this.relocateSpeech();case 'start':return this.start();case 'pull':return this.pull(value);case 'cancel':return this.cancel();case 'job':return this.job();case 'importGGUF':return this.importGGUF();case 'importAPI':return this.importAPI();case 'probe':return this.probe(value);case 'installSpeech':return this.installSpeech(value);case 'selectSpeech':return this.selectSpeech(value);case 'importSpeech':return this.importSpeech();case 'probeSpeech':return this.probeSpeech(value);default:throw Error('未知本地模型操作');}
  }
 }

@@ -164,7 +164,7 @@ export type UpdateStatus =
   | { state: 'available'; currentVersion: string; version: string }
   | { state: 'downloading'; currentVersion: string; version: string; percent: number }
   | { state: 'downloaded'; currentVersion: string; version: string }
-  | { state: 'error'; currentVersion: string; message: string };
+  | { state: 'error'; currentVersion: string; message: string; phase?: string; code?: string };
 
 /**
  * window.maji 的形状。所有方法都是 Promise，失败时 reject 一个可读的错误。

@@ -9,17 +9,28 @@ export function LocalModels({speech=false,onSelect}:{speech?:boolean;onSelect:(m
  const [custom,setCustom]=useState('');
  const [speechChoice,setSpeechChoice]=useState<SpeechEngine>('sensevoice');
  const [speechDevice,setSpeechDevice]=useState<SpeechDevice>('auto');
- useEffect(()=>{if(report){setSpeechChoice(report.speechEngine??'sensevoice');setSpeechDevice(report.speechDevice??'auto');}},[report]);
+ useEffect(()=>{if(report){setSpeechChoice(report.speechEngine??'sensevoice');setSpeechDevice(report.speechDevice??'auto');}},[report?.speechEngine,report?.speechDevice]);
  async function run(action:()=>Promise<unknown>){setBusy(true);setError('');try{await action();}catch(e){setError(e instanceof Error?e.message:String(e));}finally{setBusy(false);}}
  async function refresh(){if(api)setReport(await api.inspect());}
  useEffect(()=>{let alive=true;if(api)void api.inspect().then(r=>{if(alive)setReport(r);}).catch(e=>{if(alive)setError(String(e));});return()=>{alive=false;};},[api]);
  useEffect(()=>{if(!api)return;let live=true,inFlight=false;const poll=async()=>{if(inFlight)return;inFlight=true;try{const next=await api.job();if(live)setJob(next);}catch{/* Show explicit action errors */}finally{inFlight=false;}};void poll();const timer=setInterval(()=>void poll(),1000);return()=>{live=false;clearInterval(timer);};},[api]);
+ useEffect(()=>{
+   if(!speech||!api||!job||!['done','error'].includes(job.state))return;
+   let live=true;
+   void api.inspect().then(next=>{if(live)setReport(next);}).catch(cause=>{if(live)setError(String(cause));});
+   return()=>{live=false;};
+ },[api,speech,job?.state]);
  if(!api)return <p className={styles.muted}>本地模型管理需要新版桌面应用。</p>;
  const disabled=busy||job?.state==='running';
  return <section className={styles.localPanel} aria-label={speech?'本地语音模型':'本地文字模型'}>
  <div className={styles.heading}><h3>{speech?'语音转写模型':'Ollama 本地模型'}</h3><Button variant="secondary" disabled={disabled} onClick={()=>void run(refresh)}>检测本机并刷新</Button></div>
  {report&&<><div className={styles.hardware}><strong>{report.hardware.cpu}</strong><span>内存 {report.hardware.ramGB}GB（可用约 {report.hardware.freeGB}GB）</span><span>{report.hardware.gpu} · 显存约 {report.hardware.vramGB}GB</span><small>推荐依据为资源估算；模型上下文、后台程序和实际生成速度会影响可用性。</small></div>
  {speech?<>
+ <p className={styles.muted}>安装位置：{report.speechRuntimePath??'默认用户目录'} · 此目录已用约 {report.speechUsedGB??0}GB{report.speechFreeGB!==null&&report.speechFreeGB!==undefined?' · 可用 '+report.speechFreeGB+'GB':''}</p>
+ <Button variant="secondary" disabled={disabled} onClick={()=>void run(()=>api.relocateSpeech())}>选择磁盘并迁移模型</Button>
+ <p className={styles.muted}>SenseVoice 建议预留 2GB；Qwen 模型、运行环境和下载缓存建议预留 15GB。迁移校验完成后启用新位置，原目录可核对后手动清理。</p>
+ {report.speechInstallPending?.map(engine=><Button key={engine} variant="secondary" disabled={disabled}
+   onClick={()=>void run(()=>api.installSpeech(engine))}>继续安装 {engine==='qwen3-asr'?'Qwen3-ASR-0.6B':'SenseVoice INT8'}</Button>)}
  <p className={styles.muted}>当前模型：{report.speechEngine==='qwen3-asr'?'Qwen3-ASR-0.6B':'SenseVoice INT8'} · {report.speechReady?'已安装':'未就绪'}。选择后先验证本地解码，再用于下一次课堂。</p>
  <label className={styles.localInput}>语音识别模型
    <select aria-label="语音识别模型" disabled={disabled} value={speechChoice} onChange={event=>setSpeechChoice(event.target.value as SpeechEngine)}>
@@ -59,6 +70,6 @@ export function LocalModels({speech=false,onSelect}:{speech?:boolean;onSelect:(m
  </>}
  {job&&job.state!=='idle'&&<div className={job.state==='error'?styles.error:styles.muted} role="status"><strong>{job.kind}</strong><p>{job.message}</p>{job.progress!==null&&<progress max={100} value={job.progress}/>} {job.state==='running'&&<Button variant="secondary" onClick={()=>void run(()=>api.cancel())}>取消任务</Button>}{job.state==='done'&&<Button variant="secondary" onClick={()=>void run(refresh)}>刷新检测结果</Button>}</div>}
  {error&&<p className={styles.error} role="alert">{error}</p>}
- <Modal open={!!install} title="确认安装本地模型" onClose={()=>setInstall(null)} footer={<><Button variant="secondary" onClick={()=>setInstall(null)}>取消</Button><Button onClick={()=>{const target=install;setInstall(null);if(target)void run(()=>target.name==='SenseVoice INT8'?api.installSpeech():target.name==='Qwen3-ASR-0.6B'?api.installSpeech('qwen3-asr'):api.pull(target.name));}}>开始下载</Button></>}><p>{install?.name}</p><p>{install?.sizeGB?`模型文件约 ${install.sizeGB}GB，安装运行环境与缓存还需要额外空间。`:'此模型大小未知，请确认有足够磁盘空间。'}模型下载需要网络，安装后在本机推理。{install?.name==='Qwen3-ASR-0.6B'?'Qwen 会安装独立运行环境和 CUDA 组件，请预留约 10GB 以上磁盘空间。':''}下载完成后请刷新并运行自检，语音模型需要点击「验证并使用此模型」后生效。</p></Modal>
+ <Modal open={!!install} title="确认安装本地模型" onClose={()=>setInstall(null)} footer={<><Button variant="secondary" onClick={()=>setInstall(null)}>取消</Button><Button onClick={()=>{const target=install;setInstall(null);if(target)void run(()=>target.name==='SenseVoice INT8'?api.installSpeech():target.name==='Qwen3-ASR-0.6B'?api.installSpeech('qwen3-asr'):api.pull(target.name));}}>开始下载</Button></>}><p>{install?.name}</p><p>{install?.sizeGB?`模型文件约 ${install.sizeGB}GB，安装运行环境与缓存还需要额外空间。`:'此模型大小未知，请确认有足够磁盘空间。'}模型下载需要网络，安装后在本机推理。{install?.name==='Qwen3-ASR-0.6B'?'Qwen 会安装独立运行环境和 CUDA 组件，建议预留 15GB 磁盘空间（含下载缓存）。':''}下载完成后请刷新并运行自检，语音模型需要点击「验证并使用此模型」后生效。</p></Modal>
  </section>;
 }

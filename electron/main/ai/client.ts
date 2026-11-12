@@ -20,13 +20,14 @@ interface AIClientOptions {
 }
 
 export class AIClient {
-  async summarizeClassroomFinal(settings:AIProviderSettings,key:string,system:string,text:string):Promise<string>{
+  async summarizeClassroomFinal(settings:AIProviderSettings,key:string,system:string,text:string,signal?:AbortSignal,outputLimit=CLASSROOM_FINAL_MAX_CHARS):Promise<string>{
     // DeepSeek's official endpoint supports 384K output tokens. Do not assume
     // third-party compatible endpoints or other models share that ceiling.
     const officialDeepSeek = settings.provider !== 'local' && new URL(settings.baseUrl).origin === 'https://api.deepseek.com'
       && /^deepseek-(?:flash|v4-pro)$/.test(settings.model);
-    return (await this.complete(settings,key,{system,user:text},officialDeepSeek?393216:4000,CLASSROOM_FINAL_MAX_CHARS,undefined,
-      {timeoutMs:30*60_000,maxResponseBytes:16*1024*1024})).trim();
+    const partial=outputLimit<CLASSROOM_FINAL_MAX_CHARS;
+    return (await this.complete(settings,key,{system,user:text},partial?Math.min(6000,Math.ceil(outputLimit*1.5)):officialDeepSeek?393216:4000,outputLimit,signal,
+      {timeoutMs:30*60_000,maxResponseBytes:partial?128*1024:16*1024*1024})).trim();
   }
   async summarizeClassroom(settings: AIProviderSettings,key:string,system:string,text:string):Promise<string> {
     return (await this.complete(settings,key,{system,user:text},650,1500)).trim();

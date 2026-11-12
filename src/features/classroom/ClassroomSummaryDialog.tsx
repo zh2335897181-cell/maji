@@ -1,13 +1,15 @@
+import { SummaryTaskPanel } from './SummaryTaskPanel';
 import { useState } from 'react';
 import { Button } from '../../components/ui/Button';
 import { Modal } from '../../components/ui/Modal';
 import type { ProjectAttachment } from '../../lib/projectAttachments';
 import styles from './classroom.module.css';
 
-export function ClassroomSummaryDialog({ title, onClose, onFinalize }: {
+export function ClassroomSummaryDialog({ id, title, onClose, onFinalize }: {
+  id: string;
   title: string;
   onClose(): void;
-  onFinalize(fileIds?: string[]): Promise<void>;
+  onFinalize(fileIds?: string[], resume?: boolean): Promise<void>;
 }) {
   const api = window.maji?.projectAttachments;
   const [project, setProject] = useState<ProjectAttachment | null>(null);
@@ -76,6 +78,7 @@ export function ClassroomSummaryDialog({ title, onClose, onFinalize }: {
           </div>
           <p>点击「结合项目总结」后，所选 UTF-8 文件的完整内容会分批发送到你配置的 AI 服务。单文件没有应用大小上限。</p>
         </>}
+        <SummaryTaskPanel id={id} onResume={() => onFinalize(undefined,true)} />
         {busy && <p role="status">正在处理，文件越大，用时可能越长…</p>}
         {error && <p className={styles.error} role="alert">{error}</p>}
       </div>

@@ -1,4 +1,8 @@
 import Database from 'better-sqlite3';
+import {mkdtempSync,rmSync} from 'node:fs';
+import {join,dirname} from 'node:path';
+import {tmpdir} from 'node:os';
+import {afterEach} from 'vitest';
 import {afterAll,beforeEach,expect,it,vi} from 'vitest';
 import {migrate} from './db/schema';
 import {ClassroomService} from './classroom';
@@ -9,7 +13,14 @@ import {updateNote,getNote} from './db/notes';
 vi.mock('electron',()=>({app:{on:vi.fn(),getPath:()=>'.'},dialog:{showOpenDialog:vi.fn()},BrowserWindow:{getAllWindows:()=>[]}}));
 vi.mock('./db/connection',()=>({getDb:()=>db}));
 const db=new Database(':memory:');migrate(db);
-afterAll(()=>db.close());beforeEach(()=>{db.prepare('DELETE FROM classroom_records').run();db.prepare('DELETE FROM notes').run();db.prepare('DELETE FROM courses').run();});
+let taskRoot:string;
+afterEach(()=>{
+ vi.unstubAllEnvs();
+ if(taskRoot&&dirname(taskRoot)===tmpdir())rmSync(taskRoot,{recursive:true,force:true});
+});
+afterAll(()=>db.close());beforeEach(()=>{
+ taskRoot=mkdtempSync(join(tmpdir(),'maji-summary-test-'));vi.stubEnv('MAJI_SUMMARY_RUNTIME',taskRoot);
+db.prepare('DELETE FROM classroom_records').run();db.prepare('DELETE FROM notes').run();db.prepare('DELETE FROM courses').run();});
 function insert(){const now=new Date().toISOString();const doc={id:'class_test',title:'课堂',createdAt:now,updatedAt:now,aiEnabled:true,chunks:[{start:0,end:125,text:'老师的知识点'}],summaries:[{start:0,end:120,text:''}]};db.prepare('INSERT INTO classroom_records VALUES (?,?,?)').run(doc.id,JSON.stringify(doc),now);}
 it('recovers interrupted summaries and the unfinished tail as retryable failures',()=>{
  insert();const service=new ClassroomService({} as AIService),rows=service.list();
@@ -62,7 +73,7 @@ it('edits text with conflict checks, keeps timing, and preserves the generated n
  const edited=service.list()[0]!;expect(edited.title).toBe(patch.title);expect(edited.chunks[0]).toEqual({start:0,end:125,text:'已纠正原文'});expect(edited.finalSummary?.outdated).toBe(true);
  service.update(record.id,{...patch,summaryTexts:edited.summaries.map(()=> '')},edited.updatedAt);
  const reloaded=new ClassroomService({} as AIService).list()[0]!;expect(reloaded.summaries.every(s=>s.edited&&!s.error&&s.text==='')).toBe(true);
- service.remove(record.id);expect(service.list()).toHaveLength(0);expect(db.prepare('SELECT id FROM notes WHERE id=?').get(record.finalSummary!.noteId)).toBeTruthy();
+ await service.remove(record.id);expect(service.list()).toHaveLength(0);expect(db.prepare('SELECT id FROM notes WHERE id=?').get(record.finalSummary!.noteId)).toBeTruthy();
 });
 
 it('passes the transcript and selected project context to the same final summary', async () => {
@@ -72,6 +83,6 @@ it('passes the transcript and selected project context to the same final summary
   const project = { tree: 'src/login.ts', treeIncomplete: false,
     files: (async function* () { yield { fileId: 'login', path: 'src/login.ts', offset: 0, nextOffset: null, text: 'export function login() {}' }; })() };
   await service.finalize('class_test', project);
-  expect(summarizeClassroomFinal).toHaveBeenCalledWith(expect.stringContaining('老师的知识点'), project);
+  expect(summarizeClassroomFinal).toHaveBeenCalledWith(expect.stringContaining('老师的知识点'), project, expect.objectContaining({signal:expect.any(AbortSignal)}));
   expect(service.list()[0]!.finalSummary?.noteId).toBeTruthy();
 });

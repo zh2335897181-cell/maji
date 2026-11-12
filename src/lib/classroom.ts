@@ -20,6 +20,10 @@ export interface ClassroomEdit {title:string;chunkTexts:string[];summaryTexts:st
 export interface ClassroomFloatingSnapshot {title:string;state:ClassroomStatus['state'];summary?:ClassroomSummary}
 export interface ClassroomStatus { installed: boolean; modelLabel?: string; state: 'idle'|'starting'|'recording'|'importing'|'pausing'|'paused'|'resuming'|'stopping'; activeId: string|null; error: string; device: string }
 export interface ClassroomApi {
+  finalTask(id:string):Promise<import('./summaryTask').SummaryProgress|null>;
+  cancelFinal(id:string):Promise<void>;
+  resumeFinal(id:string):Promise<void>;
+  finalAnalysis(id:string,path:string):Promise<{path:string;text:string}>;
   status(): Promise<ClassroomStatus>; list(): Promise<ClassroomRecord[]>;
   start(title:string,source:'system'|'microphone',aiEnabled:boolean):Promise<string>;
   importAudio(title:string,aiEnabled:boolean):Promise<string|null>;

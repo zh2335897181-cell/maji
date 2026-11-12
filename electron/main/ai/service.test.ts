@@ -21,10 +21,10 @@ describe('AI service orchestration', () => {
     const client={testConnection:vi.fn(),ask:vi.fn(),generateReview:vi.fn(),gradeReviewAnswer:vi.fn(),summarizeClassroomFinal};
     const service=new AIService(store,client),text='开头知识点'+ '甲'.repeat(25000)+'末尾知识点';
     await expect(service.summarizeClassroomFinal(text)).resolves.toContain('完整整理');
-    expect(summarizeClassroomFinal).toHaveBeenCalledTimes(4);
-    const inputs=summarizeClassroomFinal.mock.calls.map(c=>JSON.parse(String(c[3])).SOURCE_DATA);
-    expect(inputs.slice(0,3).join('')).toBe(text);
-    expect(inputs[2]).toContain('末尾知识点');
+    const inputs=summarizeClassroomFinal.mock.calls.map(c=>JSON.parse(String(c[3])))
+      .filter(data=>data.stage==='课堂原文分批整理').map(data=>data.SOURCE_DATA);
+    expect(inputs.join('')).toBe(text);
+    expect(inputs.at(-1)).toContain('末尾知识点');
   });
   it('does not call the provider until an explicit action and sends validated context', async () => {
     const store = {
@@ -86,8 +86,35 @@ it('sends the complete selected file beyond the fourth batch and merges its anal
     tree: 'src/Login.ts', treeIncomplete: false, files: files(),
   });
   const payloads = summarizeClassroomFinal.mock.calls.map(call => JSON.parse(String(call[3])));
-  expect(payloads.slice(0, -1).map(payload => payload.file.code)).toEqual(
-    ['代码 0', '代码 1', '代码 2', '代码 3', '代码 4', '代码 5'],
-  );
-  expect(payloads.at(-1)).toMatchObject({ SOURCE_DATA: '课堂原文', PROJECT_CONTEXT: { notes: '关联知识点和实现' } });
+  const batches=payloads.filter(payload=>payload.file);
+  expect(batches.length).toBeLessThan(6);
+  expect(batches.map(payload=>payload.file.code).join('')).toBe('代码 0代码 1代码 2代码 3代码 4代码 5');
+  expect(payloads.at(-1).SOURCE_DATA).toContain('课堂原文');
+  expect(payloads.at(-1).SOURCE_DATA).toContain('关联知识点和实现');
+});
+
+it('reuses completed batches after interruption and preserves each file analysis independently', async () => {
+  const store={getStatus:vi.fn(),getCredential:vi.fn().mockResolvedValue({settings:{baseUrl:status.baseUrl,model:status.model},key:'secret'}),save:vi.fn(),clearKey:vi.fn()};
+  const summarizeClassroomFinal=vi.fn().mockResolvedValue('文件实现证据');
+  const client={testConnection:vi.fn(),ask:vi.fn(),generateReview:vi.fn(),gradeReviewAnswer:vi.fn(),summarizeClassroomFinal};
+  const service=new AIService(store,client);
+  const cache=new Map<string,string>();
+  const controller=new AbortController();
+  async function* files(){
+    yield {fileId:'a',path:'src/A.ts',offset:0,nextOffset:null,text:'class A {}'.repeat(3000)};
+    yield {fileId:'b',path:'src/B.ts',offset:0,nextOffset:null,text:'class B {}'};
+  }
+  let saved=0;
+  await expect(service.summarizeClassroomFinal('课堂原文',{tree:'src/A.ts\nsrc/B.ts',treeIncomplete:false,files:files()},{
+    signal:controller.signal,cached:async key=>cache.get(key)??null,
+    save:async(key,text)=>{cache.set(key,text);if(++saved===2)controller.abort();},
+  })).rejects.toThrow();
+  const analysis=vi.fn();
+  await service.summarizeClassroomFinal('课堂原文',{tree:'src/A.ts\nsrc/B.ts',treeIncomplete:false,files:files()},{
+    cached:async key=>cache.get(key)??null,save:async(key,text)=>{cache.set(key,text);},fileAnalysis:analysis,
+  });
+  const batches=summarizeClassroomFinal.mock.calls.map(call=>JSON.parse(String(call[3]))).filter(data=>data.file);
+  expect(batches.filter(data=>data.file.path==='src/A.ts'&&data.file.part===0)).toHaveLength(1);
+  expect(batches.filter(data=>data.file.path==='src/A.ts').map(data=>data.file.code).join('')).toBe('class A {}'.repeat(3000));
+  expect(analysis.mock.calls.map(call=>call[0])).toEqual(['src/A.ts','src/B.ts']);
 });

@@ -163,3 +163,49 @@ test('悬浮窗暂停和继续复用课堂转录操作，过渡期间禁止重�
   await expect(page.getByRole('button', { name: '转录已结束', exact: true })).toBeDisabled();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
+
+test('总结任务显示文件进度，取消后可以继续并查看文件分析', async ({ page }, testInfo) => {
+  await page.goto('/#/');
+  await expect(page.getByRole('button', { name: '继续编辑' })).toBeVisible();
+  await page.evaluate(() => {
+    const now = new Date().toISOString();
+    const row: any = { id: 'class_job', title: '事务课堂', createdAt: now, updatedAt: now,
+      aiEnabled: true, chunks: [{ start: 0, end: 10, text: '事务原文' }], summaries: [], awaitingFinalSummary: true };
+    let task: any = null;
+    let finish: (() => void) | undefined;
+    Object.defineProperty(window, 'maji', { configurable: true, value: { classroom: {
+      status: async () => ({ installed: true, state: task?.state === 'running' ? 'stopping' : 'idle', activeId: null, error: '', device: '' }),
+      list: async () => [row],
+      finalTask: async () => task,
+      finalize: async () => {
+        row.awaitingFinalSummary = false;
+        task = { state: 'running', stage: '分析项目文件', file: 'src/A.ts', completedFiles: 1, totalFiles: 2, completedRequests: 1, analyses: ['src/A.ts'] };
+        await new Promise<void>(resolve => { finish = resolve; });
+      },
+      cancelFinal: async () => {
+        task.state = 'paused';
+        task.stage = '任务已暂停，可继续';
+        row.finalSummary = { markdown: '', error: '任务已取消' };
+        finish?.();
+      },
+      resumeFinal: async () => {
+        task.state = 'done'; task.stage = '总结已保存'; task.completedFiles = 2;
+        row.finalSummary = { markdown: '# 项目与课堂总结', noteId: 'note_func_args' };
+      },
+      finalAnalysis: async (_id: string, path: string) => ({ path, text: 'A 文件的事务实现证据' }),
+    } } });
+  });
+  await page.getByRole('link', { name: '课堂纪要', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: '生成课堂总结' });
+  await dialog.getByRole('button', { name: '仅总结课堂', exact: true }).click();
+  await expect(dialog.getByText('已分析 1 / 2 个文件')).toBeVisible();
+  await page.screenshot({path:testInfo.outputPath('summary-task.png')});
+  await dialog.getByRole('button', { name: '取消总结任务' }).click();
+  await dialog.getByRole('button', { name: '继续上次总结' }).click();
+  await expect(dialog).toBeHidden();
+  await expect(page.getByRole('article', { name: '整堂课知识点总结' })).toContainText('项目与课堂总结');
+  const panel = page.getByRole('region', { name: '总结任务进度' });
+  await panel.getByText('查看已保存的文件分析').click();
+  await panel.getByLabel('查看文件分析').selectOption('src/A.ts');
+  await expect(panel).toContainText('A 文件的事务实现证据');
+});

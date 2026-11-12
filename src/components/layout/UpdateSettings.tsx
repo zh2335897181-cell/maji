@@ -38,6 +38,10 @@ export function UpdateSettings({ status, onCheck, onInstall }: UpdateSettingsPro
         </Button>
       </div>
       <p className={styles.status} role="status">{statusText(status)}</p>
+      {status.state === 'error' && <div>
+        {status.code && <p>错误代码 {status.code}</p>}
+        <Button variant="secondary" onClick={() => void window.maji?.external.open('https://github.com/zh2335897181-cell/maji/releases/latest')}>打开官方发布页下载</Button>
+      </div>}
       {status.state === 'downloading' ? (
         <div className={styles.progress}>
           <progress aria-label="更新下载进度" max={100} value={status.percent} />

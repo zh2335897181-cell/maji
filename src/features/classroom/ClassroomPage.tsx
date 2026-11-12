@@ -9,6 +9,7 @@ import { Button } from '../../components/ui/Button';
 import { Modal } from '../../components/ui/Modal';
 import type { ClassroomRecord, ClassroomStatus,ClassroomEdit } from '../../lib/classroom';
 import { transcriptGroups } from '../../lib/classroom';
+import { SummaryTaskPanel } from './SummaryTaskPanel';
 import { ClassroomSummaryDialog } from './ClassroomSummaryDialog';
 import styles from './classroom.module.css';
 const time=(s:number)=>`${Math.floor(s/60).toString().padStart(2,'0')}:${Math.floor(s%60).toString().padStart(2,'0')}`;
@@ -59,6 +60,9 @@ export function ClassroomPage(){
   {(error||status.error)&&<p className={styles.error} role="alert">{error||status.error}</p>}
   <div className={styles.layout}><aside className={styles.list} aria-label="课堂记录">{rows.map(r=><button key={r.id} aria-pressed={record?.id===r.id} onClick={()=>setSelected(r.id)}><strong>{r.title}</strong><small>{new Date(r.createdAt).toLocaleString()} · {r.summaries.length} 段纪要</small>{status.activeId===r.id&&<span>正在记录</span>}</button>)}{!rows.length&&<p>每次课堂独立保存，结束后可随时回来查看。</p>}</aside>
    <main className={styles.main}>{record?<><div className={styles.recordHeader}><div><h2>{record.title}</h2><small>{record.chunks.length} 段转写 · {record.aiEnabled?'自动 AI 纪要已开启':'仅本地转写'}</small></div><div className={styles.actions}><Button icon={Pencil} variant="secondary" disabled={!api||active||busy} onClick={()=>{setError('');setEditing(record);setEdit({title:record.title,chunkTexts:record.chunks.map(c=>c.text),summaryTexts:record.summaries.map(s=>s.text)});}}>编辑课堂</Button><Button icon={Trash2} variant="secondary" disabled={!api||active||busy} onClick={()=>{setError('');setDeleting(record);}}>删除课堂</Button><Button icon={Download} variant="secondary" onClick={download}>导出 Markdown</Button></div></div>
+   {api && <SummaryTaskPanel key={record.id} id={record.id} onResume={async()=>{
+     await api.resumeFinal(record.id);setRows(await api.list());await refresh();
+   }} />}
    {record.finalSummary?.outdated&&<p className={styles.notice}>本课堂内容已编辑，之前生成的总结笔记保留原样，请按需在笔记中修改。</p>}
    {record.finalSummary&&<article className={styles.card} aria-label="整堂课知识点总结"><h3>整堂课知识点总结</h3>{record.finalSummary.error&&<p className={styles.error} role="alert">{record.finalSummary.error}</p>}{!record.finalSummary.markdown&&!record.finalSummary.error&&<p>正在汇总全部原文并保存笔记…</p>}{record.finalSummary.markdown&&<><p>已整理为 Markdown，可复制或打开笔记查看。</p><pre className={styles.finalMarkdown}>{record.finalSummary.markdown}</pre><Button icon={Copy} variant="secondary" onClick={()=>void run(async()=>{await navigator.clipboard.writeText(record.finalSummary!.markdown);setCopied(record.id);})}>{copied===record.id?'已复制 Markdown':'复制 Markdown'}</Button></>}{record.finalSummary.noteId&&<Button variant="secondary" onClick={()=>void run(async()=>{await refresh();navigate(ROUTES.note(record.finalSummary!.noteId!));})}>打开总结笔记</Button>}
    {api && record.finalSummary.noteId && (
@@ -73,13 +77,19 @@ export function ClassroomPage(){
    </>:<div className={styles.empty}><Mic size={36}/><h2>把课堂重点留下来</h2><p>电脑声音、麦克风或录音文件 → 本地转写 → 两分钟精简纪要。</p><p>类名、注解和方法名仍需核对；不会自动补写老师未讲的代码。</p></div>}</main></div>
   {summaryRecord && api && <ClassroomSummaryDialog
     key={summaryRecord.id}
+    id={summaryRecord.id}
     title={summaryRecord.title}
     onClose={() => {
       dismissedSummaries.current.add(summaryRecord.id);
       setSummaryId(null);
     }}
-    onFinalize={async fileIds => {
-      await api.finalize(summaryRecord.id, fileIds);
+    onFinalize={async (fileIds,resume) => {
+      if(resume)await api.resumeFinal(summaryRecord.id);
+      else await api.finalize(summaryRecord.id,fileIds);
+      const updated=await api.list();
+      setRows(updated);
+      const failure=updated.find(row=>row.id===summaryRecord.id)?.finalSummary?.error;
+      if(failure)throw Error(failure);
       dismissedSummaries.current.add(summaryRecord.id);
       setSelected(summaryRecord.id);
       setSummaryId(null);

@@ -5,7 +5,7 @@ import { TextDecoder } from 'node:util';
 import { BrowserWindow, dialog, type IpcMainInvokeEvent } from 'electron';
 import {
   PROJECT_EXCERPT_BYTES, type ClassroomProjectContext,
-  type ProjectAttachment, type ProjectExcerpt, type ProjectFile,
+  type ProjectAttachment, type ProjectExcerpt, type ProjectFileReference,
 } from '../../src/lib/projectAttachments';
 
 const SKIP_DIRS = new Set(['.git', 'node_modules', '.venv', 'dist', 'build', 'target', 'coverage']);
@@ -14,9 +14,7 @@ const ENTRY_LIMIT = 10000;
 const TREE_CONTEXT_LIMIT = 8000;
 const SECRET_NAME = /^(?:\.env(?:\..*)?|\.npmrc|\.pypirc|id_(?:rsa|ed25519|ecdsa|dsa)(?:\..*)?)$|\.(?:pem|key|pfx|p12|jks|keystore)$/i;
 
-interface AttachedFile extends ProjectFile {
-  absolutePath: string;
-}
+type AttachedFile = Omit<ProjectFileReference, 'modifiedAt'> & { modifiedAt?: number };
 
 interface Attachment {
   summary: ProjectAttachment;
@@ -44,12 +42,17 @@ async function collect(files: string[], folder?: string): Promise<Attachment> {
     } else if (stats.isFile()) {
       const id = randomUUID();
       const relativePath = folder ? path.relative(folder, absolutePath).split(path.sep).join('/') : name;
-      attached.set(id, { id, path: relativePath, size: stats.size, absolutePath });
+      attached.set(id, { id, path: relativePath, size: stats.size, absolutePath, modifiedAt: stats.mtimeMs });
     }
   }
   for (const root of roots) {
     await walk(root);
     if (incomplete) break;
+  }
+  const counts=new Map<string,number>();
+  for(const file of attached.values())counts.set(file.path,(counts.get(file.path)??0)+1);
+  for(const file of attached.values())if((counts.get(file.path)??0)>1){
+    file.path=path.basename(path.dirname(file.absolutePath))+'-'+file.id.slice(0,8)+'/'+file.path;
   }
   const summary = {
     name: folder ? path.basename(folder) || folder : '所选文件',
@@ -67,7 +70,7 @@ export async function readProjectExcerpt(file: AttachedFile, offset: number): Pr
   const handle = await open(canonicalPath, 'r');
   try {
     const stats = await handle.stat();
-    if (!stats.isFile() || offset > stats.size) throw new Error('文件已变化，请重新选择项目');
+    if (!stats.isFile() || offset > stats.size || stats.size !== file.size || (file.modifiedAt !== undefined && stats.mtimeMs !== file.modifiedAt)) throw new Error('文件已变化，请重新选择项目');
     const buffer = Buffer.alloc(PROJECT_EXCERPT_BYTES + 4);
     let bytesRead = 0;
     while (bytesRead < buffer.length) {
@@ -137,20 +140,30 @@ export function createClassroomAttachments() {
       if (!file) throw new Error('文件不在当前项目中');
       return file;
     });
+    return projectContext(selected as ProjectFileReference[], attachment.summary.incomplete);
+  }
+
+  return { handle, context };
+}
+
+export function projectContext(selected: ProjectFileReference[], incomplete = false): ClassroomProjectContext {
     async function* files() {
       for (const file of selected) {
         let offset: number | null = 0;
         while (offset !== null) {
-          const page = await readProjectExcerpt(file, offset);
+          let page:ProjectExcerpt;
+          try{page=await readProjectExcerpt(file,offset);}
+          catch(error){throw Error(file.path+'：'+(error instanceof Error?error.message:String(error)));}
+
           yield page;
           offset = page.nextOffset;
         }
       }
     }
-    const tree = attachment.summary.files.map(file => file.path).join('\n');
-    return { tree: tree.slice(0, TREE_CONTEXT_LIMIT), files: files(),
-      treeIncomplete: attachment.summary.incomplete || tree.length > TREE_CONTEXT_LIMIT };
-  }
-
-  return { handle, context };
+    const tree = selected.map(file => file.path).join('\n');
+    return { tree: tree.slice(0, TREE_CONTEXT_LIMIT), files: files(), manifest: selected,
+      validate:async signal=>{
+        for await(const _page of files())signal?.throwIfAborted();
+      },
+      treeIncomplete: incomplete || tree.length > TREE_CONTEXT_LIMIT };
 }

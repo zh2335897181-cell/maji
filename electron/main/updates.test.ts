@@ -89,3 +89,15 @@ describe('桌面更新服务', () => {
     expect(JSON.stringify(service.getStatus())).not.toContain('private-token');
   });
 });
+
+it('identifies download timeouts without including private URLs', async () => {
+  const updater = new FakeUpdater();
+  const service = createUpdateService(updater, { isPackaged: true, platform: 'win32', hasFeed: true, currentVersion: '1.0.8' });
+  updater.emit('update-available', { version: '1.0.9' });
+  updater.emit('error', Object.assign(new Error('https://example.test/token timed out'), { code: 'ETIMEDOUT' }));
+  expect(service.getStatus()).toMatchObject({ state: 'error', phase: '下载安装包', code: 'ETIMEDOUT' });
+  expect(JSON.stringify(service.getStatus())).not.toContain('example.test');
+  updater.emit('update-downloaded', { version: '1.0.9' });
+  updater.emit('error', new Error('late network error'));
+  expect(service.getStatus()).toMatchObject({ state: 'downloaded' });
+});

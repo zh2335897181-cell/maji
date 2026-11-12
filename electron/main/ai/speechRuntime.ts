@@ -5,6 +5,12 @@ import type { SpeechDevice, SpeechEngine } from '../../../src/lib/localAI';
 
 export const SPEECH_MODEL = 'sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2024-07-17';
 export function speechRuntime() {
+  const pointer=join(app.getPath('userData'),'speech-location.json');
+  if(existsSync(pointer)){
+    const value=JSON.parse(readFileSync(pointer,'utf8'));
+    if(typeof value.directory!=='string'||!isAbsolute(value.directory))throw Error('语音存储目录配置无效');
+    return value.directory;
+  }
   return process.env.MAJI_SPEECH_RUNTIME ?? join(app.getPath('userData'), 'speech-runtime');
 }
 

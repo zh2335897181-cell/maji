@@ -27,6 +27,7 @@ test('语音设置支持 Qwen 下载、设备选择和短录音测试', async ({
       installed: true, running: false, version: '', models: [], recommendations: [],
       speechReady: true, speechEngine: 'sensevoice', speechDevice: 'auto',
       qwenSpeechReady: true, senseSpeechReady: true, message: '',
+      speechRuntimePath:'C:/models',speechUsedGB:3,speechFreeGB:20,speechInstallPending:['qwen3-asr'],
     };
     let job = { state: 'idle', kind: '', message: '', progress: null as number | null };
     Object.defineProperty(window, 'maji', { configurable: true, value: {
@@ -41,6 +42,7 @@ test('语音设置支持 Qwen 下载、设备选择和短录音测试', async ({
             report.speechDevice = device;
             document.body.dataset.selectedSpeech = JSON.stringify({ engine, device });
           },
+          relocateSpeech:async()=>{report.speechRuntimePath='D:/models';document.body.dataset.relocated='true';},
           probeSpeech: async (audio: boolean) => {
             document.body.dataset.probedAudio = String(audio);
             job = { state: 'done', kind: '短录音转写测试', message: '音频 10 秒 · 推理 3 秒 · Spring Boot', progress: 100 };
@@ -65,5 +67,10 @@ test('语音设置支持 Qwen 下载、设备选择和短录音测试', async ({
   await page.getByRole('button', { name: '短录音测试' }).click();
   await expect(page.locator('body')).toHaveAttribute('data-probed-audio', 'true');
   await expect(page.getByText('音频 10 秒 · 推理 3 秒 · Spring Boot')).toBeVisible();
+  await page.getByRole('button',{name:'选择磁盘并迁移模型'}).click();
+  await expect(page.locator('body')).toHaveAttribute('data-relocated','true');
+  await page.getByRole('button',{name:'检测本机并刷新'}).click();
+  await expect(page.getByText(/安装位置：D:\/models/)).toBeVisible();
+  await page.getByRole('button',{name:'继续安装 Qwen3-ASR-0.6B'}).click();
   await page.screenshot({ path: testInfo.outputPath('qwen-settings.png') });
 });

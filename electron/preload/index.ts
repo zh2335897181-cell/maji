@@ -171,6 +171,10 @@ const api: MajiApi = {
     choose: kind => invoke<ProjectAttachment | null>(CHANNELS.projectAttachments, 'choose', kind),
   },
   classroom: {
+    finalTask: id => invoke(CHANNELS.classroom,'finalTask',{id}),
+    cancelFinal: id => invoke(CHANNELS.classroom,'cancelFinal',{id}),
+    resumeFinal: id => invoke(CHANNELS.classroom,'resumeFinal',{id}),
+    finalAnalysis: (id,path) => invoke(CHANNELS.classroom,'finalAnalysis',{id,path}),
     status: () => invoke(CHANNELS.classroom,'status'),
     list: () => invoke(CHANNELS.classroom,'list'),
     start: (title,source,aiEnabled) => invoke(CHANNELS.classroom,'start',{title,source,aiEnabled}),
@@ -317,6 +321,7 @@ const api: MajiApi = {
       importAPI: () => invoke(CHANNELS.aiLocal,'importAPI'),
       probe: model => invoke(CHANNELS.aiLocal,'probe',model),
       installSpeech: engine => invoke(CHANNELS.aiLocal,'installSpeech',engine),
+      relocateSpeech: () => invoke(CHANNELS.aiLocal,'relocateSpeech'),
       selectSpeech: (engine,device) => invoke(CHANNELS.aiLocal,'selectSpeech',{engine,device}),
       importSpeech: () => invoke(CHANNELS.aiLocal,'importSpeech'),
       probeSpeech: audioSample => invoke(CHANNELS.aiLocal,'probeSpeech',audioSample),
