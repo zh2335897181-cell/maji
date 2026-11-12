@@ -1,14 +1,17 @@
 import type {AIProviderSettings} from './ipc';
+export type SpeechEngine = 'sensevoice' | 'qwen3-asr';
+export type SpeechDevice = 'auto' | 'cpu' | 'cuda';
 export interface LocalModel {name:string;size:number;capabilities:string[];remote:boolean;recommended?:boolean}
 export interface Hardware {cpu:string;ramGB:number;freeGB:number;gpu:string;vramGB:number;diskFreeGB:number|null}
 export interface ModelRecommendation {name:string;sizeGB:number;reason:string}
 export interface LocalJob {state:'idle'|'running'|'done'|'error';kind:string;message:string;progress:number|null}
-export interface LocalInspection {hardware:Hardware;installed:boolean;running:boolean;version:string;models:LocalModel[];recommendations:ModelRecommendation[];speechReady:boolean;message:string}
+export interface LocalInspection {hardware:Hardware;installed:boolean;running:boolean;version:string;models:LocalModel[];recommendations:ModelRecommendation[];speechReady:boolean;message:string;speechEngine?:SpeechEngine;speechDevice?:SpeechDevice;qwenSpeechReady?:boolean;senseSpeechReady?:boolean}
 export interface LocalProbe {ok:boolean;model:string;latencyMs:number;jsonOK:boolean;text:string;message:string}
 export interface LocalAIApi {
  inspect():Promise<LocalInspection>;start():Promise<void>;pull(model:string):Promise<void>;cancel():Promise<void>;job():Promise<LocalJob>;
  importGGUF():Promise<void>;importAPI():Promise<{settings:AIProviderSettings;apiKey?:string}|null>;probe(model:string):Promise<LocalProbe>;
- installSpeech():Promise<void>;importSpeech():Promise<void>;probeSpeech():Promise<string>;
+ installSpeech(engine?:SpeechEngine):Promise<void>;importSpeech():Promise<void>;probeSpeech(audioSample?:boolean):Promise<string>;
+ selectSpeech(engine:SpeechEngine,device:SpeechDevice):Promise<void>;
 }
 export function recommendModels(h:Hardware):ModelRecommendation[]{
  if(h.ramGB<8)return [{name:'qwen2.5:0.5b',sizeGB:0.4,reason:'内存较少，仅建议短文本体验，复杂代码和结构化输出优先使用在线 API'}];

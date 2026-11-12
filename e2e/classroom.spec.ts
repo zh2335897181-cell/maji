@@ -136,3 +136,30 @@ test('课堂转写完成后询问是否把项目代码一起用于总结', async
   await dialog.getByRole('button', { name: '结合项目总结' }).click();
   await expect(page.locator('body')).toHaveAttribute('data-finalize', /class_project.*fileIds.*file/);
 });
+
+test('悬浮窗暂停和继续复用课堂转录操作，过渡期间禁止重复点击', async ({ page }) => {
+  await page.goto('/#/');
+  await expect(page.getByRole('button', { name: '继续编辑' })).toBeVisible();
+  await page.evaluate(() => {
+    let state = 'recording';
+    Object.defineProperty(window, 'maji', {
+      configurable: true,
+      value: { classroom: {
+        floating: async () => ({ title: '课堂', state }),
+        pause: async () => { state = 'pausing'; },
+        resume: async () => { state = 'resuming'; },
+      } },
+    });
+    (window as any).setFloatingState = (next: string) => { state = next; };
+    location.hash = '/classroom-floating';
+  });
+  await page.setViewportSize({ width: 220, height: 160 });
+  await page.getByRole('button', { name: '暂停转录', exact: true }).click();
+  await expect(page.getByRole('button', { name: '正在暂停', exact: true })).toBeDisabled();
+  await page.evaluate(() => (window as any).setFloatingState('paused'));
+  await page.getByRole('button', { name: '继续转录', exact: true }).click();
+  await expect(page.getByRole('button', { name: '正在继续', exact: true })).toBeDisabled();
+  await page.evaluate(() => (window as any).setFloatingState('idle'));
+  await expect(page.getByRole('button', { name: '转录已结束', exact: true })).toBeDisabled();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});

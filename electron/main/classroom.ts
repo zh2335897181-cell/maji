@@ -1,6 +1,6 @@
 import { app, dialog, BrowserWindow } from 'electron';
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { createInterface } from 'node:readline';
 import { randomUUID } from 'node:crypto';
@@ -9,7 +9,7 @@ import { assertWritable, holdBackgroundWrites } from './backup/writeGate';
 import { summaryWindows, validateClassroom, type ClassroomRecord, type ClassroomStatus } from '../../src/lib/classroom';
 import type { ClassroomProjectContext } from '../../src/lib/projectAttachments';
 import type { AIService } from './ai/service';
-import {speechRuntime,speechModel} from './ai/speechRuntime';
+import {speechRuntime,speechModel,speechConfig,speechPython,speechReady,isSpeechMaintenance} from './ai/speechRuntime';
 import {createCourse,listCourses} from './db/courses';
 import {createNote,getNote,updateNote} from './db/notes';
 import {doc,heading,paragraph,type DocNode} from '../../src/lib/noteDoc';
@@ -56,7 +56,7 @@ export class ClassroomService {
     app.on('before-quit',event=>{if(this.state==='idle')return;event.preventDefault();if(this.quitting)return;this.quitting=true;void this.stop().finally(()=>{this.quitting=false;app.quit();});});
   }
   private runtime(){return speechRuntime();}
-  status():ClassroomStatus {return {installed:existsSync(join(this.runtime(),'venv','Scripts','python.exe'))&&existsSync(join(speechModel(),'model.int8.onnx'))&&existsSync(join(speechModel(),'tokens.txt')),state:this.state,activeId:this.current?.id??null,error:this.error,device:this.device};}
+  status():ClassroomStatus {return {installed:speechReady(),modelLabel:speechConfig().engine==='qwen3-asr'?'Qwen3-ASR-0.6B':'SenseVoice INT8',state:this.state,activeId:this.current?.id??null,error:this.error,device:this.device};}
   list():ClassroomRecord[]{return (getDb().prepare('SELECT document FROM classroom_records ORDER BY updated_at DESC').all() as {document:string}[]).map(r=>validateClassroom(JSON.parse(r.document)));}
   private save(record:ClassroomRecord){assertWritable();record.updatedAt=new Date().toISOString();validateClassroom(record);getDb().prepare('INSERT INTO classroom_records(id,document,updated_at) VALUES (?,?,?) ON CONFLICT(id) DO UPDATE SET document=excluded.document,updated_at=excluded.updated_at').run(record.id,JSON.stringify(record),record.updatedAt);}
   private async summarize(record:ClassroomRecord,index:number){
@@ -124,10 +124,12 @@ export class ClassroomService {
   }
   async start(value:unknown,source:unknown,aiEnabled:unknown,file?:string):Promise<string>{
     if(this.state!=='idle')throw Error('已有课堂任务正在运行');
+    if(isSpeechMaintenance())throw Error('语音模型任务正在运行，请完成后开始课堂');
     if(typeof value!=='string'||!value.trim()||value.length>200||!['system','microphone','file'].includes(String(source))||typeof aiEnabled!=='boolean')throw Error('课堂参数无效');
     if(!this.status().installed)throw Error('本地模型未安装，请按课堂纪要文档安装');
     if(aiEnabled&&!(await this.ai.getSettings()).configured)throw Error('请先配置 AI 服务，或关闭自动 AI 纪要');
     if(this.state!=='idle')throw Error('已有课堂任务正在启动');
+    if(isSpeechMaintenance())throw Error('语音模型任务正在运行，请完成后开始课堂');
     const release=holdBackgroundWrites();
     const now=new Date().toISOString(),record:ClassroomRecord={id:'class_'+randomUUID(),title:value.trim(),createdAt:now,updatedAt:now,chunks:[],summaries:[],aiEnabled};
     this.current=record;this.lastRecordId=record.id;this.error='';this.device='';this.state='starting';this.runningState=source==='file'?'importing':'recording';this.queue=Promise.resolve();this.finishing=false;
@@ -135,8 +137,9 @@ export class ClassroomService {
     try {
       this.save(record);
       const script=join(this.runtime(),'worker.py');mkdirSync(this.runtime(),{recursive:true});writeFileSync(script,readFileSync(join(app.getAppPath(),'speech','worker.py')));
-      const args=[script,'--model',speechModel(),'--source',String(source)];if(file)args.push('--file',file);
-      const child=spawn(join(this.runtime(),'venv','Scripts','python.exe'),args,{windowsHide:true,stdio:['pipe','pipe','pipe'],env:{...process.env,PYTHONUTF8:'1'}});this.child=child;
+      const config=speechConfig();
+      const args=[script,'--model',speechModel(),'--engine',config.engine,'--device',config.device,'--source',String(source)];if(file)args.push('--file',file);
+      const child=spawn(speechPython(config.engine),args,{windowsHide:true,stdio:['pipe','pipe','pipe'],env:{...process.env,PYTHONUTF8:'1'}});this.child=child;
       let stderr='';child.stderr.on('data',b=>{stderr=(stderr+String(b)).slice(-2000);});
       const lines=createInterface({input:child.stdout});
       lines.on('line',line=>{try{

@@ -8,7 +8,7 @@
 
 [下载安装](https://github.com/zh2335897181-cell/maji/releases/latest) · [最新开发代码](https://github.com/zh2335897181-cell/maji/tree/ai-learning-assistant) · [问题反馈](https://github.com/zh2335897181-cell/maji/issues)
 
-> 当前版本为 **1.0.7**，课堂总结支持附带完整代码文件。详见 [1.0.7 发布说明](docs/releases/1.0.7.md)，安装包以 [Releases](https://github.com/zh2335897181-cell/maji/releases) 为准。
+> 当前版本为 **1.0.8**，新增悬浮窗暂停／继续转录、可选 Qwen3-ASR-0.6B 和短录音测试。详见 [1.0.8 发布说明](docs/releases/1.0.8.md)，安装包以 [Releases](https://github.com/zh2335897181-cell/maji/releases) 为准。
 
 > 从 0.6.1 起，默认入口为「编程题分析」，支持独立命名、导入、分类与解析，详见 [模块使用说明](https://github.com/zh2335897181-cell/maji/blob/ai-learning-assistant/docs/programming-modules.md)。原有考试、错题和强化训练资料保留在历史入口。
 
@@ -323,6 +323,10 @@ npm run package
 
 ## 版本记录
 
+### 1.0.8 语音模型与悬浮窗控制
+
+悬浮知识点窗口可直接暂停和继续转录。语音设置新增 Qwen3-ASR-0.6B 下载、设备选择、本地解码验证和短录音测试。
+
 ### 1.0.7 课堂总结支持项目附件
 
 转写完成后可选择仅总结课堂，或上传代码文件并结合项目生成总结。
@@ -371,6 +375,7 @@ npm run package
 
 | 版本 | 日期 | 更新记录 |
 | --- | --- | --- |
+| [1.0.8](https://github.com/zh2335897181-cell/maji/tree/v1.0.8) | 2026-11-12 | 悬浮窗暂停／继续、可选 Qwen3-ASR-0.6B 和短录音测试 |
 | [1.0.7](https://github.com/zh2335897181-cell/maji/tree/v1.0.7) | 2026-11-10 | 课堂总结支持附带完整代码文件 |
 | [1.0.6](https://github.com/zh2335897181-cell/maji/tree/v1.0.6) | 2026-11-09 | 五套界面主题、正文排版预览和课堂总结 Markdown 导出 |
 | [1.0.5](https://github.com/zh2335897181-cell/maji/tree/v1.0.5) | 2026-10-15 | 新增独立代码片段模块，支持集中查看、搜索和复制；修复创建后无关联笔记时找不到片段的问题 |

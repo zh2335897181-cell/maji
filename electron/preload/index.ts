@@ -316,9 +316,10 @@ const api: MajiApi = {
       importGGUF: () => invoke(CHANNELS.aiLocal,'importGGUF'),
       importAPI: () => invoke(CHANNELS.aiLocal,'importAPI'),
       probe: model => invoke(CHANNELS.aiLocal,'probe',model),
-      installSpeech: () => invoke(CHANNELS.aiLocal,'installSpeech'),
+      installSpeech: engine => invoke(CHANNELS.aiLocal,'installSpeech',engine),
+      selectSpeech: (engine,device) => invoke(CHANNELS.aiLocal,'selectSpeech',{engine,device}),
       importSpeech: () => invoke(CHANNELS.aiLocal,'importSpeech'),
-      probeSpeech: () => invoke(CHANNELS.aiLocal,'probeSpeech'),
+      probeSpeech: audioSample => invoke(CHANNELS.aiLocal,'probeSpeech',audioSample),
     },
     getSettings: () => invoke<AISettingsStatus>(CHANNELS.aiSettingsGet),
     saveSettings: (settings: AIProviderSettings, apiKey?: string) =>

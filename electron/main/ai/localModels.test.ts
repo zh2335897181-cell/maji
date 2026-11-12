@@ -26,3 +26,53 @@ it('cancelled speech imports do not spawn Python or activate the directory',asyn
  const service=new LocalModelService(()=>true);await service.importSpeech();await service.cancel();await vi.waitFor(()=>expect(service.job().state).toBe('error'));
  expect(mocks.spawn).not.toHaveBeenCalled();await expect(access(join(runtime,'model-config.json'))).rejects.toThrow();
 });
+
+it('switches to Qwen only after local decoding succeeds and retains an imported SenseVoice path', async () => {
+ const runtime=join(directory,'runtime'),model=join(runtime,'models','Qwen3-ASR-0.6B');
+ vi.stubEnv('MAJI_SPEECH_RUNTIME',runtime);
+ await mkdir(join(runtime,'venv-qwen','Scripts'),{recursive:true});
+ await writeFile(join(runtime,'venv-qwen','Scripts','python.exe'),'');
+ await mkdir(model,{recursive:true});
+ for(const name of ['config.json','model.safetensors','.maji-ready'])await writeFile(join(model,name),'');
+ await mkdir(join(directory,'speech'));await writeFile(join(directory,'speech','worker.py'),'');
+ const previous=join(directory,'imported-sense');
+ await writeFile(join(runtime,'model-config.json'),JSON.stringify({directory:previous}));
+ mocks.spawn.mockImplementation(()=>{
+  const child=Object.assign(new EventEmitter(),{stdout:new PassThrough(),stderr:new PassThrough(),kill:vi.fn()});
+  setTimeout(()=>child.emit('exit',0),0);return child;
+ });
+ const service=new LocalModelService(()=>true);
+ await service.selectSpeech({engine:'qwen3-asr',device:'cuda'});
+ await vi.waitFor(()=>expect(service.job().state).toBe('done'));
+ const config=JSON.parse(await import('node:fs/promises').then(fs=>fs.readFile(join(runtime,'model-config.json'),'utf8')));
+ expect(config).toMatchObject({engine:'qwen3-asr',device:'cuda',senseDirectory:previous});
+ expect(mocks.spawn.mock.calls[0]![0]).toBe(join(runtime,'venv-qwen','Scripts','python.exe'));
+ expect(mocks.spawn.mock.calls[0]![1]).toEqual(expect.arrayContaining(['--engine','qwen3-asr','--device','cuda']));
+});
+
+it('keeps the current speech model when Qwen decoding fails', async () => {
+ const runtime=join(directory,'runtime'),model=join(runtime,'models','Qwen3-ASR-0.6B');
+ vi.stubEnv('MAJI_SPEECH_RUNTIME',runtime);
+ await mkdir(join(runtime,'venv-qwen','Scripts'),{recursive:true});
+ await writeFile(join(runtime,'venv-qwen','Scripts','python.exe'),'');
+ await mkdir(model,{recursive:true});
+ for(const name of ['config.json','model.safetensors','.maji-ready'])await writeFile(join(model,name),'');
+ await mkdir(join(directory,'speech'));await writeFile(join(directory,'speech','worker.py'),'');
+ const original=JSON.stringify({engine:'sensevoice',device:'cpu'});
+ await writeFile(join(runtime,'model-config.json'),original);
+ mocks.spawn.mockImplementation(()=>{
+  const child=Object.assign(new EventEmitter(),{stdout:new PassThrough(),stderr:new PassThrough(),kill:vi.fn()});
+  setTimeout(()=>{child.stderr.write('CUDA memory exhausted');child.emit('exit',1);},0);return child;
+ });
+ const service=new LocalModelService(()=>true);
+ await service.selectSpeech({engine:'qwen3-asr',device:'cuda'});
+ await vi.waitFor(()=>expect(service.job().state).toBe('error'));
+ const saved=await import('node:fs/promises').then(fs=>fs.readFile(join(runtime,'model-config.json'),'utf8'));
+ expect(saved).toBe(original);
+});
+
+it('rejects voice model changes while a classroom is recording', async () => {
+ const service=new LocalModelService(()=>false);
+ await expect(service.selectSpeech({engine:'qwen3-asr',device:'auto'})).rejects.toThrow('请先结束课堂');
+ expect(mocks.spawn).not.toHaveBeenCalled();
+});

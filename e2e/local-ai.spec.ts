@@ -17,3 +17,53 @@ test('本地模型与语音独立管理，选择后无需密钥并保存全局�
  await page.getByRole('tab',{name:'语音转写',exact:true}).click();await expect(page.getByRole('button',{name:'转写模型自检'})).toBeEnabled();
  await page.getByRole('tab',{name:'在线 API',exact:true}).click();await page.getByRole('button',{name:'导入 API 配置 JSON'}).click();await expect(page.getByLabel('模型名称')).toHaveValue('deepseek-chat');
 });
+
+test('语音设置支持 Qwen 下载、设备选择和短录音测试', async ({ page }, testInfo) => {
+  await page.goto('/#/');
+  await expect(page.getByRole('button', { name: '继续编辑' })).toBeVisible();
+  await page.evaluate(() => {
+    const report = {
+      hardware: { cpu: 'i5-12500H', ramGB: 16, freeGB: 1.8, gpu: 'RTX 3050', vramGB: 4, diskFreeGB: 30 },
+      installed: true, running: false, version: '', models: [], recommendations: [],
+      speechReady: true, speechEngine: 'sensevoice', speechDevice: 'auto',
+      qwenSpeechReady: true, senseSpeechReady: true, message: '',
+    };
+    let job = { state: 'idle', kind: '', message: '', progress: null as number | null };
+    Object.defineProperty(window, 'maji', { configurable: true, value: {
+      ai: {
+        getSettings: async () => ({ configured: false, keyPresent: false, model: '', baseUrl: '' }),
+        local: {
+          inspect: async () => report,
+          job: async () => job,
+          installSpeech: async (engine: string) => { document.body.dataset.installedSpeech = engine; },
+          selectSpeech: async (engine: string, device: string) => {
+            report.speechEngine = engine;
+            report.speechDevice = device;
+            document.body.dataset.selectedSpeech = JSON.stringify({ engine, device });
+          },
+          probeSpeech: async (audio: boolean) => {
+            document.body.dataset.probedAudio = String(audio);
+            job = { state: 'done', kind: '短录音转写测试', message: '音频 10 秒 · 推理 3 秒 · Spring Boot', progress: 100 };
+            return job.message;
+          },
+        },
+      },
+    } });
+  });
+  await page.getByRole('button', { name: '小林（用户菜单）' }).click();
+  await page.getByRole('menuitem', { name: 'AI 服务', exact: true }).click();
+  await page.getByRole('tab', { name: '语音转写', exact: true }).click();
+  await page.getByLabel('语音识别模型').selectOption('qwen3-asr');
+  await page.getByLabel('转写运行设备').selectOption('cuda');
+  await page.getByRole('button', { name: '下载所选语音模型' }).click();
+  await page.getByRole('dialog', { name: '确认安装本地模型' }).getByRole('button', { name: '开始下载' }).click();
+  await expect(page.locator('body')).toHaveAttribute('data-installed-speech', 'qwen3-asr');
+  await page.getByRole('button', { name: '验证并使用此模型' }).click();
+  await expect(page.locator('body')).toHaveAttribute('data-selected-speech', JSON.stringify({ engine: 'qwen3-asr', device: 'cuda' }));
+  await page.getByRole('button', { name: '检测本机并刷新' }).click();
+  await expect(page.getByText('当前模型：Qwen3-ASR-0.6B', { exact: false })).toBeVisible();
+  await page.getByRole('button', { name: '短录音测试' }).click();
+  await expect(page.locator('body')).toHaveAttribute('data-probed-audio', 'true');
+  await expect(page.getByText('音频 10 秒 · 推理 3 秒 · Spring Boot')).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath('qwen-settings.png') });
+});

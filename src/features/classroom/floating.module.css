@@ -1,3 +1,33 @@
 .window{height:100vh;width:100%;display:flex;flex-direction:column;background:#101923;color:#e9f0f6;border:1px solid #344354;font-family:system-ui,sans-serif}
 .header{display:flex;align-items:center;gap:4px;padding:9px 10px;background:#1b2836;-webkit-app-region:drag;flex-shrink:0}.header strong{flex:1;font-size:13px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.header button{-webkit-app-region:no-drag;display:grid;place-items:center;width:26px;height:26px;border:0;border-radius:5px;background:transparent;color:#d2e6f2;cursor:pointer}.header button:hover{background:#344354}
 .content{padding:14px;overflow:auto;min-height:0;font-size:14px;line-height:1.8;overflow-wrap:anywhere}.content small{color:#82c9d5;font-size:12px}.points{white-space:pre-wrap;margin:10px 0 0}
+
+.content { flex: 1; }
+
+.controls {
+  flex-shrink: 0;
+  padding: 8px 10px;
+  border-top: 1px solid #344354;
+  background: #1b2836;
+}
+
+.controls button {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 30px;
+  border: 1px solid #638093;
+  border-radius: 5px;
+  color: #e9f0f6;
+  background: #263c4e;
+  font-size: 13px;
+}
+
+.controls button:hover:not(:disabled) { background: #344e63; }
+.controls button:disabled { opacity: 0.6; cursor: default; }
+.controls button:focus-visible, .header button:focus-visible {
+  outline: 2px solid #82c9d5;
+  outline-offset: 2px;
+}

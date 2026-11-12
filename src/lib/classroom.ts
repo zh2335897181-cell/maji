@@ -18,7 +18,7 @@ export interface ClassroomSummary { start: number; end: number; text: string; er
 export interface ClassroomRecord { id: string; title: string; createdAt: string; updatedAt: string; chunks: ClassroomChunk[]; summaries: ClassroomSummary[]; aiEnabled: boolean; awaitingFinalSummary?: boolean; finalSummary?: {markdown:string;noteId?:string;error?:string;outdated?:boolean} }
 export interface ClassroomEdit {title:string;chunkTexts:string[];summaryTexts:string[]}
 export interface ClassroomFloatingSnapshot {title:string;state:ClassroomStatus['state'];summary?:ClassroomSummary}
-export interface ClassroomStatus { installed: boolean; state: 'idle'|'starting'|'recording'|'importing'|'pausing'|'paused'|'resuming'|'stopping'; activeId: string|null; error: string; device: string }
+export interface ClassroomStatus { installed: boolean; modelLabel?: string; state: 'idle'|'starting'|'recording'|'importing'|'pausing'|'paused'|'resuming'|'stopping'; activeId: string|null; error: string; device: string }
 export interface ClassroomApi {
   status(): Promise<ClassroomStatus>; list(): Promise<ClassroomRecord[]>;
   start(title:string,source:'system'|'microphone',aiEnabled:boolean):Promise<string>;
