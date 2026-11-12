@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, readFile, rm, realpath } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { relocateSpeech } from './speechStorage';
@@ -17,7 +17,7 @@ it('copies and verifies the runtime before changing the persistent location',asy
  await writeFile(join(source,'models','weights'),'model-data');
  await writeFile(join(source,'model-config.json'),JSON.stringify({directory:join(source,'models')}));
  await relocateSpeech(selected,new AbortController().signal,()=>{});
- const target=join(selected,'maji-speech-runtime');
+ const target=await realpath(join(selected,'maji-speech-runtime'));
  expect(speechRuntime()).toBe(target);
  expect(await readFile(join(target,'models','weights'),'utf8')).toBe('model-data');
  expect(JSON.parse(await readFile(join(target,'model-config.json'),'utf8')).directory).toBe(join(target,'models'));
@@ -41,7 +41,7 @@ it('moves explicitly imported SenseVoice weights into the selected runtime',asyn
  await writeFile(join(imported,'tokens.txt'),'tokens');
  await writeFile(join(source,'model-config.json'),JSON.stringify({directory:imported}));
  await relocateSpeech(selected,new AbortController().signal,()=>{});
- const target=join(selected,'maji-speech-runtime');
+ const target=await realpath(join(selected,'maji-speech-runtime'));
  const config=JSON.parse(await readFile(join(target,'model-config.json'),'utf8'));
  expect(config.senseDirectory).toBe(join(target,'models','imported-sensevoice'));
  expect(await readFile(join(config.senseDirectory,'model.int8.onnx'),'utf8')).toBe('imported-weights');
