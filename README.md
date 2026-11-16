@@ -6,11 +6,11 @@
 
 普通笔记编辑与资料查看可以离线使用，桌面学习数据保存在本机 SQLite 数据库中。文字 AI 可连接在线 OpenAI 兼容 API，也可使用 Ollama 等本地服务；本地模型下载完成后可离线推理。课堂纪要使用本地语音转写，自动 AI 摘要由开始课堂时的开关控制。
 
-[下载安装](https://github.com/zh2335897181-cell/maji/releases/latest) · [最新开发代码](https://github.com/zh2335897181-cell/maji/tree/ai-learning-assistant) · [问题反馈](https://github.com/zh2335897181-cell/maji/issues)
+[下载安装](https://github.com/zh2335897181-cell/maji/releases/latest) · [最新开发代码](https://github.com/zh2335897181-cell/maji/tree/main) · [问题反馈](https://github.com/zh2335897181-cell/maji/issues)
 
-> 当前版本为 **1.0.8**，新增悬浮窗暂停／继续转录、可选 Qwen3-ASR-0.6B 和短录音测试。详见 [1.0.8 发布说明](docs/releases/1.0.8.md)，安装包以 [Releases](https://github.com/zh2335897181-cell/maji/releases) 为准。
+> 当前正式版本为 **1.1.0**，新增桌面 AI 助手、开箱即用的内置机器人，以及带预览和授权记录的 2D / 3D 自定义角色导入。详见 [1.1.0 发布说明](docs/releases/1.1.0.md)，安装包以 [Releases](https://github.com/zh2335897181-cell/maji/releases) 为准。
 
-> 从 0.6.1 起，默认入口为「编程题分析」，支持独立命名、导入、分类与解析，详见 [模块使用说明](https://github.com/zh2335897181-cell/maji/blob/ai-learning-assistant/docs/programming-modules.md)。原有考试、错题和强化训练资料保留在历史入口。
+> 从 0.6.1 起，默认入口为「编程题分析」，支持独立命名、导入、分类与解析，详见 [模块使用说明](docs/programming-modules.md)。原有考试、错题和强化训练资料保留在历史入口。
 
 > **旧版本废弃公告：0.4.0 及更早版本已全部废弃，不再维护、不再提供问题修复或使用支持。** 包括 0.4.0、0.3.0、0.2.1、0.2.0、0.1.1 及更早版本。历史记录仅供查阅，请停止使用这些版本，并从 [最新正式发布页面](https://github.com/zh2335897181-cell/maji/releases/latest) 下载受支持版本。升级前请保留原有学习数据。
 
@@ -19,6 +19,7 @@
 - [主要功能](#主要功能)
 - [下载与安装](#下载与安装)
 - [快速开始](#快速开始)
+- [桌面 AI 助手与角色导入](#桌面-ai-助手与角色导入)
 - [考试与错题](#考试与错题)
 - [AI 服务配置](#ai-服务配置)
 - [数据存储与备份](#数据存储与备份)
@@ -41,6 +42,8 @@
 | 代码记录 | 保存代码片段，提供代码高亮、语言选择和复制操作 |
 | AI 学习助手 | 解释选中内容、结合整篇笔记理解知识、整理笔记和生成练习题；结果由用户选择使用 |
 | AI 上下文续写 | 根据光标前后的内容建议后续文字，支持笔记正文及代码块 |
+| 桌面 AI 助手 | 透明悬浮、拖动与大小调整、置顶、自定义昵称和性格；多轮聊天支持取消、重试和清空 |
+| 自定义角色 | 内置 CC0 太空机器人；分步导入 2D 图片/动图/分层包和 3D VRM/GLB，保存来源、许可与资源摘要 |
 | 课堂纪要 | 录制系统声音或麦克风、导入录音，本地转写；每两分钟提炼关键知识点，原文独立分组并从零计时 |
 | 本地 AI | 检测硬件与 Ollama 模型，推荐、下载、导入 GGUF、自检；全部文字 AI 共用所选配置 |
 | 复习 | 知识点复习安排；从笔记生成概念题、简答与代码类题目，AI 评阅并给出解析 |
@@ -52,7 +55,7 @@
 | 弱项与强化训练 | AI 解题、引用定位与弱项分析；生成基础理解、定点修复、综合项目训练，提交后查看解析与评阅 |
 | 训练记录 | 保存作答、提交时间、有效作答时长、训练层次与反馈；知识点掌握状态支持手动调整 |
 | 数据与备份 | 0.5.7 起支持全量导出、启动时自动备份、恢复预览、安全备份和事务恢复 |
-| 应用设置 | 深浅色主题、正文字号、自动保存延迟、侧栏行为、AI 配置和桌面更新 |
+| 应用设置 | 多种背景主题、正文字体与字号、自动保存延迟、侧栏行为、AI 配置、桌面助手和应用更新 |
 
 晨考只用于誊写和保存内容，不包含考试、计时、自动批改或错题统计。笔记复习题在「复习」中使用；考试错题及其针对性训练在「考试与错题」中使用。
 
@@ -80,8 +83,39 @@
 6. **梳理结构**：选择来源笔记生成思维导图，检查结果后保存或导出。
 7. **整理考试**：录入考试题、自己的答案与多层代码，标记错题，分析弱项并生成强化训练。
 8. **保存备份**：使用 0.5.7 或更新版本时，定期导出一份到其他磁盘。
+9. **启用桌面助手**：打开「用户菜单 → 桌面 AI 助手」，开启后直接使用内置机器人；聊天复用已配置的 AI 服务。
 
 新资料库可能包含示例课程和笔记，便于熟悉操作。浏览器演示资料与桌面资料相互独立。
+
+## 桌面 AI 助手与角色导入
+
+从「用户菜单 → 桌面 AI 助手」启用。默认关闭；开启后随码迹启动，退出码迹时关闭。拖动名字左侧把手移动窗口，点击角色或「和我聊聊」展开对话。× 只暂时隐藏，可从设置重新显示。
+
+已内置 CC0 授权的 **「小码 · 太空机器人」**，无需 VR 设备、VRoid Studio、Live2D Core 或额外角色下载。支持调整大小、置顶、鼠标跟随、昵称与回复性格。眼动、表情和动作的实际效果取决于角色格式及绑定。
+
+### 支持的自定义格式
+
+| 类型 | 导入文件 | 能力与边界 |
+| --- | --- | --- |
+| 2D 图片 / 动图 | PNG、GIF、WebP | 保留透明背景和原有动图，支持整体轻摆/跳跃；不自动生成骨骼或表情 |
+| 2D 分层角色 | `.maji2d.json` 及同目录图片 | 按声明叠放、移动部位和替换表情；不是 Live2D、Spine 或 Inochi2D 骨骼格式 |
+| 3D 角色 | VRM 0.x / 1.0 | 支持已有的人形绑定、眼动和表情；不自动补全缺失的绑定 |
+| 通用 3D | 资源内嵌的 GLB | 显示模型并播放文件内已有动画；不自动获得 VRM 表情或人形动作 |
+
+### 四步导入与授权要求
+
+1. **选择文件**：点击「导入 2D / 3D 角色」，先选择类型并查看其限制，再选本地文件。
+2. **检查与预览**：检查文件大小、资源、内嵌许可和隔离预览。明确许可冲突、加载失败或预览过期时不能确认导入。
+3. **填写授权**：记录作者、来源、许可原文/依据、署名和改动说明，逐项确认免费获取、商用、修改及分享改编、再分发权限。
+4. **确认保存**：核对名称和资源摘要。默认只加入角色库；勾选「导入后立即启用此角色」才切换。取消或失败不改变当前角色。
+
+允许填写 CC0 1.0、CC BY 4.0、CC BY-SA 4.0 或明确覆盖相应权限的自定义许可；署名与共享条件必须保留。**“免费下载”不等于获得商用或改编授权，记录完整也不等于平台认证。** 已知的 NC、ND、禁止再分发等限制不能通过勾选覆盖，肖像、商标及第三方素材权利仍需核对。
+
+自定义角色合计最多 **128MB**、最多 **20 个**；仅接受本地内嵌资源，不执行脚本，不直接导入 ZIP、Live2D、Spine、FBX、OBJ 等格式。模型编辑、骨骼制作和格式转换需使用适配工具，码迹不是模型编辑器。
+
+导入只保存本地副本和授权记录，不修改原文件、不自动分享或加入安装包，**不会把角色模型发送给 AI**。助手只发送用户输入的对话，不自动读取笔记、项目或桌面，也不执行系统操作；对话仅在本次运行中保留。角色列表可查看或更新授权记录、移除副本，旧的未授权副本也可直接移除。
+
+完整入口、格式示例、大小限制和许可边界见 [桌面助手指南](docs/desktop-assistant.md)、[自定义角色导入说明](docs/assistant-model-import.md)；内置素材来源与许可见 [模型授权记录](public/assistant/MODEL-LICENSE.md)。
 
 ## 考试与错题
 
@@ -128,11 +162,11 @@
 - 单次 AI 最多 30 道来源题、12 万字符、6 道训练。超限会提示缩小范围，不会截断后发送。
 - 录题、多文件保存和已有记录查看可以离线；在线 AI 需要网络，本地 AI 需要已安装并运行的本机模型服务。
 
-详细说明见 [考试与错题使用指南](https://github.com/zh2335897181-cell/maji/blob/ai-learning-assistant/docs/exams.md)。
+详细说明见 [考试与错题使用指南](docs/exams.md)。
 
 ## AI 服务配置
 
-1.0.0 的 AI 服务分为「在线 API」「本地文字模型」「语音转写」。在线配置支持 JSON 导入；本地文字模型可通过 Ollama 管理，也可填写本机 OpenAI 兼容服务地址。选择后先自检再保存，笔记、导图、复习、编程题分析与课堂纪要统一使用此配置，不会在本地失败后自动切换云端。模型不会随安装包附送，首次安装需要下载。详见 [本地 AI 使用指南](docs/local-ai.md)。
+AI 服务分为「在线 API」「本地文字模型」「语音转写」。在线配置支持 JSON 导入；本地文字模型可通过 Ollama 管理，也可填写本机 OpenAI 兼容服务地址。选择后先自检再保存，笔记、导图、复习、编程题分析、课堂纪要与桌面助手聊天统一使用文字 AI 配置，不会在本地失败后自动切换云端。文字与语音模型权重不随安装包附送，首次安装需要下载；内置桌面角色与这些 AI 权重不同，已随包提供。详见 [本地 AI 使用指南](docs/local-ai.md)。
 
 在「用户菜单 → AI 服务」填写以下内容（0.6.2 及更早版本位于偏好设置中）：
 
@@ -180,9 +214,9 @@
 
 校验失败、安全备份写入失败或数据库导入失败时，当前学习数据保留。恢复不覆盖设备设置与 AI 密钥。预览后数据发生变化或确认超时，需要重新预览。
 
-备份格式为 `maji-backup`，格式版本 1，文件上限 100 MiB。1.0.0 使用数据库结构版本 8，可恢复结构 6、7 的旧备份。课堂转写及纪要纳入备份，模型、Python 环境与原始录音不包含在内。SHA-256 校验用于检测损坏，不代表来源认证。
+备份格式为 `maji-backup`，格式版本 1，文件上限 100 MiB。数据库结构版本为 8，可恢复结构 6、7 的旧备份。课堂转写及纪要纳入备份；AI 模型、Python 环境、原始录音、课堂总结任务缓存，以及桌面角色副本、助手配置与角色授权记录不包含在学习数据备份中。助手对话只在内存中保留。SHA-256 校验用于检测损坏，不代表来源认证。
 
-**恢复旧备份同样是整体替换：** 结构 6 备份没有考试记录，结构 6、7 备份没有课堂纪要，恢复后相应资料会被清空；替换前会生成当前资料的安全备份。结构 8 数据库及备份不能在仅支持旧结构的应用中使用。详细说明见 [本地备份与恢复](https://github.com/zh2335897181-cell/maji/blob/ai-learning-assistant/docs/backup-restore.md)。
+**恢复旧备份同样是整体替换：** 结构 6 备份没有考试记录，结构 6、7 备份没有课堂纪要，恢复后相应资料会被清空；替换前会生成当前资料的安全备份。结构 8 数据库及备份不能在仅支持旧结构的应用中使用。详细说明见 [本地备份与恢复](docs/backup-restore.md)。
 
 ## 快捷键
 
@@ -221,6 +255,7 @@
 | 富文本与文档 | TipTap 3、ProseMirror |
 | 代码高亮 | Shiki |
 | 数据库 | SQLite、better-sqlite3 |
+| 桌面角色 | Three.js、@pixiv/three-vrm；2D图片与声明式分层渲染 |
 | 测试 | Vitest、Testing Library、Playwright |
 | 发布 | GitHub Actions、GitHub Releases、Windows NSIS 安装包 |
 
@@ -233,7 +268,7 @@
 ### 获取最新开发代码
 
 ```powershell
-git clone --branch ai-learning-assistant https://github.com/zh2335897181-cell/maji.git
+git clone --branch main https://github.com/zh2335897181-cell/maji.git
 cd maji
 npm ci
 ```
@@ -263,7 +298,7 @@ npm run rebuild:native
 ```powershell
 npm run typecheck
 npm test
-npx playwright install chromium
+# 界面测试使用本机 Google Chrome，请先安装 Chrome
 npm run test:e2e
 npm run test:release-config
 npm run build
@@ -277,6 +312,15 @@ node scripts/native-backup-check.cjs
 
 脚本使用独立临时用户目录，验证 Electron 桥接、SQLite 全量恢复、安全备份、重启保留及空数据恢复，不读取个人笔记库。
 
+桌面助手的真实角色加载、分步导入与隔离检查：
+
+```powershell
+npm run build
+node scripts/test-assistant-electron.cjs
+```
+
+该脚本使用临时目录验证内置VRM、图片/分层2D、GLB、授权拒绝、预览校验、取消与窗口重建，不读取个人模型或笔记。
+
 ### 目录结构
 
 ```text
@@ -284,12 +328,13 @@ maji/
 ├─ src/
 │  ├─ app/                 应用入口、路由与共享状态
 │  ├─ components/          通用组件、布局与界面控件
-│  ├─ features/            笔记、AI、复习、导图、晨考、考试与错题、设置
+│  ├─ features/            笔记、AI、复习、导图、晨考、考试与错题、桌面助手、设置
 │  ├─ lib/                 类型、数据接口、文档模型与共享逻辑
 │  └─ styles/              全局样式与设计变量
 ├─ electron/
 │  ├─ main/                窗口、SQLite、AI、备份、更新与 IPC
 │  └─ preload/             渲染进程白名单 API
+├─ public/assistant/       内置角色、素材来源与第三方许可声明
 ├─ e2e/                    浏览器端到端测试
 ├─ scripts/                图标、发布配置与桌面验证脚本
 ├─ docs/                   架构、设计及功能文档
@@ -319,9 +364,17 @@ npm run package
 
 发布时先提升 `package.json` 和锁文件版本，编写 `docs/releases/版本号.md`，完成验证并提交。将代码推送后，为该提交创建对应的新标签并推送。GitHub Actions 使用 `GITHUB_TOKEN` 创建单一草稿发布页，构建并上传安装程序、`latest.yml` 和 blockmap，检查三个文件齐全后再正式发布，供应用检查更新。
 
-不要将 API 密钥、发布令牌、签名私钥或个人数据库提交到仓库。流程见 [自动更新说明](https://github.com/zh2335897181-cell/maji/blob/ai-learning-assistant/docs/updates.md)，工作流见 [Release Windows](https://github.com/zh2335897181-cell/maji/blob/ai-learning-assistant/.github/workflows/release-windows.yml)。
+不要将 API 密钥、发布令牌、签名私钥或个人数据库提交到仓库。流程见 [自动更新说明](docs/updates.md)，工作流见 [Release Windows](.github/workflows/release-windows.yml)。
 
 ## 版本记录
+
+### 1.1.0 桌面 AI 助手与 2D / 3D 角色导入
+
+新增透明悬浮助手、内置 CC0 机器人、多轮聊天及昵称/性格设置。自定义角色采用「选择 → 检查预览 → 授权 → 确认」四步导入，支持像素图片、声明式分层2D、VRM与内嵌GLB，保留授权依据、署名、改动说明和资源摘要。详见 [1.1.0 发布说明](docs/releases/1.1.0.md)。
+
+### 1.0.10 总结恢复、模型存储与更新提示
+
+课堂结合项目总结改为较大批次和按文件保存分析，增加进度、取消与继续处理；语音模型增加目录占用、磁盘迁移及安装进度，更新失败显示阶段与错误代码。详见 [1.0.10 发布说明](docs/releases/1.0.10.md)。
 
 ### 1.0.8 语音模型与悬浮窗控制
 
@@ -392,9 +445,15 @@ npm run package
 
 
 
-0.5.0–0.5.3 的补充说明保存在 [版本文档目录](https://github.com/zh2335897181-cell/maji/tree/ai-learning-assistant/docs/releases)。
+0.5.0–0.5.3 的补充说明保存在 [版本文档目录](docs/releases)。
 
 ## 常见问题
+
+**使用桌面助手需要 VR 设备或自己建模吗？** 不需要。在「用户菜单 → 桌面 AI 助手」启用后即可使用内置机器人。只有要换自己的形象时才需要准备符合格式和授权条件的文件。
+
+**下载了免费角色就能导入、商用或二次开发吗？** 不能只看下载价格。需核对原许可是否允许商用、改编和再分发，并按向导记录依据。软件检查格式与已知许可冲突，不认证作者身份或授予新权利。完整要求见 [导入说明](docs/assistant-model-import.md)。
+
+**角色导入成功但没有眼动或挥手怎么办？** 图片不是骨骼模型，GLB只能播放已有动画，VRM也依赖实际绑定。查看导入时的格式能力说明，不会自动生成缺失骨骼或表情。
 
 **没有 API 密钥能使用吗？** 可以。笔记、代码记录、晨考、考试错题和已有资料的查看编辑不依赖 AI。AI 生成及评阅需要配置服务。
 
@@ -416,15 +475,21 @@ npm run package
 
 ## 文档与反馈
 
-- [技术架构](https://github.com/zh2335897181-cell/maji/blob/ai-learning-assistant/docs/ARCHITECTURE.md)
-- [界面设计](https://github.com/zh2335897181-cell/maji/blob/ai-learning-assistant/docs/DESIGN.md)
-- [晨考内容整理](https://github.com/zh2335897181-cell/maji/blob/ai-learning-assistant/docs/morning-notes.md)
-- [考试与错题](https://github.com/zh2335897181-cell/maji/blob/ai-learning-assistant/docs/exams.md)
-- [0.6.0 发布说明](https://github.com/zh2335897181-cell/maji/blob/ai-learning-assistant/docs/releases/0.6.0.md)
-- [本地备份与恢复](https://github.com/zh2335897181-cell/maji/blob/ai-learning-assistant/docs/backup-restore.md)
-- [桌面自动更新](https://github.com/zh2335897181-cell/maji/blob/ai-learning-assistant/docs/updates.md)
+- [1.1.0 发布说明](docs/releases/1.1.0.md)
+- [桌面 AI 助手](docs/desktop-assistant.md)
+- [自定义角色：导入步骤、授权与边界](docs/assistant-model-import.md)
+- [内置角色来源与许可](public/assistant/MODEL-LICENSE.md)
+- [课堂纪要与总结恢复](docs/classroom-minutes.md)
+- [本地 AI、语音模型安装与迁移](docs/local-ai.md)
+- [技术架构](docs/ARCHITECTURE.md)
+- [界面设计](docs/DESIGN.md)
+- [晨考内容整理](docs/morning-notes.md)
+- [考试与错题](docs/exams.md)
+- [0.6.0 发布说明](docs/releases/0.6.0.md)
+- [本地备份与恢复](docs/backup-restore.md)
+- [桌面自动更新](docs/updates.md)
 - [提交 Bug 或功能建议](https://github.com/zh2335897181-cell/maji/issues)
 
 欢迎通过 Issue 描述问题，或提交说明清晰的 Pull Request。修改代码前请查看模块及文档，运行相关测试，避免提交构建输出、个人数据库和敏感配置。
 
-许可证：仓库目前未提供 `LICENSE` 文件。
+许可证：仓库源码目前未提供 `LICENSE` 文件。内置角色和依赖分别适用各自许可，见 [素材来源](public/assistant/MODEL-LICENSE.md) 与 [第三方声明](public/assistant/THIRD_PARTY_NOTICES.txt)；角色的 CC0 或依赖的 MIT 许可不等于整个应用源码获得相同许可。
