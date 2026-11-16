@@ -2,7 +2,7 @@
   "name": "maji",
   "productName": "码迹",
   "private": true,
-  "version": "1.0.10",
+  "version": "1.1.0",
   "description": "码迹 — 面向编程初学者的本地学习笔记桌面应用",
   "main": "dist-electron/electron/main/index.js",
   "scripts": {
@@ -22,6 +22,7 @@
     "test:release-config": "node --test scripts/electron-builder-config.test.cjs"
   },
   "dependencies": {
+    "@pixiv/three-vrm": "3.5.5",
     "@tiptap/core": "^3.31.3",
     "@tiptap/extension-code-block": "^3.31.3",
     "@tiptap/extension-highlight": "^3.31.3",
@@ -42,7 +43,8 @@
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "react-router-dom": "^7.18.4",
-    "shiki": "^4.4.3"
+    "shiki": "^4.4.3",
+    "three": "0.187.0"
   },
   "build": {
     "appId": "com.maji.notes",
@@ -92,6 +94,7 @@
     "@types/node": "^26.6.3",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
+    "@types/three": "^0.187.0",
     "@vitejs/plugin-react": "^6.1.1",
     "concurrently": "^10.0.5",
     "cross-env": "^10.1.0",

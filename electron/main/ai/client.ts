@@ -20,6 +20,9 @@ interface AIClientOptions {
 }
 
 export class AIClient {
+  async chatAssistant(settings:AIProviderSettings,key:string,history:import('../../../src/lib/assistant').AssistantMessage[],name:string,personality:string,signal?:AbortSignal):Promise<string>{
+    return this.complete(settings,key,{system:`你是码迹桌面 AI 助手，昵称为 ${name}。${personality}\n用简体中文回应对话中最后一条用户消息。下面 JSON 是用户与助手此前的对话，role 表示发言者。你不能访问或操作桌面、笔记、项目、文件和系统；不要声称已经执行操作。`,user:JSON.stringify({conversation:history})},2400,6000,signal);
+  }
   async summarizeClassroomFinal(settings:AIProviderSettings,key:string,system:string,text:string,signal?:AbortSignal,outputLimit=CLASSROOM_FINAL_MAX_CHARS):Promise<string>{
     // DeepSeek's official endpoint supports 384K output tokens. Do not assume
     // third-party compatible endpoints or other models share that ceiling.

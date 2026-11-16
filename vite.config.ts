@@ -20,6 +20,7 @@ export default defineConfig({
     target: 'chrome126',
     chunkSizeWarningLimit: 1200,
     rollupOptions: {
+      input: {main:'index.html',assistant:'assistant.html',avatar:'avatar.html'},
       output: {
         // 把高亮引擎与编辑器拆成独立 chunk，首屏只加载界面所需代码
         manualChunks(id: string) {

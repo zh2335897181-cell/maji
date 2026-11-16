@@ -22,6 +22,7 @@ import type {
 } from './types';
 
 interface AIClientLike {
+  chatAssistant?(settings:AIProviderSettings,key:string,history:import('../../../src/lib/assistant').AssistantMessage[],name:string,personality:string,signal?:AbortSignal):Promise<string>;
   summarizeClassroomFinal?(settings:AIProviderSettings,key:string,system:string,text:string,signal?:AbortSignal,outputLimit?:number):Promise<string>;
   summarizeClassroom?(settings:AIProviderSettings,key:string,system:string,text:string):Promise<string>;
   analyzeExam?(settings: AIProviderSettings, key: string, input: ExamAIRequest): Promise<ExamAnalysis | ExamTraining[]>;
@@ -33,6 +34,12 @@ interface AIClientLike {
 }
 
 export class AIService {
+  async chatAssistant(history:import('../../../src/lib/assistant').AssistantMessage[],name:string,personality:string,signal?:AbortSignal){
+    if(!Array.isArray(history)||!history.length||history.length>20||history.some(m=>!m||!['user','assistant'].includes(m.role)||typeof m.content!=='string')||history.reduce((n,m)=>n+m.content.length,0)>20000)throw Error('助手对话无效或过长');
+    const credential=await this.requireCredential();
+    if(!this.client.chatAssistant)throw Error('助手聊天不可用');
+    return this.client.chatAssistant(credential.settings,credential.key,history,name,personality,signal);
+  }
   async summarizeClassroomFinal(text:string, project?:ClassroomProjectContext, options:SummaryOptions={}):Promise<string>{
     if(typeof text!=='string'||!text.trim())throw Error('没有可总结的课堂原文');
     const credential=await this.requireCredential();

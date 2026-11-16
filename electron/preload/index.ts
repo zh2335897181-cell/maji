@@ -167,6 +167,20 @@ ipcRenderer.on(CHANNELS.appPrepareClose, () => {
 });
 
 const api: MajiApi = {
+  assistant: {
+    get:()=>ipcRenderer.invoke('maji:assistant','get'),
+    update:patch=>ipcRenderer.invoke('maji:assistant','update',patch),
+    prepareImport:kind=>ipcRenderer.invoke('maji:assistant','prepareImport',kind),
+    cancelImport:token=>ipcRenderer.invoke('maji:assistant','cancelImport',token),
+    confirmImport:(token,name,license,activate)=>ipcRenderer.invoke('maji:assistant','confirmImport',{token,name,license,activate}),
+    setModelLicense:(id,license)=>ipcRenderer.invoke('maji:assistant','setModelLicense',{id,license}),
+    removeModel:id=>ipcRenderer.invoke('maji:assistant','removeModel',id),
+    show:()=>ipcRenderer.invoke('maji:assistant','show'),hide:()=>ipcRenderer.invoke('maji:assistant','hide'),
+    chat:text=>ipcRenderer.invoke('maji:assistant','chat',text),cancel:()=>ipcRenderer.invoke('maji:assistant','cancel'),
+    clear:()=>ipcRenderer.invoke('maji:assistant','clear'),history:()=>ipcRenderer.invoke('maji:assistant','history'),
+    expand:open=>ipcRenderer.invoke('maji:assistant','expand',open),openSettings:()=>ipcRenderer.invoke('maji:assistant','openSettings'),
+    onChange:handler=>{const listener=(_:unknown,value:import('../../src/lib/assistant').AssistantSettings)=>handler(value);ipcRenderer.on('maji:assistant:change',listener);return()=>ipcRenderer.removeListener('maji:assistant:change',listener);},
+  },
   projectAttachments: {
     choose: kind => invoke<ProjectAttachment | null>(CHANNELS.projectAttachments, 'choose', kind),
   },
@@ -342,3 +356,4 @@ const api: MajiApi = {
 };
 
 contextBridge.exposeInMainWorld('maji', api);
+ipcRenderer.on('maji:assistant:settings',()=>window.dispatchEvent(new Event('maji:open-assistant-settings')));

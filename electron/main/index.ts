@@ -22,6 +22,10 @@ import { createMainWindow } from './window';
 import { createUpdateService, type UpdateUpdater } from './updates';
 import { AIConfigStore } from './ai/storage';
 import { AIService } from './ai/service';
+import {DesktopAssistant} from './assistant/service';
+import {registerAvatarScheme} from './assistant/protocol';
+
+registerAvatarScheme();
 
 /** 开发模式下由 npm run dev:electron 注入 */
 const DEV_SERVER = process.env.MAJI_DEV_SERVER;
@@ -201,10 +205,13 @@ async function bootstrap(): Promise<void> {
   });
   const backup = new BackupService(getDb(), app.getPath('userData'), app.getVersion());
   await backup.autoBackup().catch(() => {});
-  const classroom=registerIpcHandlers(updates, new AIService(aiStore), backup);
+  const ai=new AIService(aiStore);
+  const classroom=registerIpcHandlers(updates, ai, backup);
+  const assistant=new DesktopAssistant(ai);
 
   const openWindow = (): BrowserWindow => {
     const win = createMainWindow();
+    void assistant.attach(win).catch(error=>process.stdout.write(`[maji] 桌面助手未启动：${describe(error)}\n`));
     classroom.attachWindow(win);
     guardWindowClose(win);
     if (SMOKE_TEST) armSmokeTest(win);

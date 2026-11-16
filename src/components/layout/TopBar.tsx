@@ -13,6 +13,7 @@ import { Modal } from '../ui/Modal';
 import { SaveStatus } from './SaveStatus';
 import { UpdateSettings } from './UpdateSettings';
 import { AISettings } from '../../features/settings/AISettings';
+import {AssistantSettings} from '../../features/assistant/AssistantSettings';
 import { BackupSettings } from '../../features/settings/BackupSettings';
 import appPackage from '../../../package.json';
 import styles from './TopBar.module.css';
@@ -96,7 +97,7 @@ export function TopBar({
 }: TopBarProps): ReactElement {
   const { settings, updateSettings, source, notes } = useLibrary();
   const toast = useToast();
-  const [dialog, setDialog] = useState<'appearance' | 'ai' | 'backup' | 'updates' | 'shortcuts' | 'about' | null>(null);
+  const [dialog, setDialog] = useState<'appearance' | 'ai' | 'assistant' | 'backup' | 'updates' | 'shortcuts' | 'about' | null>(null);
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus>({ state: 'unsupported', currentVersion: '—', message: '自动更新仅在桌面应用中可用。' });
   const statusRef = useRef(updateStatus);
   const isDark = settings.theme === 'dark';
@@ -130,6 +131,7 @@ export function TopBar({
 
   useEffect(() => {
     const openAISettings = (): void => setDialog('ai');
+    const openAssistantSettings = (): void => setDialog('assistant');
     const openShortcuts = (): void => setDialog('shortcuts');
     const onKeyDown = (event: KeyboardEvent): void => {
       if (event.key !== '/' || !event.ctrlKey || event.altKey || event.metaKey) return;
@@ -139,10 +141,12 @@ export function TopBar({
       setDialog('shortcuts');
     };
     window.addEventListener('maji:open-ai-settings', openAISettings);
+    window.addEventListener('maji:open-assistant-settings', openAssistantSettings);
     window.addEventListener('maji:open-shortcuts', openShortcuts);
     window.addEventListener('keydown', onKeyDown);
     return () => {
       window.removeEventListener('maji:open-ai-settings', openAISettings);
+      window.removeEventListener('maji:open-assistant-settings', openAssistantSettings);
       window.removeEventListener('maji:open-shortcuts', openShortcuts);
       window.removeEventListener('keydown', onKeyDown);
     };
@@ -167,6 +171,7 @@ export function TopBar({
     },
     { id: 'appearance', label: '外观与编辑', icon: Settings, onSelect: () => setDialog('appearance') },
     { id: 'ai', label: 'AI 服务', icon: Settings, onSelect: () => setDialog('ai') },
+    { id: 'assistant', label: '桌面 AI 助手', icon: Settings, onSelect: () => setDialog('assistant') },
     { id: 'backup', label: '数据与备份', icon: Settings, onSelect: () => setDialog('backup') },
     { id: 'updates', label: '应用更新', icon: Settings, onSelect: () => setDialog('updates') },
     {
@@ -288,6 +293,9 @@ export function TopBar({
 
       <Modal open={dialog === 'ai'} onClose={() => setDialog(null)} title="AI 服务" icon={Settings}>
         <div className={styles.settingsGroup}><AISettings onNotice={(message, tone) => toast.show({ message, tone })} /></div>
+      </Modal>
+      <Modal open={dialog === 'assistant'} onClose={() => setDialog(null)} title="桌面 AI 助手" icon={Settings}>
+        <AssistantSettings/>
       </Modal>
       <Modal open={dialog === 'backup'} onClose={() => setDialog(null)} title="数据与备份" icon={Settings}>
         <div className={styles.settingsGroup}><BackupSettings /></div>

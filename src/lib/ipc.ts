@@ -170,6 +170,7 @@ export type UpdateStatus =
  * window.maji 的形状。所有方法都是 Promise，失败时 reject 一个可读的错误。
  */
 export interface MajiApi {
+  assistant?: import('./assistant').AssistantApi;
   projectAttachments: ProjectAttachmentsApi;
   classroom?: import('./classroom').ClassroomApi;
   exams?: import('./exams').ExamApi;
