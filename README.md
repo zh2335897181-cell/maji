@@ -8,7 +8,7 @@
 
 [下载安装](https://github.com/zh2335897181-cell/maji/releases/latest) · [最新开发代码](https://github.com/zh2335897181-cell/maji/tree/main) · [问题反馈](https://github.com/zh2335897181-cell/maji/issues)
 
-> 当前正式版本为 **1.1.0**，新增桌面 AI 助手、开箱即用的内置机器人，以及带预览和授权记录的 2D / 3D 自定义角色导入。详见 [1.1.0 发布说明](docs/releases/1.1.0.md)，安装包以 [Releases](https://github.com/zh2335897181-cell/maji/releases) 为准。
+> 当前正式版本为 **1.1.1**，为课堂知识点悬浮窗增加淡入上浮、柔和蓝光、知识点渐显和按钮交互反馈。详见 [1.1.1 发布说明](docs/releases/1.1.1.md)，安装包以 [Releases](https://github.com/zh2335897181-cell/maji/releases) 为准。
 
 > 从 0.6.1 起，默认入口为「编程题分析」，支持独立命名、导入、分类与解析，详见 [模块使用说明](docs/programming-modules.md)。原有考试、错题和强化训练资料保留在历史入口。
 
@@ -367,6 +367,10 @@ npm run package
 不要将 API 密钥、发布令牌、签名私钥或个人数据库提交到仓库。流程见 [自动更新说明](docs/updates.md)，工作流见 [Release Windows](.github/workflows/release-windows.yml)。
 
 ## 版本记录
+
+### 1.1.1
+
+课堂知识点悬浮窗增加轻量视觉特效，并遵循系统减少动态效果偏好。详见 [1.1.1 发布说明](docs/releases/1.1.1.md)。
 
 ### 1.1.0 桌面 AI 助手与 2D / 3D 角色导入
 

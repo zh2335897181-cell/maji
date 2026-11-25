@@ -76,7 +76,7 @@ export function ClassroomFloating() {
       <div className={styles.content}>
         {error ? <p>{error}</p> : data.summary ? <>
           <small>{time(data.summary.start)}–{time(data.summary.end)}{paused ? ' · 已暂停' : ''}</small>
-          <p className={styles.points}>{data.summary.text}</p>
+          <p key={`${data.summary.start}:${data.summary.end}:${data.summary.text}`} className={styles.points}>{data.summary.text}</p>
         </> : <p>等待首段知识点…<br />每两分钟生成后自动替换。</p>}
         {actionError && <p role="alert">{actionError}</p>}
       </div>

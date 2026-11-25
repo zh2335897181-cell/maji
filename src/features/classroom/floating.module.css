@@ -31,3 +31,55 @@
   outline: 2px solid #82c9d5;
   outline-offset: 2px;
 }
+
+/* Subtle effects stay inside the native floating window. */
+.window {
+  position: relative;
+  isolation: isolate;
+  box-shadow: inset 0 0 18px rgba(100, 191, 226, 0.06);
+  animation: floating-enter 280ms ease-out both;
+}
+
+.window::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border: 1px solid rgba(130, 201, 213, 0.28);
+  box-shadow: inset 0 0 12px rgba(100, 191, 226, 0.08);
+  pointer-events: none;
+}
+
+.points {
+  animation: points-enter 260ms ease-out both;
+}
+
+.header button, .controls button {
+  transition: background-color 160ms ease, color 160ms ease,
+    box-shadow 160ms ease, transform 120ms ease;
+}
+
+.header button:hover, .controls button:hover:not(:disabled) {
+  color: #fff;
+  box-shadow: inset 0 0 10px rgba(130, 201, 213, 0.14);
+}
+
+.header button:active, .controls button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+@keyframes floating-enter {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes points-enter {
+  from { opacity: 0; transform: translateY(3px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .window, .points { animation: none; }
+  .header button, .controls button { transition: none; }
+  .header button:active, .controls button:active:not(:disabled) { transform: none; }
+}
